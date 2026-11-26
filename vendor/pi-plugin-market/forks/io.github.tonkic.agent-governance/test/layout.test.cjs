@@ -1,0 +1,216 @@
+'use strict';
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const root = path.resolve(__dirname, '..');
+test('compiled JavaScript is separated and runtime exactly matches compiler output', () => {
+  const sources = ['main', 'core', 'git', 'panel', 'project', 'tool', 'operations', 'behaviors', 'documents', 'design', 'browser', 'browser-open', 'workbench', 'workbench-tool', 'entry-bridge', 'git-history', 'collaboration', 'collaboration-program', 'collaboration-cli'];
+  const renderer = ['i18n', 'help', 'graph-model', 'graph', 'shell', 'panel', 'design', 'documents', 'git-history'];
+  for (const file of [
+    ...sources.map((f) => `${f}.js`),
+    ...renderer.map((f) => `renderer/${f}.js`)
+  ]) {
+    if (file !== 'main.js')
+      assert.equal(
+        fs.existsSync(path.join(root, 'plugin', file)),
+        false,
+        `No adjacent output: ${file}`
+      );
+    assert.deepEqual(
+      fs.readFileSync(path.join(root, 'plugin/runtime', file)),
+      fs.readFileSync(path.join(root, 'build/plugin', file))
+    );
+  }
+  for (const file of ['scripts/build-manifest.js', 'scripts/governance.js', 'test/panel.test.js'])
+    assert.equal(fs.existsSync(path.join(root, file)), false);
+  const manifest = require('../plugin/manifest.json');
+  assert.equal(manifest.main, 'main.js');
+  assert.equal(typeof require(path.join(root, 'plugin', manifest.main)).onLoad, 'function');
+  assert.equal(manifest.ui.panel, 'entry/index.html');
+  assert.equal(manifest.contributes.views[0].entry, manifest.ui.panel);
+  const html = fs.readFileSync(path.join(root, 'plugin/renderer/index.html'), 'utf8');
+  for (const [, src] of html.matchAll(/<script src="([^"]+)"/g))
+    assert.ok(fs.existsSync(path.resolve(root, 'plugin/renderer', src)), src);
+});
+test('0.12.1 package, lock and generated plugin identify the Microsoft style docs and visual/motion workbench UI', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json')));
+  const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json')));
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'plugin/manifest.json')));
+  assert.equal(pkg.version, '0.12.1');
+  assert.equal(lock.version, pkg.version); assert.equal(lock.packages[''].version, pkg.version);
+  assert.equal(manifest.version, pkg.version);
+  assert.equal(manifest.id, 'io.github.tonkic.agent-governance');
+  assert.deepEqual(lock.packages[''].dependencies, pkg.dependencies);
+  assert.equal(pkg.devDependencies?.ssh2, undefined);
+  for (const removed of ['plugin/remote-ssh.ts', 'plugin/SSH-LICENSES.md', 'docs/remote.md', 'plugin/docs/remote.md', 'docs/mcp.md', 'plugin/docs/mcp.md', 'scripts/build-ssh.cjs']) assert.equal(fs.existsSync(path.join(root, removed)), false);
+  for (const doc of ['README.md', 'docs/ops/releasing.md', 'docs/ops/publishing.md']) assert.match(fs.readFileSync(path.join(root, doc), 'utf8'), /0\.12\.1/);
+});
+test('compiled CLI runs from the repository without adjacent JS dependencies', () => {
+  const result = JSON.parse(
+    execFileSync(process.execPath, ['build/scripts/governance.js'], {
+      cwd: root,
+      input: '{"action":"status"}',
+      encoding: 'utf8'
+    })
+  );
+  assert.equal(
+    result.task,
+    JSON.parse(fs.readFileSync(path.join(root, 'STATE.json'), 'utf8')).task
+  );
+});
+test('reader documentation links resolve to real repository files', () => {
+  const { docFiles } = require('../scripts/build-docs.cjs');
+  for (const file of [
+    'README.md',
+    'AGENTS.md',
+    'notes/README.md',
+    ...docFiles.map((f) => `docs/${f}`),
+    'plugin/README.md',
+    ...docFiles.map((f) => `plugin/docs/${f}`)
+  ]) {
+    const text = fs.readFileSync(path.join(root, file), 'utf8');
+    for (const [, link] of text.matchAll(/\]\(([^)]+)\)/g)) {
+      if (/^https?:/.test(link)) continue;
+      const [relative, anchor] = link.split('#');
+      const target = path.resolve(root, path.dirname(file), relative || path.basename(file));
+      assert.ok(fs.existsSync(target), `${file}: ${link}`);
+      if (anchor) {
+        const headings = [...fs.readFileSync(target, 'utf8').matchAll(/^#+ (.+)$/gm)].map(
+          ([, title]) =>
+            title
+              .toLowerCase()
+              .replace(/[^\p{L}\p{N}_\-\s]/gu, '')
+              .replace(/\s/g, '-')
+        );
+        assert.ok(headings.includes(decodeURIComponent(anchor)), `${file}: missing anchor ${link}`);
+      }
+    }
+  }
+});
+test('package documentation is generated from canonical concise docs and includes the license', () => {
+  const { docFiles, render, marker } = require('../scripts/build-docs.cjs');
+  for (const file of docFiles) {
+    const text = fs.readFileSync(path.join(root, 'docs', file), 'utf8');
+    assert.ok(text.trimEnd().split('\n').length <= 100, `Split a growing topic: ${file}`);
+    assert.equal(fs.readFileSync(path.join(root, 'plugin/docs', file), 'utf8'), render(text));
+  }
+  assert.equal(
+    fs.readFileSync(path.join(root, 'plugin/README.md'), 'utf8'),
+    render(fs.readFileSync(path.join(root, 'docs/README.md'), 'utf8'), true)
+  );
+  assert.match(
+    fs.readFileSync(path.join(root, 'plugin/docs/ops/ui-sources.md'), 'utf8'),
+    /MIT License/
+  );
+  const { piFiles } = require('../scripts/build-distributions.cjs');
+  for (const file of docFiles) assert.ok(piFiles.includes(`docs/${file}`));
+  assert.ok(fs.readFileSync(path.join(root, 'plugin/README.md'), 'utf8').startsWith(marker));
+  for (const old of ['GIT.md', 'PROJECT.md', 'PUBLISHING.md', 'UI-SOURCES.md'])
+    assert.equal(fs.existsSync(path.join(root, 'plugin', old)), false);
+  assert.equal(fs.existsSync(path.join(root, 'scripts/RELEASING.md')), false);
+});
+test('documentation generation preflights user files and linked outputs before writing', (t) => {
+  const { generate, docFiles } = require('../scripts/build-docs.cjs');
+  const temp = fs.mkdtempSync(
+    path.join(process.env.PI_SCRATCH_DIR || require('node:os').tmpdir(), 'docs-generation-')
+  );
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(temp, 'plugin'));
+  fs.cpSync(path.join(root, 'docs'), path.join(temp, 'docs'), { recursive: true });
+  generate(temp);
+  const readme = path.join(temp, 'plugin/README.md');
+  const before = fs.readFileSync(readme);
+  for (const file of [
+    readme,
+    ...docFiles.flatMap((f) => [path.join(temp, 'docs', f), path.join(temp, 'plugin/docs', f)])
+  ])
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/\r?\n/g, '\r\n'));
+  generate(temp);
+  assert.deepEqual(
+    fs.readFileSync(readme),
+    before,
+    'CRLF checkout must regenerate deterministically'
+  );
+  const userFile = path.join(temp, 'plugin/docs/user.md');
+  fs.writeFileSync(userFile, 'User content');
+  assert.throws(() => generate(temp), /Unknown/);
+  assert.deepEqual(fs.readFileSync(readme), before);
+  fs.unlinkSync(userFile);
+  const output = path.join(temp, 'plugin/docs', docFiles[1]);
+  fs.writeFileSync(output, 'Hand-written');
+  assert.throws(() => generate(temp), /hand-written/);
+  assert.equal(fs.readFileSync(output, 'utf8'), 'Hand-written');
+  assert.deepEqual(fs.readFileSync(readme), before);
+  fs.rmSync(path.join(temp, 'plugin/docs'), { recursive: true });
+  fs.symlinkSync(path.join(temp, 'docs'), path.join(temp, 'plugin/docs'), 'junction');
+  assert.throws(() => generate(temp), /linked/);
+  assert.deepEqual(fs.readFileSync(readme), before);
+});
+test('documentation generation rejects dangling output links without creating their targets', (t) => {
+  const { generate } = require('../scripts/build-docs.cjs');
+  const temp = fs.mkdtempSync(
+    path.join(process.env.PI_SCRATCH_DIR || require('node:os').tmpdir(), 'docs-dangling-')
+  );
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(temp, 'plugin'));
+  fs.cpSync(path.join(root, 'docs'), path.join(temp, 'docs'), { recursive: true });
+  const target = path.join(temp, 'unrelated');
+  fs.symlinkSync(target, path.join(temp, 'plugin/docs'), 'junction');
+  assert.throws(() => generate(temp), /linked/);
+  assert.equal(fs.existsSync(target), false);
+  fs.unlinkSync(path.join(temp, 'plugin/docs'));
+  try {
+    fs.symlinkSync(path.join(temp, 'unrelated.md'), path.join(temp, 'plugin/README.md'), 'file');
+  } catch (error) {
+    if (error.code === 'EPERM') {
+      t.diagnostic('File symlink requires OS privilege; dangling junction checked');
+      return;
+    }
+    throw error;
+  }
+  assert.throws(() => generate(temp), /linked/);
+  assert.equal(fs.existsSync(path.join(temp, 'unrelated.md')), false);
+});
+test('marketplace package entry is main.js and forwards the unchanged runtime exports', () => {
+  const manifest = require('../plugin/manifest.json');
+  const { piFiles } = require('../scripts/build-distributions.cjs');
+  assert.equal(manifest.main, 'main.js', 'PI requires exactly main.js');
+  assert.ok(piFiles.includes('main.js'), 'Entry must be in the exact-source official package');
+  assert.strictEqual(require('../plugin/main.js'), require('../plugin/runtime/main.js'));
+});
+test('generated entry is deterministic and refuses hand-written or dangling linked files', (t) => {
+  const entry = require('../scripts/build-entry.cjs');
+  assert.equal(fs.readFileSync(path.join(root, 'plugin/main.js'), 'utf8'), entry.content);
+  const temp = fs.mkdtempSync(
+    path.join(process.env.PI_SCRATCH_DIR || require('node:os').tmpdir(), 'entry-generation-')
+  );
+  t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(temp, 'plugin'));
+  const output = path.join(temp, 'plugin/main.js');
+  entry.generate(temp);
+  fs.writeFileSync(output, entry.content.replace(/\n/g, '\r\n'));
+  entry.generate(temp);
+  assert.equal(fs.readFileSync(output, 'utf8'), entry.content);
+  fs.writeFileSync(output, 'User entry');
+  assert.throws(() => entry.generate(temp), /hand-written/);
+  assert.equal(fs.readFileSync(output, 'utf8'), 'User entry');
+  fs.unlinkSync(output);
+  const target = path.join(temp, 'missing');
+  fs.symlinkSync(target, output, 'junction');
+  assert.throws(() => entry.generate(temp), /linked/);
+  assert.equal(fs.existsSync(target), false);
+});
+test('completed history has its own accessible modal, semantic table and horizontal scrolling region', () => {
+  const html = fs.readFileSync(path.join(root, 'plugin/renderer/index.html'), 'utf8');
+  const css = fs.readFileSync(path.join(root, 'plugin/renderer/views.css'), 'utf8');
+  assert.match(html, /<dialog id="completed-history-dialog"[^>]*aria-labelledby="completed-history-title"/);
+  assert.match(html, /<input id="completed-history-search" type="search"/);
+  assert.match(html, /class="completed-table-scroll" tabindex="0" role="region"/);
+  assert.match(html, /<table class="completed-table"><caption/);
+  assert.equal((html.match(/<th scope="col"/g) || []).length, 5);
+  assert.match(css, /\.completed-table-scroll \{ overflow: auto/);
+  assert.match(css, /\.completed-history-dialog \{[\s\S]*?margin: auto/);
+  assert.match(css, /max-height: calc\(100dvh - 32px\)/);
+});

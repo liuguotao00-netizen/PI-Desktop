@@ -1,0 +1,11 @@
+{
+  "id": "io.github.cydione.prompt-injector",
+  "repository": "https://github.com/cyDione/pi-prompt-injector",
+  "branch": "HEAD",
+  "commit": "5cf8c9d7dfc3f814",
+  "version": "1.2.0",
+  "tarball": "https://api.github.com/repos/cyDione/pi-prompt-injector/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:15:00.567Z",
+  "mode": "source-snapshot",
+  "sha256": "5cf8c9d7dfc3f814d99a37a5eeff44ac1f72aa706c9946b8e15be1e7364b8631"
+}

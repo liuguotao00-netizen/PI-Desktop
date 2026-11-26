@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "id": "local.git-workbench",
+  "name": "Git Workbench",
+  "version": "0.2.0",
+  "description": "Keep Git in the PI-Desktop work panel: review changed files, stage or discard them, write or let the model generate the commit message, then commit, pull and push — plus a commit history at the bottom of the panel with the properties, changed files and diff of any commit, without leaving the app.",
+  "i18n": {
+    "en": {
+      "name": "Git Workbench",
+      "description": "Keep Git in the PI-Desktop work panel: review changed files, stage or discard them, write or let the model generate the commit message, then commit, pull and push — plus a commit history at the bottom of the panel with the properties, changed files and diff of any commit, without leaving the app."
+    },
+    "zh-CN": {
+      "name": "Git Workbench",
+      "description": "在 PI-Desktop 右侧工作面板里完成 Git 日常操作：查看改动文件、暂存或放弃改动、手写或让模型生成提交信息，然后提交、拉取、推送；面板底部可查看最近提交历史与单个提交的属性、改动文件和差异，无需离开应用。"
+    }
+  },
+  "author": "PI-Desktop",
+  "categories": ["developer-tools"],
+  "safetyNotes": "Runs the system git binary against the repository root resolved from the open workspace, always with an argument array (no shell) and GIT_TERMINAL_PROMPT=0. Commit messages are written over stdin. The one-shot completion only receives the diff of the changes being committed, not the chat transcript, and never receives credentials. Push and pull use the user's existing git remote and credentials. Before a push the plugin may read the SSH host keys of the remote with ssh-keyscan/ssh-keygen and, only after the user confirms the displayed SHA256 fingerprints, append exactly those keys to ~/.ssh/known_hosts (0600, directory 0700). It never reads private keys and changes no other file under ~/.ssh.",
+  "main": "main.js",
+  "contributes": {
+    "views": [
+      {
+        "id": "changes",
+        "title": {
+          "en": "Git",
+          "zh-CN": "Git"
+        },
+        "icon": "branch",
+        "entry": "renderer/index.html",
+        "order": 15
+      }
+    ],
+    "commands": [
+      {
+        "id": "git-workbench.open",
+        "title": "Git Workbench: Open",
+        "keywords": ["git", "commit", "push", "pull", "提交", "推送", "拉取"],
+        "category": "Developer"
+      },
+      {
+        "id": "git-workbench.pull",
+        "title": "Git Workbench: Pull",
+        "keywords": ["git", "pull", "拉取", "更新"],
+        "category": "Developer"
+      },
+      {
+        "id": "git-workbench.push",
+        "title": "Git Workbench: Push",
+        "keywords": ["git", "push", "推送", "上传"],
+        "category": "Developer"
+      }
+    ]
+  },
+  "permissions": ["ui.view", "models.list", "agent.complete"],
+  "engines": {
+    "piDesktop": ">=0.8.0"
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:git-workbench.open",
+    "onCommand:git-workbench.pull",
+    "onCommand:git-workbench.push"
+  ]
+}

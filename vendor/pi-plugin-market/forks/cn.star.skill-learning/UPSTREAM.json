@@ -1,0 +1,11 @@
+{
+  "id": "cn.star.skill-learning",
+  "repository": "https://github.com/TheFlareStar-Re/PI-Skill-Learning",
+  "branch": "HEAD",
+  "commit": "2f9143e540609b6a",
+  "version": "0.2.0",
+  "tarball": "https://api.github.com/repos/TheFlareStar-Re/PI-Skill-Learning/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:44:34.127Z",
+  "mode": "source-snapshot",
+  "sha256": "2f9143e540609b6ad44de1fdbce8528a4626978fb90eda89ce1c54b76aa566f4"
+}

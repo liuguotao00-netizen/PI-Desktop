@@ -1,0 +1,11 @@
+{
+  "id": "io.github.xideadev.pi-wechatbot",
+  "repository": "https://github.com/XideaDev/Pi-WechatBot",
+  "branch": "HEAD",
+  "commit": "5e26bb3",
+  "version": "1.4.0",
+  "tarball": "https://api.github.com/repos/XideaDev/Pi-WechatBot/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:10.072Z",
+  "mode": "source-snapshot",
+  "sha256": "f65b8bdbefe59a8adacc2194a42c954948f7d0e28d2eb3dd9b593d8a208effb8"
+}

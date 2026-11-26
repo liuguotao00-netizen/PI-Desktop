@@ -1,0 +1,793 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const test = require("node:test");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const remote = require("../features/remote/index.js");
+const { createRemoteServer, originAllowed, ASSETS } = require("../features/remote/server.js");
+
+const internals = remote._internals;
+
+function freePort() {
+  return 18000 + Math.floor(Math.random() * 2000);
+}
+
+async function withServer(overrides = {}) {
+  const calls = [];
+  const port = overrides.port || freePort();
+  const auth = overrides.auth || {
+    checkCode: (code) => code === "123456",
+    register: (name) => ({ token: "tok-abc", name, createdAt: "2026-01-01T00:00:00.000Z" }),
+    verify: (token) => (token === "tok-abc" ? { token, name: "测试机" } : null),
+  };
+  const api = overrides.api || {
+    sessions: async () => [{ id: "s1", title: "会话一", running: false }],
+    session: async (id) => (id === "s1" ? { session: { id, title: "会话一" }, messages: [], running: false } : null),
+    prompt: async (id, content) => {
+      calls.push(["prompt", id, content]);
+      return {};
+    },
+    abort: async (id) => {
+      calls.push(["abort", id]);
+      return {};
+    },
+    snapshot: async () => ({ sessions: [] }),
+  };
+  const server = createRemoteServer({ host: "127.0.0.1", port, auth, api, log: () => {} });
+  await server.start({ port });
+  return {
+    port,
+    calls,
+    base: `http://127.0.0.1:${port}`,
+    async close() {
+      await server.stop();
+    },
+  };
+}
+
+// ------------------------------------------------------------------ pure bits
+
+test("a session row is normalized across the shapes the host has used", () => {
+  assert.equal(internals.normalizeSessionRow(null), null);
+  assert.equal(internals.normalizeSessionRow({ title: "无 id" }), null);
+
+  const row = internals.normalizeSessionRow({
+    sessionId: "abc",
+    title: "  写一个功能  ",
+    projectPath: "E:\\AgentProjects\\PiOpt",
+    updatedAt: "2026-10-30T10:00:00.000Z",
+    running: true,
+  });
+  assert.equal(row.id, "abc");
+  assert.equal(row.title, "写一个功能");
+  assert.equal(row.projectName, "PiOpt");
+  assert.equal(row.running, true);
+
+  const untitled = internals.normalizeSessionRow({ id: "x", isRunning: true });
+  assert.equal(untitled.title, "未命名会话");
+  assert.equal(untitled.running, true);
+});
+
+test("a transcript keeps user and assistant text and drops system rows", () => {
+  const messages = internals.normalizeMessages([
+    { role: "user", blocks: [{ type: "text", text: "你好" }] },
+    { role: "system", blocks: [{ type: "text", text: "运行时提示" }] },
+    {
+      role: "assistant",
+      blocks: [
+        { type: "text", text: "先看一下" },
+        { type: "tool-call", name: "Read" },
+      ],
+    },
+    { role: "user", blocks: [{ type: "text", text: "   " }] },
+  ]);
+  assert.equal(messages.length, 2);
+  assert.equal(messages[0].role, "user");
+  assert.equal(messages[0].text, "你好");
+  // Blocks keep their shape: the tool call is a tool block, not text glued onto
+  // the message body.
+  assert.deepEqual(messages[1].blocks.map((block) => block.kind), ["text", "tool"]);
+  assert.equal(messages[1].blocks[0].text, "先看一下");
+  assert.equal(messages[1].blocks[1].name, "Read");
+  assert.equal(messages[1].text, "先看一下");
+});
+
+test("an overlong block is truncated instead of shipped whole", () => {
+  const long = "x".repeat(9000);
+  const [message] = internals.normalizeMessages([{ role: "assistant", content: long }]);
+  assert.equal(message.text.endsWith("…"), true);
+  assert.ok(message.text.length <= 8001);
+});
+
+test("only private IPv4 ranges are offered as the phone address", () => {
+  assert.equal(internals.isPrivateV4("192.168.1.20"), true);
+  assert.equal(internals.isPrivateV4("10.0.4.7"), true);
+  assert.equal(internals.isPrivateV4("172.20.1.1"), true);
+  assert.equal(internals.isPrivateV4("172.32.1.1"), false);
+  assert.equal(internals.isPrivateV4("8.8.8.8"), false);
+  assert.equal(internals.isPrivateV4("nope"), false);
+});
+
+test("the pairing code is six digits", () => {
+  for (let index = 0; index < 50; index += 1) {
+    assert.match(internals.randomCode(), /^\d{6}$/);
+  }
+});
+
+test("an origin from another host on the LAN is refused", () => {
+  const request = (origin, hostHeader) => originAllowed({ headers: { origin, host: hostHeader } }, 8790);
+  assert.equal(request(undefined, "192.168.1.5:8790"), true);
+  assert.equal(request("http://192.168.1.5:8790", "192.168.1.5:8790"), true);
+  assert.equal(request("http://localhost:8790", "192.168.1.5:8790"), true);
+  assert.equal(request("http://192.168.1.99:8790", "192.168.1.5:8790"), false);
+  assert.equal(request("http://192.168.1.5:9999", "192.168.1.5:8790"), false);
+  assert.equal(request("https://192.168.1.5:8790", "192.168.1.5:8790"), false);
+});
+
+// --------------------------------------------------------------- HTTP surface
+
+test("the phone page and its assets are served without a token", async () => {
+  const server = await withServer();
+  try {
+    const page = await fetch(`${server.base}/`);
+    assert.equal(page.status, 200);
+    assert.match(page.headers.get("content-type"), /text\/html/);
+    assert.match(await page.text(), /配对/);
+
+    for (const asset of ["/app.js", "/style.css"]) {
+      assert.ok(ASSETS.has(asset), asset);
+      const response = await fetch(`${server.base}${asset}`);
+      assert.equal(response.status, 200, asset);
+    }
+    for (const asset of ["/folder.svg", "/clock.svg"]) {
+      const response = await fetch(`${server.base}${asset}`);
+      assert.equal(response.status, 200, asset);
+      assert.match(response.headers.get("content-type"), /image\/svg\+xml/);
+      assert.match(await response.text(), /<svg/);
+    }
+  } finally {
+    await server.close();
+  }
+});
+
+test("remote page exposes an accessible wide-screen sidebar separator", () => {
+  const mobile = path.join(__dirname, "../features/remote/mobile");
+  const html = fs.readFileSync(path.join(mobile, "index.html"), "utf8");
+  const css = fs.readFileSync(path.join(mobile, "style.css"), "utf8");
+  const app = fs.readFileSync(path.join(mobile, "app.js"), "utf8");
+  assert.match(html, /id="list-resizer"[^>]*role="separator"/);
+  assert.match(html, /aria-controls="list"/);
+  assert.match(css, /@media \(min-width: 900px\)/);
+  assert.match(css, /width: var\(--list-w\)/);
+  assert.match(app, /piopt\.remote\.listWidth/);
+  assert.match(app, /setPointerCapture/);
+});
+
+test("composer and pending prompts belong to the conversation pane", () => {
+  const html = fs.readFileSync(path.join(__dirname, "../features/remote/mobile/index.html"), "utf8");
+  const main = html.match(/<main id="main"[\s\S]*?<\/main>/);
+  assert.ok(main);
+  assert.match(main[0], /id="pending"/);
+  assert.match(main[0], /id="composer"/);
+});
+
+test("every API route but pairing needs the device token", async () => {
+  const server = await withServer();
+  try {
+    for (const route of ["/api/bootstrap", "/api/session/s1", "/api/stream"]) {
+      const response = await fetch(`${server.base}${route}`);
+      assert.equal(response.status, 401, route);
+    }
+  } finally {
+    await server.close();
+  }
+});
+
+test("pairing takes the right code once and hands back a token", async () => {
+  const server = await withServer();
+  try {
+    const wrong = await fetch(`${server.base}/api/pair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "000000" }),
+    });
+    assert.equal(wrong.status, 401);
+
+    const right = await fetch(`${server.base}/api/pair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "123456", name: "我的手机" }),
+    });
+    assert.equal(right.status, 200);
+    const body = await right.json();
+    assert.equal(body.token, "tok-abc");
+    assert.equal(body.name, "我的手机");
+
+    const bootstrap = await fetch(`${server.base}/api/bootstrap`, {
+      headers: { "x-pi-device": body.token },
+    });
+    assert.equal(bootstrap.status, 200);
+    const payload = await bootstrap.json();
+    assert.equal(payload.sessions[0].id, "s1");
+    assert.equal(payload.device.name, "测试机");
+  } finally {
+    await server.close();
+  }
+});
+
+test("five wrong codes from one address lock pairing for a minute", async () => {
+  const server = await withServer();
+  try {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const response = await fetch(`${server.base}/api/pair`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: "111111" }),
+      });
+      assert.equal(response.status, 401);
+    }
+    const locked = await fetch(`${server.base}/api/pair`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: "123456" }),
+    });
+    assert.equal(locked.status, 429);
+  } finally {
+    await server.close();
+  }
+});
+
+test("a paired phone reads one session and drives prompt and abort", async () => {
+  const server = await withServer();
+  const headers = { "x-pi-device": "tok-abc", "Content-Type": "application/json" };
+  try {
+    const read = await fetch(`${server.base}/api/session/s1`, { headers });
+    assert.equal(read.status, 200);
+    const payload = await read.json();
+    assert.equal(payload.session.title, "会话一");
+
+    const missing = await fetch(`${server.base}/api/session/nope`, { headers });
+    assert.equal(missing.status, 404);
+
+    const prompt = await fetch(`${server.base}/api/session/s1/prompt`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ content: "继续" }),
+    });
+    assert.equal(prompt.status, 200);
+    assert.deepEqual(server.calls.at(-1), ["prompt", "s1", "继续"]);
+
+    const empty = await fetch(`${server.base}/api/session/s1/prompt`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ content: "   " }),
+    });
+    assert.equal(empty.status, 400);
+
+    const abort = await fetch(`${server.base}/api/session/s1/abort`, { method: "POST", headers, body: "{}" });
+    assert.equal(abort.status, 200);
+    assert.deepEqual(server.calls.at(-1), ["abort", "s1"]);
+  } finally {
+    await server.close();
+  }
+});
+
+test("a session id with path characters is rejected before it reaches the host", async () => {
+  const server = await withServer();
+  try {
+    const response = await fetch(`${server.base}/api/session/..%2Fetc%2Fpasswd`, {
+      headers: { "x-pi-device": "tok-abc" },
+    });
+    assert.equal(response.status, 400);
+  } finally {
+    await server.close();
+  }
+});
+
+test("an unrecognised route is a 404, not a stack trace", async () => {
+  const server = await withServer();
+  try {
+    const response = await fetch(`${server.base}/api/nope`, { headers: { "x-pi-device": "tok-abc" } });
+    assert.equal(response.status, 404);
+    const body = await response.json();
+    assert.equal(typeof body.error, "string");
+  } finally {
+    await server.close();
+  }
+});
+
+test("the stream sends the first frame and then tracks the snapshot", async () => {
+  let snapshot = { sessions: [] };
+  const server = await withServer({
+    api: {
+      sessions: async () => [],
+      session: async () => null,
+      prompt: async () => ({}),
+      abort: async () => ({}),
+      snapshot: async () => snapshot,
+    },
+  });
+  const controller = new AbortController();
+  try {
+    const response = await fetch(`${server.base}/api/stream?token=tok-abc`, { signal: controller.signal });
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get("content-type"), /text\/event-stream/);
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let text = "";
+    const first = await reader.read();
+    text += decoder.decode(first.value);
+    assert.match(text, /event: hello/);
+
+    snapshot = { sessions: [{ id: "s2", title: "新会话", running: true }] };
+    // The interval is 2.5s; one tick is enough to see the frame.
+    const deadline = Date.now() + 6000;
+    while (Date.now() < deadline && !/新会话/.test(text)) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      text += decoder.decode(chunk.value);
+    }
+    assert.match(text, /event: sessions/);
+    assert.match(text, /新会话/);
+    await reader.cancel();
+  } finally {
+    controller.abort();
+    await server.close();
+  }
+});
+
+test("the port guard rejects anything a phone could not open", async () => {
+  const server = createRemoteServer({
+    host: "127.0.0.1",
+    auth: { checkCode: () => false, register: () => ({}), verify: () => null },
+    api: {},
+  });
+  await assert.rejects(() => server.start({ port: 80 }), /1024/);
+  await assert.rejects(() => server.start({ port: 70000 }), /1024/);
+});
+
+test("one session's transcript is read through whichever host shape answers", async () => {
+  const saved = global.pi;
+  const shapes = [
+    // bundle.session.messages
+    { get: { session: { id: "s1", title: "会话一", messages: [{ role: "user", content: "你好" }] } }, expectText: "你好" },
+    // bundle.messages
+    { get: { id: "s1", title: "会话一", messages: [{ role: "user", content: "你好" }] }, expectText: "你好" },
+    // only listMessages answers
+    { get: { session: { id: "s1", title: "会话一" } }, listMessages: [{ role: "assistant", content: "在" }], expectText: "在" },
+    // get fails entirely, listMessages still answers
+    { getError: new Error("no such session"), listMessages: [{ role: "assistant", content: "在" }], expectText: "在" },
+  ];
+  try {
+    for (const shape of shapes) {
+      global.pi = {
+        session: {
+          get: async () => {
+            if (shape.getError) throw shape.getError;
+            return shape.get;
+          },
+          listMessages: async () => shape.listMessages || [],
+        },
+      };
+      const payload = await internals.readSession("s1", { limit: 20 });
+      assert.equal(payload.session.id, "s1");
+      assert.equal(payload.messages.length, 1);
+      assert.equal(payload.messages[0].text, shape.expectText);
+    }
+
+    // Nothing answers: still a session, just no messages.
+    global.pi = {
+      session: {
+        get: async () => {
+          throw new Error("gone");
+        },
+        listMessages: async () => {
+          throw new Error("gone");
+        },
+      },
+    };
+    const empty = await internals.readSession("s2", { limit: 20 });
+    assert.deepEqual(empty.messages, []);
+    assert.equal(empty.session.id, "s2");
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("a waiting session is read from both read-only channels", async () => {
+  const saved = global.pi;
+  const calls = [];
+  global.pi = {
+    desktop: {
+      invoke: async ({ operation }) => {
+        calls.push(operation);
+        if (operation === "agent/pendingInteractive") {
+          return {
+            asks: [{ question: "先改测试还是先改实现？", options: [{ label: "先改测试" }, "先改实现"] }],
+            permissions: [{ toolName: "Bash", description: "执行 npm publish" }],
+          };
+        }
+        if (operation === "plans/pending") return { proposals: [{ title: "统一设计语言" }] };
+        throw new Error(`unexpected ${operation}`);
+      },
+    },
+  };
+  try {
+    const pending = await internals.readPending("s1");
+    assert.deepEqual(calls.sort(), ["agent/pendingInteractive", "plans/pending"]);
+    assert.equal(pending.count, 3);
+    assert.equal(pending.items[0].kind, "ask");
+    assert.deepEqual(pending.items[0].options, ["先改测试", "先改实现"]);
+    assert.equal(pending.items[1].kind, "permission");
+    assert.equal(pending.items[1].text, "执行 npm publish");
+    assert.equal(pending.items[2].text, "统一设计语言");
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("a host that refuses both channels reports nothing pending", async () => {
+  const saved = global.pi;
+  global.pi = {
+    desktop: {
+      invoke: async () => {
+        throw Object.assign(new Error("unsupported"), { code: "UNSUPPORTED" });
+      },
+    },
+  };
+  try {
+    assert.deepEqual(await internals.readPending("s1"), { count: 0, items: [] });
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("the phone's list marks a running session that is waiting, not every row", async () => {
+  const saved = global.pi;
+  global.pi = {
+    session: {
+      list: async () => [
+        { id: "s1", title: "A", running: true },
+        { id: "s2", title: "B", running: false },
+      ],
+    },
+    desktop: {
+      invoke: async ({ operation, args }) => {
+        if (operation === "session/list") throw new Error("desktop channel unavailable");
+        if (operation === "agent/pendingInteractive") {
+          return args[0].sessionId === "s1" ? { asks: [{ question: "继续吗？" }] } : { asks: [] };
+        }
+        return {};
+      },
+    },
+  };
+  try {
+    const plain = await internals.listSessions({ limit: 10 });
+    assert.equal(plain[0].waiting, undefined);
+
+    const probed = await internals.listSessions({ limit: 10, probe: true });
+    assert.equal(probed[0].waiting, 1);
+    assert.equal(probed[0].waitingText, "继续吗？");
+    assert.equal(probed[1].waiting, undefined);
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("sessions are read through the desktop channel, not the plugin session api", async () => {
+  const saved = global.pi;
+  const calls = [];
+  const rows = [{ id: "s1", title: "从桌面通道来", updatedAt: "2026-11-01T10:00:00.000Z" }];
+  global.pi = {
+    desktop: {
+      invoke: async ({ operation }) => {
+        calls.push(operation);
+        if (operation === "session/list") return { sessions: rows };
+        throw new Error(`unexpected ${operation}`);
+      },
+    },
+    session: {
+      list: async () => {
+        throw new Error("missing permission: session.read.own");
+      },
+    },
+  };
+  try {
+    const sessions = await internals.listSessions({ limit: 10 });
+    assert.deepEqual(calls, ["session/list"]);
+    assert.equal(sessions.length, 1);
+    assert.equal(sessions[0].title, "从桌面通道来");
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("the plugin session api is still a fallback, and both failing names the reason", async () => {
+  const saved = global.pi;
+  global.pi = {
+    desktop: {
+      invoke: async () => {
+        throw new Error("desktop unavailable");
+      },
+    },
+    session: {
+      list: async () => [{ id: "s1", title: "退回插件 API" }],
+    },
+  };
+  try {
+    const sessions = await internals.listSessions({ limit: 10 });
+    assert.equal(sessions[0].title, "退回插件 API");
+  } finally {
+    global.pi = saved;
+  }
+
+  global.pi = {
+    desktop: {
+      invoke: async () => {
+        throw new Error("desktop unavailable");
+      },
+    },
+    session: {
+      list: async () => {
+        throw new Error("missing permission: session.read.own");
+      },
+    },
+  };
+  try {
+    await assert.rejects(() => internals.listSessions({ limit: 10 }), /desktop unavailable/);
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("a paired device survives a reload because it is a file, not a settings key", async () => {
+  const saved = global.pi;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "piopt-remote-"));
+  const savedDir = internals.state.dataDir;
+  const savedDevices = internals.state.devices;
+  const savedCode = internals.state.code;
+  global.pi = { plugin: { getSettings: async () => ({ remoteDevices: [] }) } };
+  try {
+    internals.state.dataDir = dir;
+    internals.state.devices = [];
+    internals.state.code = "123456";
+    const auth = internals.createAuth();
+    const device = auth.register("我的手机");
+
+    const file = internals.devicesFile();
+    assert.equal(file, path.join(dir, "remote-devices.json"));
+    const onDisk = JSON.parse(fs.readFileSync(file, "utf8"));
+    assert.equal(onDisk.length, 1);
+    assert.equal(onDisk[0].token, device.token);
+
+    // A reload clears the in-memory array and re-reads the file.
+    internals.state.devices = [];
+    await internals.loadDevices({});
+    assert.equal(internals.state.devices.length, 1);
+    assert.equal(internals.state.devices[0].name, "我的手机");
+
+    // And the token still authenticates after that reload.
+    const fresh = internals.createAuth();
+    assert.ok(fresh.verify(device.token));
+    assert.equal(fresh.verify("not-a-token"), null);
+  } finally {
+    global.pi = saved;
+    internals.state.dataDir = savedDir;
+    internals.state.devices = savedDevices;
+    internals.state.code = savedCode;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("the settings-era device array is adopted once and never read again", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "piopt-legacy-"));
+  const savedDir = internals.state.dataDir;
+  const savedDevices = internals.state.devices;
+  try {
+    internals.state.dataDir = dir;
+    internals.state.devices = [];
+    await internals.loadDevices({ remoteDevices: [{ token: "legacy-token-1", name: "旧手机" }] });
+    assert.equal(internals.state.devices.length, 1);
+    assert.equal(internals.state.devices[0].name, "旧手机");
+    assert.ok(fs.existsSync(path.join(dir, "remote-devices.json")));
+
+    // A second load prefers the file over whatever settings still say.
+    internals.state.devices = [];
+    await internals.loadDevices({ remoteDevices: [] });
+    assert.equal(internals.state.devices.length, 1);
+  } finally {
+    internals.state.dataDir = savedDir;
+    internals.state.devices = savedDevices;
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("projects are normalized across shapes and keyed by folder", () => {
+  const rows = internals.normalizeProjects({
+    projects: [
+      { path: "E:/a/PiOpt", name: "PiOpt", lastOpenedAt: 2 },
+      "E:/a/Synconym",
+      { projectPath: "E:/a/PiOpt" },
+      { root: "" },
+      { path: "E:/a/Polumix", title: "Polumix", updatedAt: 3 },
+    ],
+  });
+  assert.deepEqual(rows.map((row) => row.path), ["E:/a/Polumix", "E:/a/PiOpt", "E:/a/Synconym"]);
+  assert.equal(rows[0].name, "Polumix");
+  // A bare string still gets a readable name from its last folder.
+  assert.equal(rows[2].name, "Synconym");
+  assert.deepEqual(internals.normalizeProjects(null), []);
+});
+
+test("a new session carries the folder, or nothing for a chat with no project", async () => {
+  const saved = global.pi;
+  const calls = [];
+  global.pi = {
+    desktop: {
+      invoke: async ({ operation, args }) => {
+        calls.push([operation, args]);
+        if (operation === "session/create") return { session: { id: "new-1", title: "New task" } };
+        throw new Error(`unexpected ${operation}`);
+      },
+    },
+  };
+  try {
+    const withProject = await internals.createNewSession({ projectPath: "E:/a/PiOpt" });
+    assert.deepEqual(calls.at(-1), ["session/create", [{ projectPath: "E:/a/PiOpt" }]]);
+    assert.equal(withProject.id, "new-1");
+
+    await internals.createNewSession({});
+    // No projectPath key at all — that is what makes it a chat with no project.
+    assert.deepEqual(calls.at(-1), ["session/create", [{}]]);
+  } finally {
+    global.pi = saved;
+  }
+
+  global.pi = {
+    desktop: {
+      invoke: async () => ({ session: {} }),
+    },
+  };
+  try {
+    await assert.rejects(() => internals.createNewSession({}), /没有返回 id/);
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("the gateway exposes projects and session creation behind the token", async () => {
+  const server = await withServer({
+    api: {
+      sessions: async () => [],
+      session: async () => null,
+      prompt: async () => ({}),
+      abort: async () => ({}),
+      projects: async () => [{ path: "E:/a/PiOpt", name: "PiOpt" }],
+      createSession: async ({ projectPath }) => ({ id: "new-9", title: "New task", projectPath }),
+      snapshot: async () => ({ sessions: [] }),
+    },
+  });
+  const headers = { "x-pi-device": "tok-abc", "Content-Type": "application/json" };
+  try {
+    const unauth = await fetch(`${server.base}/api/projects`);
+    assert.equal(unauth.status, 401);
+
+    const projects = await fetch(`${server.base}/api/projects`, { headers });
+    assert.equal(projects.status, 200);
+    assert.deepEqual((await projects.json()).projects, [{ path: "E:/a/PiOpt", name: "PiOpt" }]);
+
+    const created = await fetch(`${server.base}/api/sessions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ projectPath: "E:/a/PiOpt" }),
+    });
+    assert.equal(created.status, 200);
+    assert.equal((await created.json()).session.id, "new-9");
+
+    const bare = await fetch(`${server.base}/api/sessions`, { method: "POST", headers, body: "{}" });
+    assert.equal(bare.status, 200);
+
+    const junk = await fetch(`${server.base}/api/sessions`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ projectPath: "not-a-path" }),
+    });
+    assert.equal(junk.status, 400);
+  } finally {
+    await server.close();
+  }
+});
+
+test("a fork asks the host to cut at a message and reports running state separately", async () => {
+  const saved = global.pi;
+  const calls = [];
+  global.pi = {
+    desktop: {
+      invoke: async ({ operation, args }) => {
+        calls.push([operation, args]);
+        if (operation === "session/fork") return { session: { id: "fork-1", title: "重问" } };
+        if (operation === "agent/getStatus") {
+          return { isRunning: true, currentTurnId: "turn-9", pendingToolConfirmations: [{ id: "c1" }] };
+        }
+        throw new Error(`unexpected ${operation}`);
+      },
+    },
+  };
+  try {
+    const forked = await internals.forkSession("s1", { throughMessageId: "m2", title: "重问" });
+    assert.equal(forked.id, "fork-1");
+    assert.deepEqual(calls.at(-1), ["session/fork", [{ sessionId: "s1", throughMessageId: "m2", title: "重问" }]]);
+
+    // No cut point and no title: only the session id travels.
+    await internals.forkSession("s1", {});
+    assert.deepEqual(calls.at(-1), ["session/fork", [{ sessionId: "s1" }]]);
+
+    const status = await internals.readAgentStatus("s1");
+    assert.deepEqual(status, { isRunning: true, currentTurnId: "turn-9", pendingConfirmations: 1 });
+  } finally {
+    global.pi = saved;
+  }
+
+  global.pi = { desktop: { invoke: async () => ({}) } };
+  try {
+    await assert.rejects(() => internals.forkSession("s1", {}), /分叉没有返回会话/);
+  } finally {
+    global.pi = saved;
+  }
+
+  global.pi = {
+    desktop: {
+      invoke: async () => {
+        throw new Error("no status");
+      },
+    },
+  };
+  try {
+    assert.deepEqual(await internals.readAgentStatus("s1"), {
+      isRunning: false,
+      currentTurnId: "",
+      pendingConfirmations: 0,
+    });
+  } finally {
+    global.pi = saved;
+  }
+});
+
+test("the gateway exposes the fork route behind the token", async () => {
+  const forked = [];
+  const server = await withServer({
+    api: {
+      sessions: async () => [],
+      session: async () => null,
+      prompt: async () => ({}),
+      abort: async () => ({}),
+      projects: async () => [],
+      createSession: async () => ({ id: "new-1" }),
+      fork: async (sessionId, input) => {
+        forked.push([sessionId, input]);
+        return { id: "fork-1", title: "重问" };
+      },
+      agentStatus: async () => ({ isRunning: false }),
+      snapshot: async () => ({ sessions: [] }),
+    },
+  });
+  const headers = { "x-pi-device": "tok-abc", "Content-Type": "application/json" };
+  try {
+    const unauth = await fetch(`${server.base}/api/session/s1/fork`, { method: "POST", body: "{}" });
+    assert.equal(unauth.status, 401);
+
+    const response = await fetch(`${server.base}/api/session/s1/fork`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ throughMessageId: "m2", title: "重问" }),
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json()).session, { id: "fork-1", title: "重问" });
+    assert.deepEqual(forked.at(-1), ["s1", { throughMessageId: "m2", title: "重问" }]);
+  } finally {
+    await server.close();
+  }
+});

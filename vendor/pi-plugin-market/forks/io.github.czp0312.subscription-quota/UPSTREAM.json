@@ -1,0 +1,11 @@
+{
+  "id": "io.github.czp0312.subscription-quota",
+  "repository": "https://github.com/czp0312/pi-desktop-quota-visualizer",
+  "branch": "HEAD",
+  "commit": "009b084",
+  "version": "0.4.2",
+  "tarball": "https://api.github.com/repos/czp0312/pi-desktop-quota-visualizer/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:53.345Z",
+  "mode": "source-snapshot",
+  "sha256": "d19dcb8a4f2360719bf8b76ff77a71d481d57f8f7073ea4312f0f20b22cae59d"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "pi.prompt-switcher",
+  "repository": "https://github.com/mikulo/pi-prompt-switcher",
+  "branch": "HEAD",
+  "commit": "a62bdae5cfc30da5",
+  "version": "1.0.1",
+  "tarball": "https://api.github.com/repos/mikulo/pi-prompt-switcher/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:48.356Z",
+  "mode": "source-snapshot",
+  "sha256": "a62bdae5cfc30da5e396f6eee862c1ab106f6eb2d46d51c288d0ec41da2a514d"
+}

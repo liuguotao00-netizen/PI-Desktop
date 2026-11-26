@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+      PI-Desktop 提供 46px 拖拽带与三按钮窗口胶囊。pi-plugin-chrome=v3 表示
+      面板全出血、宿主在拖拽带上留出控件空洞；应用自身用
+      var(--pi-plugin-titlebar-height, 46px) 预留该高度（见 design/base.css）。
+    -->
+    <meta name="pi-plugin-chrome" content="v3" />
+    <title>Pi Markdown 笔记</title>
+    <script>window.__APPEARANCE_CACHE_KEY = "pi-markdown.appearance.v1";</script>
+    <script src="./appearance-boot.js"></script>
+    <!-- 首帧前同步恢复上次主题，避免闪屏与宿主胶囊取色错误 -->
+    <script>
+      try {
+        var __pimdTheme = localStorage.getItem("pimd.theme.v1");
+        if (__pimdTheme === "dark" || __pimdTheme === "light") {
+          document.documentElement.dataset.theme = __pimdTheme;
+        }
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="./assets/app.css" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./assets/app.js"></script>
+    <script src="./appearance.js"></script>
+    <script>
+      if (window.__appearance) {
+        window.__appearance.onThemeChange(function (base) {
+          try {
+            localStorage.setItem("pimd.theme.v1", base);
+          } catch (e) {}
+        });
+        window.__appearance.init(window.pluginBridge);
+      }
+    </script>
+    <script>
+      // 窗口控制胶囊实时重上色：把当前调色板覆写到宿主的两个取色变量上，
+      // 任何来源（宿主广播 / 面板内切换）的主题变化都能立即换到正确墨色。
+      (function () {
+        function paletteColor(name, lightFallback, darkFallback) {
+          try {
+            var raw = window
+              .getComputedStyle(document.documentElement)
+              .getPropertyValue(name)
+              .trim();
+            if (/^\d+(?:\.\d+)?(?:\s+\d+(?:\.\d+)?){2}$/.test(raw)) {
+              return "rgb(" + raw + ")";
+            }
+          } catch (e) {}
+          return document.documentElement.dataset.theme === "dark"
+            ? darkFallback
+            : lightFallback;
+        }
+        function retint() {
+          var capsuleHost = document.querySelector("pi-plugin-panel-chrome");
+          if (!capsuleHost) return;
+          capsuleHost.style.setProperty(
+            "--pi-plugin-panel-page-background",
+            getComputedStyle(document.documentElement).getPropertyValue("--app-bg").trim() || "#f6f7f9"
+          );
+          capsuleHost.style.setProperty(
+            "--pi-plugin-panel-page-foreground",
+            getComputedStyle(document.documentElement).getPropertyValue("--fg").trim() || "#202428"
+          );
+          void paletteColor;
+        }
+        var scheduled = 0;
+        function schedule() {
+          if (scheduled) return;
+          scheduled = window.setTimeout(function () {
+            scheduled = 0;
+            retint();
+          }, 0);
+        }
+        if (typeof MutationObserver !== "undefined") {
+          new MutationObserver(schedule).observe(document.documentElement, {
+            childList: true,
+            attributeFilter: ["data-theme"],
+          });
+        }
+        if (document.readyState === "loading") {
+          window.addEventListener("DOMContentLoaded", schedule, { once: true });
+        } else {
+          schedule();
+        }
+      })();
+    </script>
+  </body>
+</html>

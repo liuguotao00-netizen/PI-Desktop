@@ -1,0 +1,11 @@
+{
+  "id": "io.github.catdford.color-picker",
+  "repository": "https://github.com/catDforD/pi-desktop-color-picker",
+  "branch": "HEAD",
+  "commit": "3289980",
+  "version": "0.4.2",
+  "tarball": "https://api.github.com/repos/catDforD/pi-desktop-color-picker/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:54.220Z",
+  "mode": "source-snapshot",
+  "sha256": "9208cdba545636fa635d0d361ab4dab70e24e3abf5dab87fcfb18b50492eabc7"
+}

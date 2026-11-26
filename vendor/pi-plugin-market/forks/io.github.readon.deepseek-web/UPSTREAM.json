@@ -1,0 +1,11 @@
+{
+  "id": "io.github.readon.deepseek-web",
+  "repository": "https://github.com/Readon/pi-deepseek-web",
+  "branch": "HEAD",
+  "commit": "bd01a53cb7f7cd8f",
+  "version": "0.1.1",
+  "tarball": "https://api.github.com/repos/Readon/pi-deepseek-web/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:50:13.275Z",
+  "mode": "source-snapshot",
+  "sha256": "bd01a53cb7f7cd8ffcdce2a34dcd14302db2e834c8ee87f968a014019dcadc26"
+}

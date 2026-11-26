@@ -1,0 +1,6 @@
+{
+  "name": "pi-side-questions",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": { "test": "node --test" }
+}

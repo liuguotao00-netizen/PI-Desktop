@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="color-scheme" content="dark light" />
+    <title>ClinePass 上游</title>
+    <link rel="stylesheet" href="panel.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <div class="brand"><span class="pulse" id="pulse"></span>ClinePass 上游</div>
+      <div class="bar-actions">
+        <span class="status" id="status">读取中…</span>
+        <button class="ghost" id="refresh" type="button">刷新</button>
+        <button class="primary" id="save" type="button" disabled>保存</button>
+      </div>
+    </header>
+
+    <section class="controls">
+      <label class="switch" title="把 providerOptions.gateway 写进请求体：only = 下面勾选的目标上游，has = 右边的能力过滤。实测只有这个嵌套写法会被网关采纳。">
+        <input type="checkbox" id="inject" /><span>钉住上游</span>
+      </label>
+      <label class="field" title="has：要求上游必须具备的能力，逗号分隔。任选其一即可：reasoning / tool-use / vision / implicit-caching / structured-output。只写 only 不写 has，很多账号上不生效。">
+        <span class="label">能力过滤 has</span>
+        <input type="text" id="abilities" spellcheck="false" autocomplete="off" />
+      </label>
+      <label class="switch" title="实际落点不在所选上游内时弹出提示">
+        <input type="checkbox" id="toast" /><span>不符时提示</span>
+      </label>
+      <span class="dirty" id="dirty">有未保存的修改</span>
+    </section>
+
+    <p class="hint" id="hint"></p>
+
+    <section class="block">
+      <div class="block-head">
+        <span class="label">目标上游（写进 providerOptions.gateway.only）</span>
+        <span class="sub">勾选后保存 · 数字是 实际/钉住/备选 次数 · 全不勾 = 只观察（不写 only，只写 has）</span>
+      </div>
+      <div class="models" id="upstreams"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <span class="label">启用哪些模型（ClinePass 这个服务商）</span>
+        <span class="sub" id="models-hint"></span>
+        <button class="ghost tiny" id="all-official" type="button" title="把官方目录里的模型全部勾上">全选官方</button>
+      </div>
+      <div class="models" id="models"></div>
+    </section>
+
+    <main>
+      <table>
+        <thead>
+          <tr>
+            <th class="col-time" id="th-time">时间</th>
+            <th class="col-model" id="th-model">模型</th>
+            <th id="th-landed">实际落点</th>
+            <th id="th-pinned">钉住</th>
+            <th class="num" id="th-fallbacks">备选</th>
+            <th class="num" id="th-cache">缓存命中</th>
+            <th class="num" id="th-cost">成本</th>
+            <th id="th-verdict">校验</th>
+          </tr>
+        </thead>
+        <tbody id="rows">
+          <tr><td colspan="8" class="empty">还没有请求记录。</td></tr>
+        </tbody>
+      </table>
+      <details class="glossary" id="glossary">
+        <summary>这些词是什么意思？（点开看解释）</summary>
+        <dl id="glossary-list"></dl>
+      </details>
+    </main>
+
+    <footer class="foot">
+      <span id="foot-left">—</span>
+      <span id="foot-right"></span>
+    </footer>
+
+    <script src="shared.js"></script>
+    <script src="panel.js"></script>
+  </body>
+</html>

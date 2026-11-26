@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "id": "net.aiuo.session-title",
+  "name": "Session Titles",
+  "version": "0.1.0",
+  "description": "Generate concise titles for new sessions with a configurable prompt, model, and thinking level.",
+  "author": "Lan",
+  "homepage": "https://github.com/vastsa/pi-session-title-plugin",
+  "repository": "https://github.com/vastsa/pi-session-title-plugin",
+  "i18n": {
+    "en": {
+      "name": "Session Titles",
+      "description": "Generate concise titles for new sessions with a configurable prompt, model, and thinking level.",
+      "safetyNotes": "After the first completed turn, the plugin sends bounded excerpts of the first user prompt and assistant reply to the selected model through PI-Desktop's plugin completion API. It requires the high-risk session.autoTitle and agent.complete permissions. It does not read full transcripts or provider credentials, and manual renames are preserved."
+    },
+    "zh-CN": {
+      "name": "会话标题",
+      "description": "使用可配置的提示词、模型和思考级别，为新会话生成简洁标题。",
+      "safetyNotes": "首轮对话完成后，插件会通过 PI-Desktop 插件补全 API 将首条用户提示词和助手回复的有限摘录发送给所选模型。它需要高风险的 session.autoTitle 和 agent.complete 权限，不读取完整 transcript 或服务商凭据，并会保留手动重命名。"
+    }
+  },
+  "main": "main.js",
+  "ui": {
+    "panel": "panel/index.html",
+    "width": 560,
+    "height": 620,
+    "title": {
+      "en": "Session Titles",
+      "zh-CN": "会话标题"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "session-title.configure",
+        "title": "Session Titles: Configure",
+        "keywords": ["title", "prompt", "model"],
+        "category": "Session Titles"
+      }
+    ]
+  },
+  "permissions": [
+    "ui.panel",
+    "agent.complete",
+    "models.list",
+    "session.autoTitle"
+  ],
+  "engines": {
+    "piDesktop": ">=0.18.0"
+  },
+  "activationEvents": ["onStartup"]
+}

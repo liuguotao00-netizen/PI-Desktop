@@ -1,0 +1,11 @@
+{
+  "id": "local.starry-bus-theme",
+  "repository": "https://github.com/yuehan1228/starry-bus-theme",
+  "branch": "HEAD",
+  "commit": "6530d96",
+  "version": "1.1.1",
+  "tarball": "https://api.github.com/repos/yuehan1228/starry-bus-theme/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:03.236Z",
+  "mode": "source-snapshot",
+  "sha256": "d878dc9c5bccbd7c978991f339bb6f9506ec256394eca247eb3c213cbafc94b0"
+}

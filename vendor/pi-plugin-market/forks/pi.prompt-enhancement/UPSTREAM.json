@@ -1,0 +1,11 @@
+{
+  "id": "pi.prompt-enhancement",
+  "repository": "https://github.com/vastsa/pi-prompt-enhancement",
+  "branch": "HEAD",
+  "commit": "f04349a",
+  "version": "1.3.0",
+  "tarball": "https://api.github.com/repos/vastsa/pi-prompt-enhancement/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:29.373Z",
+  "mode": "source-snapshot",
+  "sha256": "d1b8d0efe04bb7aa026b2fa44edacede4b92162bcfc229398d3ba8c66f85c4a2"
+}

@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Usage panel harness</title>
+    <link rel="stylesheet" href="../views/styles.css" />
+  </head>
+  <body>
+    <div id="app" class="app"></div>
+    <div id="tooltip" class="tooltip" hidden></div>
+
+    <script>
+      // A fake host so the real panel code can be rendered outside PI-Desktop.
+      (function () {
+        const day = (offset) => {
+          const date = new Date();
+          date.setHours(0, 0, 0, 0);
+          date.setDate(date.getDate() + offset);
+          return date.getTime();
+        };
+
+        const series = Array.from({ length: 7 }, (_, index) => ({
+          startMs: day(index - 6),
+          total: [1200, 3400, 0, 8800, 5200, 9100, 12077][index],
+          input: [1000, 3000, 0, 8000, 4800, 8200, 11000][index],
+          output: [150, 380, 0, 780, 360, 880, 1000][index],
+          cacheRead: [40, 20, 0, 20, 35, 15, 70][index],
+          cacheWrite: [10, 0, 0, 0, 5, 5, 7][index],
+          cost: [0.002, 0.004, 0, 0.004, 0.002, 0.001, 0.0011][index],
+          requests: [1, 1, 0, 2, 1, 1, 1][index],
+        }));
+
+        const yearStart = (() => {
+          const date = new Date();
+          date.setMonth(0, 1);
+          date.setHours(0, 0, 0, 0);
+          return date.getTime();
+        })();
+        const today = (() => {
+          const date = new Date();
+          date.setHours(0, 0, 0, 0);
+          return date.getTime();
+        })();
+        const heatmapDays = Math.round((today - yearStart) / 86400000) + 1;
+        const heatmap = Array.from({ length: heatmapDays }, (_, index) => {
+          const tokens = index % 11 === 0 ? 0 : 400 + ((index * 733) % 9000);
+          const split = [
+            { model: "deepseek-v4-flash", source: "cli", provider: "pi", ratio: 0.62 },
+            { model: "gpt-5.6-luna", source: "desktop", provider: "pi", ratio: 0.21 },
+            { model: "claude-sonnet-4", source: "cli", provider: "anthropic", ratio: 0.12 },
+          ];
+          return {
+            dateMs: day(index - (heatmapDays - 1)),
+            tokens,
+            cost: index % 11 === 0 ? 0 : Number((tokens * 0.00012).toFixed(6)),
+            requests: index % 11 === 0 ? 0 : 1 + (index % 3),
+            costComplete: true,
+            models: split.map((entry) => ({
+              model: entry.model,
+              source: entry.source,
+              provider: entry.provider,
+              tokens: Math.round(tokens * entry.ratio),
+            })),
+            otherTokens: tokens - split.reduce((sum, entry) => sum + Math.round(tokens * entry.ratio), 0),
+          };
+        });
+
+        const usage = {
+          range: "7d",
+          fromMs: day(-6),
+          toMs: Date.now(),
+          bucket: "day",
+          totals: {
+            tokens: 29777,
+            input: 26800,
+            output: 2630,
+            cacheRead: 200,
+            cacheWrite: 27,
+            requests: 7,
+            cost: 0.0141,
+            costMissing: 1,
+            costComplete: false,
+          },
+          previous: {
+            tokens: 21500,
+            input: 19000,
+            output: 2200,
+            cacheRead: 250,
+            cacheWrite: 50,
+            requests: 6,
+            cost: 0.0125,
+            costMissing: 0,
+            costComplete: true,
+          },
+          series,
+          bySource: [
+            { source: "desktop", tokens: 11847, cost: 0.0128, requests: 3, costMissing: 0, costComplete: true },
+            { source: "cli", tokens: 17930, cost: 0.0013, requests: 4, costMissing: 1, costComplete: false },
+          ],
+          byModel: [
+            {
+              model: "deepseek-v4.1-flash",
+              source: "desktop",
+              provider: "Liubai Tech",
+              tokens: 11847,
+              cost: 0.0128,
+              requests: 3,
+              avgCost: 0.00427,
+              costComplete: true,
+            },
+            {
+              model: "m1",
+              source: "cli",
+              provider: "acme",
+              tokens: 14400,
+              cost: 0.0012,
+              requests: 2,
+              avgCost: 0.0006,
+              costComplete: true,
+            },
+            {
+              model: "",
+              source: "cli",
+              provider: "",
+              tokens: 35,
+              cost: 0,
+              requests: 1,
+              avgCost: 0,
+              costComplete: true,
+            },
+          ],
+          byProject: [
+            { projectPath: "D:/demo", projectName: "demo", source: "desktop", tokens: 11847, cost: 0.0128, requests: 3, costComplete: true },
+            { projectPath: "D:\\alpha", projectName: "alpha", source: "cli", tokens: 14400, cost: 0.0012, requests: 2, costComplete: true },
+            { projectPath: null, projectName: null, source: "cli", tokens: 3530, cost: 0.0001, requests: 2, costComplete: false },
+            { projectPath: "D:\\gamma", projectName: "gamma", source: "cli", tokens: 1200, cost: 0.0002, requests: 1, costComplete: true },
+          ],
+          heatmap,
+          meta: {
+            version: "0.1.0",
+            scannedAt: Date.now(),
+            records: 12,
+            partial: false,
+            availability: { cli: true, desktop: true },
+            invalidCacheLines: 0,
+            enrichment: { available: true, updatedAt: Date.now(), errors: [] },
+            limitations: [
+              "session-imports-may-double-count",
+              "desktop-project-requires-enrichment",
+              "summary-usage-counted-separately",
+            ],
+          },
+        };
+
+        const bridge = {
+          invoke: async function (channel, payload) {
+            if (channel === "app.getAppearance") return { base: "dark", locale: "zh-CN" };
+            if (channel === "usage.hello") {
+              return {
+                ok: true,
+                version: "0.1.0",
+                roots: {
+                  cli: "C:/Users/demo/.pi/agent/sessions",
+                  desktop: "C:/Users/demo/.pi-desktop/sessions",
+                },
+                availability: { cli: true, desktop: true },
+                prefs: { range: "7d", sources: [], accent: "blue", theme: "system", fromMs: 0, toMs: 0 },
+                scan: { scannedAt: Date.now(), records: 12, partial: false },
+                limitations: usage.meta.limitations,
+              };
+            }
+            if (channel === "usage.scan") {
+              return {
+                ok: true,
+                partial: false,
+                scannedAt: Date.now(),
+                records: 12,
+                progress: {
+                  cli: { totalFiles: 1, scannedFiles: 1, skippedFiles: 0 },
+                  desktop: { totalFiles: 1, scannedFiles: 1, skippedFiles: 0 },
+                  appendedRecords: 12,
+                  errors: [],
+                },
+              };
+            }
+            if (channel === "usage.get") {
+              window.__harness.lastGet = payload;
+              if (payload && payload.range === "custom") {
+                const fromMs = Number(payload.fromMs) || day(-6);
+                const toMs = Number(payload.toMs) || Date.now();
+                const hours = toMs - fromMs <= 2 * 86400000;
+                return { ...usage, range: "custom", fromMs, toMs, bucket: hours ? "hour" : "day" };
+              }
+              return usage;
+            }
+            if (channel === "usage.prefs.set") return { ok: true, prefs: payload };
+            if (channel === "usage.log") {
+              window.__harness.lastLog = payload;
+              return logPayload(payload || {});
+            }
+            return { ok: false, code: "UNSUPPORTED", message: String(channel) };
+          },
+          on: function () {
+            return function () {};
+          },
+        };
+
+        // One page of the request log, shaped like `queryLog`'s answer.
+        function logPayload(request) {
+          const page = Number(request.page) || 1;
+          const pageSize = Number(request.pageSize) || 20;
+          const status = request.status || "";
+          const all = [];
+          for (let index = 0; index < 47; index += 1) {
+            const source = index % 3 === 0 ? "desktop" : "cli";
+            const model = index % 5 === 0 ? "gpt-5.6-luna" : "deepseek-v4.1-flash";
+            const state = index === 7 ? "error" : index === 19 ? "aborted" : "complete";
+            all.push({
+              id: "row-" + index,
+              timestampMs: Date.now() - index * 917000,
+              source,
+              provider: source === "desktop" ? "Liubai Tech" : "workbuddy",
+              model,
+              projectPath: "D:/demo",
+              kind: "assistant",
+              status: state,
+              statusCode: state === "complete" ? 200 : state === "error" ? 500 : null,
+              errorCode: state === "error" ? "PROVIDER_REJECTED" : "",
+              inputTokens: 180 + index * 37,
+              outputTokens: 520 + index * 91,
+              cacheReadTokens: index % 4 === 0 ? 0 : 24000 + index * 830,
+              cacheWriteTokens: index % 6 === 0 ? 0 : 1200,
+              totalTokens: 180 + index * 37 + 520 + index * 91 + (index % 4 === 0 ? 0 : 24000 + index * 830),
+              cost: Number((0.0004 + index * 0.00007).toFixed(5)),
+              costEstimated: index % 6 === 0,
+              durationMs: index % 5 === 0 ? null : 1800 + index * 240,
+              ttftMs: index % 5 === 0 ? null : 1300 + index * 60,
+              requestCount: 1,
+            });
+          }
+          const filtered = status ? all.filter((row) => row.status === status) : all;
+          const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+          const safePage = Math.min(pageCount, Math.max(1, page));
+          return {
+            ok: true,
+            range: request.range || "7d",
+            fromMs: Date.now() - 7 * 86400000,
+            toMs: Date.now(),
+            page: safePage,
+            pageSize,
+            pageCount,
+            total: filtered.length,
+            codes: [
+              { code: 200, count: all.filter((row) => row.statusCode === 200).length },
+              { code: 500, count: all.filter((row) => row.statusCode === 500).length },
+            ],
+            counts: {
+              all: all.length,
+              complete: all.filter((row) => row.status === "complete").length,
+              error: all.filter((row) => row.status === "error").length,
+              aborted: all.filter((row) => row.status === "aborted").length,
+              unknown: 0,
+            },
+            rows: filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+            providers: [
+              { key: "workbuddy", requests: 31, tokens: 1470000, cost: 0.07, costComplete: false, complete: 29, error: 1, aborted: 1, unknown: 0, timedRequests: 20, timedMs: 61000, timedOutput: 6800 },
+              { key: "Liubai Tech", requests: 16, tokens: 640000, cost: 0.03, costComplete: true, complete: 16, error: 0, aborted: 0, unknown: 0, timedRequests: 12, timedMs: 48000, timedOutput: 5200 },
+            ],
+            providerCount: 2,
+            models: [
+              { key: "cli\u0000deepseek-v4.1-flash", source: "cli", model: "deepseek-v4.1-flash", provider: "workbuddy", requests: 31, tokens: 1470000, cost: 0.07, costComplete: false, complete: 29, error: 1, aborted: 1, unknown: 0, timedRequests: 20, timedMs: 61000, timedOutput: 6800 },
+              { key: "desktop\u0000deepseek-v4.1-flash", source: "desktop", model: "deepseek-v4.1-flash", provider: "Liubai Tech", requests: 10, tokens: 420000, cost: 0.02, costComplete: true, complete: 10, error: 0, aborted: 0, unknown: 0, timedRequests: 8, timedMs: 31000, timedOutput: 3900 },
+              { key: "desktop\u0000gpt-5.6-luna", source: "desktop", model: "gpt-5.6-luna", provider: "Liubai Tech", requests: 6, tokens: 220000, cost: 0.01, costComplete: true, complete: 6, error: 0, aborted: 0, unknown: 0, timedRequests: 4, timedMs: 17000, timedOutput: 1300 },
+            ],
+            modelCount: 3,
+          };
+        }
+
+        window.pluginBridge = bridge;
+        window.__harness = { usage };
+      })();
+    </script>
+    <script src="../views/lib/format.js"></script>
+    <script src="../views/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "id": "io.github.wenziji-hub.market-translator",
+  "repository": "https://github.com/wenziji-hub/pi-market-translator",
+  "branch": "HEAD",
+  "commit": "5012c1b408c549a2",
+  "version": "0.1.6",
+  "tarball": "https://api.github.com/repos/wenziji-hub/pi-market-translator/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:28:43.421Z",
+  "mode": "source-snapshot",
+  "sourceRoot": "plugin",
+  "sha256": "5012c1b408c549a2cb56db35171bdd58c213df1b44dabf46e21d5dc557ce18e6"
+}

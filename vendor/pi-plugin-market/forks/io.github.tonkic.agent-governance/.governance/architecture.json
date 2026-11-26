@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "title": "0.12.1 双宿主六边形架构 · 接入层、核心上下文与可视化工作台",
+  "source": "通过 architecture_sources 读取并核对 12 份核心入口 TS 源码（双宿主连接器、本地只读工作台服务、任务/看板/设计内核、GitHub 权威协作及四页分类阅读前端）。六个职责节点与八条有向边仅表达已核实的直接调用与只读通道。",
+  "nodes": [
+    {
+      "id": "connectors",
+      "title": "双宿主连接层 (MCP & PI)",
+      "description": "mcp/server.ts 为 Antigravity/Codex/Claude/Pi 提供本地 stdio 工具与 Skill 资源；plugin/main.ts 绑定 PI-Desktop 会话与轻量入口，共用治理核心与工作台控制器。",
+      "files": [
+        "mcp/server.ts",
+        "plugin/main.ts"
+      ]
+    },
+    {
+      "id": "workbench",
+      "title": "本地只读工作台服务",
+      "description": "workbench.ts 管理单项目服务生命周期与切换回收；browser.ts 与 panel.ts 提供 127.0.0.1 会话鉴权、页面租约与严格只读 API 白名单，拒绝一切网页写入。",
+      "files": [
+        "plugin/workbench.ts",
+        "plugin/browser.ts",
+        "plugin/panel.ts"
+      ]
+    },
+    {
+      "id": "governance-core",
+      "title": "任务治理与文档预算内核",
+      "description": "core.ts 管理 STATE.json 任务状态机、行数预算、验证指纹、归档与独占文件锁，并向看板、架构设计与受管 Git 上下文分派写入操作。",
+      "files": [
+        "plugin/core.ts"
+      ]
+    },
+    {
+      "id": "project-design",
+      "title": "看板、源码图与架构设计",
+      "description": "project.ts 维护三栏工作项、完成历史与源码指纹图；design.ts 管理可选架构草案、受管 ASCII 解析与确认基线历史。",
+      "files": [
+        "plugin/project.ts",
+        "plugin/design.ts"
+      ]
+    },
+    {
+      "id": "git-collab",
+      "title": "GitHub 权威协作与受管 Git",
+      "description": "collaboration.ts 绑定 GitHub 权威分支，在隔离 bare 仓库读取权威文档并推送独立协作分支；受管 Git 通过 core.ts 分派独立 worktree 与提交验证。",
+      "files": [
+        "plugin/collaboration.ts"
+      ]
+    },
+    {
+      "id": "reader-ui",
+      "title": "四页壳层与分类文档阅读器",
+      "description": "documents.ts 安全扫描根说明与四目录 docs/、notes/；renderer/shell.ts 与 documents.ts 呈现共享壳层、分组标题目录、四象限选读卡与历史归档折叠。",
+      "files": [
+        "plugin/documents.ts",
+        "plugin/renderer/shell.ts",
+        "plugin/renderer/documents.ts"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "connectors",
+      "to": "governance-core",
+      "label": "governance 工具 → Governance.run"
+    },
+    {
+      "from": "connectors",
+      "to": "workbench",
+      "label": "governance_ui / 命令 → BrowserWorkbench"
+    },
+    {
+      "from": "workbench",
+      "to": "governance-core",
+      "label": "只读快照查询 → panelInvoke → Governance"
+    },
+    {
+      "from": "workbench",
+      "to": "project-design",
+      "label": "只读看板/源码图/设计快照"
+    },
+    {
+      "from": "workbench",
+      "to": "reader-ui",
+      "label": "托管静态资产与只读文档接口"
+    },
+    {
+      "from": "governance-core",
+      "to": "project-design",
+      "label": "委托 ProjectData / ArchitectureDesign"
+    },
+    {
+      "from": "governance-core",
+      "to": "git-collab",
+      "label": "受管版本与权威协作边界"
+    },
+    {
+      "from": "git-collab",
+      "to": "reader-ui",
+      "label": "未绑定时本地权威文档读取 → documents"
+    }
+  ],
+  "fingerprints": {
+    "mcp/server.ts": "f73fba1057f1ae1a60b022037da87b08cadf5a346ec31e81d608a90f1ea65613",
+    "plugin/main.ts": "1a396389e795ca213f79195dc79fcedab34534ee49a582d58178b0f4bd787f7c",
+    "plugin/workbench.ts": "bb35fc969327084cb30b141c4afc839685abca58922d8b4b0ee63352220de5ee",
+    "plugin/browser.ts": "64a2a2e756b5dc9446cbd992115c5dfabbf088cee2e6dbab2ba6bbeb6ed5cc42",
+    "plugin/panel.ts": "045e8f94fd0dc248040085a7b76a206ba9ccb243e365d9329fd29e3e03b861ce",
+    "plugin/core.ts": "a1b5dcb2088d0ba3786c233ffec9e0404423d92c9057be5ecdd261d4c039d498",
+    "plugin/project.ts": "fdd5d73c34c807be514672b3d9becb329bb38f43381e9910aac2fdde6e552e2c",
+    "plugin/design.ts": "bf34a02058f83b05fec69440834fa86d2de089847f8a3860f9ee3ffa58a436e0",
+    "plugin/collaboration.ts": "8f7bab3644a84ed3b397cb7f5a0ba59e15dd98000af47c8bcf3017112215a24b",
+    "plugin/documents.ts": "9ba614c5d0a8eec0e59a1b68b28b9166707c459bfd56c984758a4987d3b80d0b",
+    "plugin/renderer/shell.ts": "e777e6a6c280e161f269b56e73ad793f6346514ac98c2c5316052dfc0a134fe7",
+    "plugin/renderer/documents.ts": "2a36e4a8cb642a1570eee577b3611450125c2e09b05547151eb068031c3d56f8"
+  },
+  "updatedAt": "2026-11-21T10:38:32.231Z"
+}

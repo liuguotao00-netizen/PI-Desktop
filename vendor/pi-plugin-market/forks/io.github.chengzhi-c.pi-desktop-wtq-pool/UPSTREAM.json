@@ -1,0 +1,11 @@
+{
+  "id": "io.github.chengzhi-c.pi-desktop-wtq-pool",
+  "repository": "https://github.com/chengzhi-c/pi-desktop-wtq-pool",
+  "branch": "HEAD",
+  "commit": "cd2508c",
+  "version": "1.4.1",
+  "tarball": "https://api.github.com/repos/chengzhi-c/pi-desktop-wtq-pool/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:43:33.570Z",
+  "mode": "source-snapshot",
+  "sha256": "a4e6b9711e450efcefb2185f859249a105115e7030067a66766687af6f7ec1f6"
+}

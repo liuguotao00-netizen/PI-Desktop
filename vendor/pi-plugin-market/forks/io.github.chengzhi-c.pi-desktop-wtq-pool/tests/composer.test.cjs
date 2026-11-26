@@ -1,0 +1,476 @@
+'use strict'
+
+/**
+ * The composer readout, driven the way the renderer drives it.
+ *
+ * The host prints the selected model on its own chip and the extension hands
+ * that text back, so this is the only handle the plugin gets on the current
+ * selection: `onRendererCall` resolves it against the labels it published. A
+ * break here is invisible to the chat itself and shows up only as a missing
+ * balance beside the composer, which is why it is worth a case of its own.
+ *
+ * Two WorkBuddy regions publish the same catalog, so the fixture reproduces the
+ * collision that once left every shared label unresolved - the readout stayed
+ * silent for the models a user is most likely to pick.
+ */
+
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const vm = require('node:vm')
+const { createRequire } = require('node:module')
+
+const root = path.join(__dirname, '..')
+
+/**
+ * The part of the entry these cases drive, cut the way the suite does elsewhere.
+ *
+ * `manifestProviders` stands in for the declaration the host was handed, which
+ * is what a chip text is resolved against.
+ */
+function loadComposer(providers, external, hostProviders) {
+  const source = fs.readFileSync(path.join(root, 'main.js'), 'utf8')
+  const named = /^function ([A-Za-z_$][\w$]*)\(/gm
+  const names = []
+  let match = named.exec(source)
+  while (match !== null) {
+    names.push(match[1])
+    match = named.exec(source)
+  }
+  const wanted = ['composerModels', 'composerChipText', 'composerChipTextOf', 'composerChipTexts',
+    'matchComposerModel', 'composerPointsEnabled', 'composerPoints', 'routeOfProviderId',
+    'modelTag', 'stripModelTag', 'externalModelsReady', 'refreshExternalModels']
+  const bodies = wanted.map((name) => {
+    if (!names.includes(name)) throw new Error(`main.js no longer defines ${name}`)
+    const start = source.search(new RegExp(`^function ${name}\\(`, 'm'))
+    const rest = source.slice(start + 1)
+    const end = rest.search(/^\}/m)
+    return source.slice(start, start + 1 + end + 1)
+  })
+  const context = vm.createContext({
+    manifestProviders: () => providers,
+    // The declaration the host loaded. Empty unless a case exercises the
+    // generation gap between the file and the host's copy.
+    hostManifestProviders: () => hostProviders ?? [],
+    // The names providers outside this plugin publish. Empty unless a case
+    // exercises the collision between one of their models and one of ours.
+    externalModels: external ?? { texts: new Set(), ids: new Set(), at: Date.now() },
+    EXTERNAL_MODELS_TTL_MS: 60000, externalModelsInFlight: null, loadGeneration: 1,
+    log() {}, safeMessage: error => String(error), isOwnProviderId: () => false,
+    PROVIDER_ID_BY_REGION: { cn: 'wtqpool-cn', global: 'wtqpool-global' },
+    TRAE_PROVIDER_ID_BY_REGION: { cn: 'wtqpool-trae-cn', ai: 'wtqpool-trae-ai' },
+    QODER_PROVIDER_ID_BY_REGION: { cn: 'wtqpool-qoder-cn', global: 'wtqpool-qoder-global' },
+    REGIONS: ['cn', 'global'], TRAE_REGIONS: ['cn', 'ai'], QODER_REGIONS: ['cn', 'global'],
+    settings: { showComposerPoints: true },
+    workbuddyComposerAccounts: () => [],
+    sourceComposerAccounts: () => [],
+    probesStale: () => false,
+    scheduleRefresh: () => {},
+  })
+  vm.runInContext(bodies.join('\n'), context)
+  return context
+}
+
+/**
+ * The matcher and the chip-text set on their own declaration.
+ *
+ * `loadEntry` serves both regions one offline catalog, so every id it publishes is
+ * shared. This builds the shape the real declaration has - a model each pool serves
+ * alone beside one they both serve - so the id rule can be checked at all.
+ */
+function loadMatcher(providers) {
+  const context = loadComposer(providers)
+  return {
+    match: (chip) => context.matchComposerModel(chip),
+    texts: (chip) => context.composerChipTexts().has(String(chip).trim().toLowerCase()),
+  }
+}
+
+/**
+ * A label two pools both publish answers nothing.
+ *
+ * The tags in the declaration keep this from happening, but a manifest written
+ * before they existed, or one whose labels were edited by hand, still carries
+ * the same name for two pools. Picking either one would put one account group's
+ * balance beside the other's model, which is the failure this whole path is
+ * shaped to avoid, so the row is dropped instead.
+ */
+test('a label two pools both publish resolves to neither of them', () => {
+  const shared = {
+    id: 'wtqpool-cn', models: [{ id: 'step-5-preview', name: 'Step-5-Preview \u00b7 x0.00' }],
+  }
+  const same = {
+    id: 'wtqpool-global', models: [{ id: 'step-5-preview', name: 'Step-5-Preview \u00b7 x0.00' }],
+  }
+  const context = loadComposer([shared, same])
+  assert.equal(context.matchComposerModel('Step-5-Preview \u00b7 x0.00'), undefined,
+    'an ambiguous label resolves to no row, so no balance can be shown against the wrong pool')
+  // Nothing can ever resolve this text, so the readout is told it is not ours and
+  // stops asking rather than polling for a name that will always be ambiguous.
+  assert.equal(context.composerChipTexts().has('step-5-preview \u00b7 x0.00'), false,
+    'an ambiguous label is not offered as ours')
+  // The control: one pool alone owns the name, and then it does resolve.
+  const alone = loadComposer([shared])
+  assert.equal(alone.matchComposerModel('Step-5-Preview \u00b7 x0.00')?.region, 'cn',
+    'a label one pool publishes resolves to it')
+})
+
+/**
+ * A name another provider prints is not this plugin's, even when it matches.
+ *
+ * The composer slot hands over the chip text and nothing else, so a model an
+ * outside provider serves under the same alias or id produces exactly the same
+ * text as one of this plugin's. The host's ready-model list is the only place
+ * that distinction exists; without it the readout showed a pool's balance
+ * beside a model that pool never serves.
+ */
+test('a chip text another provider also prints resolves to no pool of ours', () => {
+  const provider = {
+    id: 'wtqpool-trae-ai',
+    models: [{ id: 'deepseek-v4.1-flash', name: 'DeepSeek-V4.1-Flash' }],
+  }
+  const colliding = {
+    texts: new Set(['deepseek-v4.1-flash']),
+    ids: new Set(['deepseek-v4.1-flash']),
+    at: Date.now(),
+  }
+  const context = loadComposer([provider], colliding)
+  assert.equal(context.matchComposerModel('DeepSeek-V4.1-Flash'), undefined,
+    'the same name outside this plugin makes the chip text ambiguous')
+  assert.equal(context.matchComposerModel('deepseek-v4.1-flash'), undefined,
+    'and so does a shared model id, which the chip prints before the alias is imported')
+
+  // The control: the same declaration with no outside provider resolves.
+  const alone = loadComposer([provider])
+  assert.equal(alone.matchComposerModel('DeepSeek-V4.1-Flash')?.region, 'ai',
+    'a name only this plugin publishes still resolves')
+})
+
+/**
+ * An empty set from a failed read is not evidence that the name is ours.
+ *
+ * The host list may be missing, refused, or still in flight. Treating that empty
+ * answer as "no other provider publishes this" re-enabled exactly the wrong
+ * balance the external set exists to prevent. A host with no model-list API is
+ * different: there is nothing to wait for, so the older best-effort answer stays.
+ */
+test('an unread host model list cannot resolve a chip text', () => {
+  const provider = {
+    id: 'wtqpool-trae-ai',
+    models: [{ id: 'deepseek-v4.1-flash', name: 'DeepSeek-V4.1-Flash' }],
+  }
+  const unread = loadComposer([provider], {
+    texts: new Set(), ids: new Set(), at: Date.now(), known: false, available: true,
+  })
+  assert.equal(unread.matchComposerModel('DeepSeek-V4.1-Flash'), undefined,
+    'an empty set from a read that has not answered says nothing about the name')
+  const unsupported = loadComposer([provider], {
+    texts: new Set(), ids: new Set(), at: Date.now(), known: false, available: false,
+  })
+  assert.equal(unsupported.matchComposerModel('DeepSeek-V4.1-Flash')?.region, 'ai',
+    'a host without the API keeps the earlier best-effort answer')
+})
+
+test('a failed host model-list read keeps ambiguous chip texts unresolved until a successful read', async () => {
+  const provider = {
+    id: 'wtqpool-trae-ai',
+    models: [{ id: 'deepseek-v4.1-flash', name: 'DeepSeek-V4.1-Flash' }],
+  }
+  for (const known of [false, true]) {
+    const context = loadComposer([provider], {
+      texts: new Set(known ? ['deepseek-v4.1-flash'] : []), ids: new Set(),
+      at: 0, known, available: true,
+    })
+    context.pi = { models: { list: async () => { throw new Error('temporary host read failure') } } }
+    await context.refreshExternalModels()
+    assert.equal(context.matchComposerModel('DeepSeek-V4.1-Flash'), undefined,
+      known ? 'a failed refresh must retain a known collision' : 'a failed first read cannot prove the label belongs to this pool')
+    context.pi.models.list = async () => []
+    context.externalModels.at = 0
+    await context.refreshExternalModels()
+    assert.equal(context.matchComposerModel('DeepSeek-V4.1-Flash')?.region, 'ai',
+      'a successful empty list proves that no other provider publishes the label')
+  }
+})
+
+/**
+ * A label the host has not re-imported yet still resolves.
+ *
+ * The plugin rewrites its manifest after the host read it, so a label change
+ * reaches the picker and the chip one load later. The chip keeps printing the
+ * previous declaration's text until then; resolving only against the file would
+ * hide the readout for every model whose label the plugin just changed.
+ */
+test('the chip text from the host\'s loaded declaration still resolves', () => {
+  const file = [{ id: 'wtqpool-cn', models: [{ id: 'hy4free', name: 'Hy4 \u00b7 x0.00' }] }]
+  const host = [{ id: 'wtqpool-cn', models: [{ id: 'hy4free', name: 'Hy4 \u00b7 x0.00 (CN)' }] }]
+  const context = loadComposer(file, undefined, host)
+  assert.equal(context.matchComposerModel('Hy4 \u00b7 x0.00 (CN)')?.region, 'cn',
+    'the text the host is actually printing resolves to its pool')
+  // The file's own spelling is not what the picker shows yet; it must not be
+  // offered as a second answer for the same model.
+  assert.equal(context.composerModels().length, 1, 'one model, not one per declaration generation')
+})
+
+/** A host just real enough for the entry to load, with one fixture sign-in. */
+function loadEntry(t, settings) {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'wtq-composer-'))
+  const unexpectedFetch = t.mock.method(globalThis, 'fetch', async () => {
+    throw new Error('composer fixtures must not reach an upstream')
+  })
+  t.after(() => {
+    fs.rmSync(temporary, { recursive: true, force: true })
+    assert.equal(unexpectedFetch.mock.callCount(), 0, 'the fixture must stay offline')
+  })
+  const { WorkBuddyUpstreamClient } = require('../lib/upstream')
+  t.mock.method(WorkBuddyUpstreamClient.prototype, 'fetchModels', async () => [
+    { id: 'shared-model', name: 'Shared model', contextWindow: 128000, maxTokens: 8192 },
+  ])
+  t.mock.method(WorkBuddyUpstreamClient.prototype, 'fetchCredits', async () => ({ total: 0, packages: [] }))
+  t.mock.method(WorkBuddyUpstreamClient.prototype, 'fetchCheckinStatus', async () => ({ active: false }))
+  const dataPath = path.join(temporary, 'data')
+  const own = path.join(dataPath, 'signins')
+  fs.mkdirSync(own, { recursive: true })
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'))
+  if (manifest.contributes) manifest.contributes.providers = []
+  fs.writeFileSync(path.join(temporary, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
+  const authFile = path.join(own, 'workbuddy-desktop.info')
+  const credential = (uin, domain) => JSON.stringify({
+    auth: {
+      accessToken: 'fixture-token', refreshToken: 'fixture-refresh',
+      expiresAt: Date.now() + 3600_000, domain,
+    },
+    account: { uin, nickname: 'Fixture' },
+  })
+  fs.writeFileSync(authFile, credential('90000000031', 'www.codebuddy.cn'))
+  // The second region is what makes the two published rosters overlap, which is
+  // the shape the real declaration has.
+  fs.writeFileSync(path.join(own, 'workbuddy-global.info'), credential('90000000032', 'www.codebuddy.ai'))
+
+  const context = vm.createContext({
+    require: createRequire(path.join(root, 'main.js')),
+    module: { exports: {} },
+    __dirname: temporary,
+    console: { log() {}, warn() {}, error() {} },
+    AbortController, AbortSignal, fetch,
+    setTimeout, clearTimeout, setInterval, clearInterval,
+    process,
+    pi: {
+      plugin: {
+        getSettings: async () => ({ ...settings, authFile }),
+        setSettings: async () => {},
+        getDataPath: async () => dataPath,
+        getManifest: async () => ({ contributes: { providers: [] } }),
+      },
+      commands: { register: async () => {}, unregister: async () => {} },
+      services: { register: () => {} },
+      events: { on: () => {}, off: () => {} },
+      ui: { showToast: async () => {} },
+      clipboard: { writeText: async () => '' },
+      shell: { openExternal: async () => {} },
+    },
+  })
+  vm.runInContext(fs.readFileSync(path.join(root, 'main.js'), 'utf8'), context)
+  return { plugin: context.module.exports, manifestPath: path.join(temporary, 'manifest.json') }
+}
+
+/**
+ * The labels the host will print on its chip, one per published model.
+ *
+ * `alias` first, exactly as the host reads it: it prints `alias || id`, so a
+ * declaration that tags only `name` leaves the chip showing a bare model id and
+ * the readout nothing to look up.
+ */
+function publishedLabels(manifestPath) {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const labels = []
+  for (const provider of manifest.contributes?.providers ?? []) {
+    for (const model of provider.models ?? []) {
+      const alias = typeof model.alias === 'string' ? model.alias.trim() : ''
+      labels.push(alias !== '' ? alias : String(model.id))
+    }
+  }
+  return labels
+}
+
+/** Models whose declaration has no alias for the chip to print. */
+function modelsWithoutAlias(manifestPath) {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const missing = []
+  for (const provider of manifest.contributes?.providers ?? []) {
+    for (const model of provider.models ?? []) {
+      const alias = typeof model.alias === 'string' ? model.alias.trim() : ''
+      if (alias === '') missing.push(`${provider.id}/${model.id}`)
+    }
+  }
+  return missing
+}
+
+test('every published model label resolves to one pool, so the readout can answer', async (t) => {
+  const { plugin, manifestPath } = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: true, sourceTrae: false, sourceQoder: false,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: true,
+  })
+  assert.equal(typeof plugin.onRendererCall, 'function',
+    'the composer talks to this entry through onRendererCall; without it the chip can never appear')
+  try {
+    await plugin.onLoad()
+    // The panel is what makes the entry publish a declaration, and it is the
+    // declaration the host reads the chip text from.
+    await plugin.onPanelInvoke('xd.state', {})
+    const labels = publishedLabels(manifestPath)
+    assert.ok(labels.length > 0, 'the fixture must publish at least one model')
+    // The chip prints the alias, so a model published without one shows its bare
+    // id and answers nothing.
+    assert.deepEqual(modelsWithoutAlias(manifestPath), [],
+      'every published model needs an alias for the chip to print')
+    const folded = labels.map((label) => label.trim().toLowerCase())
+    const repeated = folded.filter((label, index) => folded.indexOf(label) !== index)
+    assert.deepEqual(repeated, [],
+      'a label two providers both publish leaves the chip unable to name either of them')
+    // Both regions publish one catalog, so the shared names carry their region.
+    assert.ok(folded.some((label) => label.endsWith('(cn)')) && folded.some((label) => label.endsWith('(global)')),
+      'the names both WorkBuddy regions serve name the region they came from')
+
+    for (const label of labels) {
+      const answer = await plugin.onRendererCall('xd.composerPoints', { chip: label })
+      assert.equal(answer?.show, true,
+        `${JSON.stringify(label)} is published, so the readout has to answer for it (got ${JSON.stringify(answer)})`)
+      // Cache-first: the first poll answers with no number and starts the read
+      // that later polls fill in, so `null` here is the answer, not a failure.
+      assert.ok(answer.total === null || typeof answer.total === 'number',
+        'a balance is a number once it has been read, and null until then')
+      assert.ok(Array.isArray(answer.accounts) && answer.accounts.length > 0,
+        'with the accounts behind it, for the popup')
+      // The tag in the text is the only thing that says which pool the balance
+      // belongs to, so it has to agree with the row the answer came from. This
+      // is what would catch the two provider ids being swapped in the tables.
+      if (label.endsWith('(Global)')) assert.equal(answer.region, 'global', `${label} names the international pool`)
+      if (label.endsWith('(CN)')) assert.equal(answer.region, 'cn', `${label} names the domestic pool`)
+    }
+
+    const foreign = await plugin.onRendererCall('xd.composerPoints', { chip: 'not-a-model-of-ours' })
+    assert.equal(foreign?.show, false, 'a model this pool does not publish shows nothing rather than a made-up figure')
+    assert.equal(foreign?.ours, false, 'and says it is not this plugin\'s, so the readout stops asking')
+
+    // The switch the panel writes is the one this path reads.
+    await plugin.onPanelInvoke('xd.setComposerPoints', { enabled: false })
+    const off = await plugin.onRendererCall('xd.composerPoints', { chip: labels[0] })
+    assert.equal(off?.show, false, 'with the setting off the readout is hidden, not merely empty')
+  } finally {
+    await plugin.onUnload()
+  }
+})
+
+/**
+ * A name two pools both serve, with its tag removed.
+ *
+ * The host re-imports an alias when the declaration changes, but until it does
+ * the chip can print a spelling the declaration no longer uses. That text names
+ * no single pool, so the readout has to answer nothing rather than pick one: a
+ * balance shown against the wrong account group is worse than no balance.
+ */
+test('a chip showing the model id still answers, unless two pools share that id', async (t) => {
+  // The host prints `alias || id`, so a chip carries the id until the alias has
+  // been imported. An id only one pool publishes is as good an answer as its
+  // label; one both regions publish names neither, exactly like a shared name.
+  const { plugin, manifestPath } = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: true, sourceTrae: false, sourceQoder: false,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: true,
+  })
+  try {
+    await plugin.onLoad()
+    await plugin.onPanelInvoke('xd.state', {})
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    const published = (manifest.contributes?.providers ?? []).flatMap((provider) =>
+      (provider.models ?? []).map((model) => ({ provider: provider.id, id: String(model.id) })))
+    const sharedId = published.find((row, index) =>
+      published.findIndex((other) => other.id === row.id) !== index)?.id
+    assert.equal(typeof sharedId, 'string', 'the fixture must publish an id from both regions')
+    const shared = await plugin.onRendererCall('xd.composerPoints', { chip: sharedId })
+    assert.equal(shared?.show, false,
+      `${JSON.stringify(sharedId)} belongs to two pools, so it must not answer with either balance`)
+    assert.equal(shared?.ours, true, 'but it is still this plugin\'s model')
+
+    // The offline fixture serves both regions the same catalog, so every id here is
+    // shared. A unique one is the real world's common case and is covered directly
+    // against the matcher, where a declaration can be built by hand.
+    const resolver = loadMatcher([
+      { id: 'wtqpool-cn', models: [{ id: 'cn-only-model', name: 'CN only' }, { id: 'both-model', name: 'Both' }] },
+      { id: 'wtqpool-global', models: [{ id: 'global-only-model', name: 'Global only' }, { id: 'both-model', name: 'Both' }] },
+    ])
+    assert.equal(resolver.match('cn-only-model')?.region, 'cn',
+      'the host prints the id until it has imported the alias, so a unique id has to answer')
+    assert.equal(resolver.match('global-only-model')?.region, 'global', 'and it has to name the right pool')
+    assert.equal(resolver.match('both-model'), undefined,
+      'an id two pools publish names neither of them')
+    assert.equal(resolver.texts('cn-only-model'), true, 'a unique id keeps the readout polling')
+    assert.equal(resolver.texts('both-model'), false, 'a shared id does not')
+  } finally {
+    await plugin.onUnload()
+  }
+})
+
+test('an untagged spelling of a shared name answers nothing', async (t) => {
+  const { plugin, manifestPath } = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: true, sourceTrae: false, sourceQoder: false,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: true,
+  })
+  try {
+    await plugin.onLoad()
+    await plugin.onPanelInvoke('xd.state', {})
+    const labels = publishedLabels(manifestPath)
+    const tagged = labels.find((label) => label.endsWith('(CN)'))
+    assert.equal(typeof tagged, 'string', 'the fixture must publish a tagged label')
+    const bare = tagged.replace(/ \(CN\)$/, '')
+    const answer = await plugin.onRendererCall('xd.composerPoints', { chip: bare })
+    assert.equal(answer?.show, false,
+      `${JSON.stringify(bare)} names both pools, so it must not answer with either balance`)
+    // It is still this plugin's model, so the readout keeps its fast cadence
+    // instead of stopping for good.
+    assert.equal(answer?.ours, true, 'the readout is told the name is ours and still coming')
+    assert.equal(answer?.enabled, true, 'and that the feature itself is on')
+  } finally {
+    await plugin.onUnload()
+  }
+})
+
+test('a slow source account does not skip the other balances in a composer refresh', async (t) => {
+  const entry = path.resolve(__dirname, '../main.js')
+  const baseRequire = createRequire(entry)
+  const qoder = baseRequire('./lib/qoder-client')
+  const credentials = ['first', 'second'].map(name => ({ name, userID: name, token: name, region: 'cn', email: '' }))
+  let now = Date.now()
+  t.mock.method(Date, 'now', () => now)
+  const fetchImpl = async (url, init) => {
+    if (String(url).includes('/campaigns')) return Response.json({ campaigns: [] })
+    assert.ok(String(url).includes('/me/usage'))
+    const first = init.headers.Authorization === 'Bearer first'
+    if (first) now += 60_000
+    return Response.json({ user_quota: { total: 100, remaining: first ? 10 : 20 } })
+  }
+  const context = vm.createContext({
+    require: id => {
+      if (id === './lib/qoder-credentials') return {
+        ...baseRequire(id), discoverQoderCredentials: async () => ({ credentials }),
+      }
+      if (id === './lib/qoder-client') return {
+        ...qoder,
+        QoderUpstreamClient: class extends qoder.QoderUpstreamClient {
+          constructor(options) { super({ ...options, fetchImpl }) }
+        },
+      }
+      return baseRequire(id)
+    },
+    module: { exports: {} }, __dirname: path.dirname(entry), Date,
+    console: { log() {} }, AbortController, AbortSignal, fetch,
+    setTimeout, clearTimeout, setInterval, clearInterval,
+    fixtureRows: credentials.map(({ name, region }) => ({ label: name, region })),
+  })
+  vm.runInContext(fs.readFileSync(entry, 'utf8'), context)
+  vm.runInContext('serviceStopped = false; qoderAccountRows = fixtureRows', context)
+  await context.composerRefreshWork({ source: 'qoder', region: 'cn' })
+  assert.deepEqual(context.fixtureRows.map(row => row.usage?.credits.total), [10, 20])
+})

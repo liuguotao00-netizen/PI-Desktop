@@ -1,0 +1,11 @@
+{
+  "id": "io.github.linuxdazhao.side-questions",
+  "repository": "https://github.com/Linuxdazhao/pi-side-questions",
+  "branch": "HEAD",
+  "commit": "963c295",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/Linuxdazhao/pi-side-questions/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:43:37.669Z",
+  "mode": "source-snapshot",
+  "sha256": "dcb9911563d28963d5fcc73197a58f148c1bae569de6b8508219e73d48ba8746"
+}

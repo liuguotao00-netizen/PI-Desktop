@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>提示词注入</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #17181a;
+        --card: #1f2124;
+        --hover: color-mix(in oklab, #ffffff 6%, transparent);
+        --fg: #f2f3f5;
+        --muted: color-mix(in oklab, #ffffff 52%, transparent);
+        --border: color-mix(in oklab, #ffffff 11%, transparent);
+        --accent: #d8ff5a;
+        --accent-fg: #16180f;
+        --danger: #ff8080;
+      }
+      :root[data-base="light"] {
+        color-scheme: light;
+        --bg: #ffffff;
+        --card: #f8f8f9;
+        --hover: color-mix(in oklab, #101114 5%, transparent);
+        --fg: #16181c;
+        --muted: #5f6268;
+        --border: color-mix(in oklab, #101114 12%, transparent);
+        --accent: #1b1d20;
+        --accent-fg: #ffffff;
+        --danger: #c62828;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: var(--pi-plugin-titlebar-height, 0px) 0 0;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+      }
+      h1 { margin: 0; font-size: 14px; font-weight: 600; }
+
+      .bar {
+        display: flex; align-items: center; gap: 14px;
+        padding: 12px 18px;
+        flex: none;
+        position: relative;
+        z-index: 1;
+        border-bottom: 1px solid var(--border);
+      }
+      .bar .spacer { flex: 1 1 auto; }
+      .master { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+      .master span { font-size: 12px; color: var(--muted); }
+      .master input { position: absolute; opacity: 0; pointer-events: none; }
+      .master .track {
+        position: relative; flex: none;
+        width: 32px; height: 18px; border-radius: 999px;
+        background: color-mix(in oklab, var(--fg) 16%, transparent);
+        border: 1px solid var(--border);
+        transition: background 130ms ease;
+      }
+      .master .track::after {
+        content: ""; position: absolute; top: 2px; left: 2px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--bg);
+        transition: transform 130ms ease;
+      }
+      .master input:checked + .track { background: var(--accent); }
+      .master input:checked + .track::after { transform: translateX(14px); background: var(--accent-fg); }
+      .master input:focus-visible + .track { outline: 2px solid color-mix(in oklab, var(--accent) 60%, transparent); outline-offset: 2px; }
+
+      .btn {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 6px 13px;
+        background: transparent;
+        color: var(--fg);
+        font: inherit;
+        cursor: pointer;
+        transition: background 120ms ease, opacity 120ms ease;
+        white-space: nowrap;
+      }
+      .btn:hover { background: var(--hover); }
+      .btn:focus-visible { outline: 2px solid color-mix(in oklab, var(--accent) 60%, transparent); outline-offset: 2px; }
+      .btn.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 600; }
+      .btn.primary:hover { background: var(--accent); opacity: 0.86; }
+      .btn.link { border: 0; padding: 2px 4px; color: var(--muted); font-size: 12px; }
+      .btn.link:hover { background: transparent; color: var(--fg); }
+      .btn.danger { color: var(--danger); }
+      .btn[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+      main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+      main[hidden] { display: none; }
+
+      /* --- 列表 --- */
+      .list { list-style: none; margin: 0; padding: 0; flex: none; }
+      .row { display: flex; align-items: center; border-bottom: 1px solid var(--border); }
+      .row:hover { background: var(--hover); }
+      .row .switch { flex: none; margin: 0 18px 0 4px; display: flex; align-items: center; cursor: pointer; }
+      .row .switch input { position: absolute; opacity: 0; pointer-events: none; }
+      .row .switch .track {
+        position: relative; width: 32px; height: 18px; border-radius: 999px;
+        background: color-mix(in oklab, var(--fg) 16%, transparent);
+        border: 1px solid var(--border); transition: background 130ms ease;
+      }
+      .row .switch .track::after {
+        content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px;
+        border-radius: 50%; background: var(--bg); transition: transform 130ms ease;
+      }
+      .row .switch input:checked + .track { background: var(--accent); }
+      .row .switch input:checked + .track::after { transform: translateX(14px); background: var(--accent-fg); }
+      .item {
+        display: flex; align-items: center; gap: 12px;
+        flex: 1 1 auto; min-width: 0;
+        padding: 12px 8px 12px 18px;
+        border: 0;
+        background: transparent; color: inherit; font: inherit; text-align: left;
+        cursor: pointer;
+      }
+      .item:hover { background: var(--hover); }
+      .item:focus-visible { outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent); outline-offset: -2px; }
+      .item .dot { width: 6px; height: 6px; border-radius: 50%; flex: none; background: var(--muted); }
+      .item .dot.on { background: var(--accent); }
+      .item-main { min-width: 0; flex: 1 1 auto; display: block; }
+      .item-title, .item-sub { display: block; }
+      .item-title { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .item-sub { font-size: 11.5px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .item .chev { color: var(--muted); flex: none; font-size: 12px; }
+      .empty { padding: 40px 24px; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.9; }
+
+      /* --- 表单 --- */
+      .form { flex: 1 1 auto; overflow: auto; padding: 6px 18px 22px; }
+      .form .back { margin: 10px 0 14px; }
+      .field { display: block; margin-bottom: 16px; }
+      .field .label {
+        display: flex; align-items: baseline; gap: 8px;
+        margin-bottom: 6px; font-size: 12px; color: var(--muted);
+      }
+      .field .label .count { margin-left: auto; color: var(--fg); font-size: 11.5px; }
+      .input, .select, .textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 9px;
+        padding: 8px 10px;
+        background: var(--card);
+        color: var(--fg);
+        font: inherit;
+      }
+      .select { cursor: pointer; }
+      .textarea { resize: vertical; min-height: 140px; line-height: 1.6; }
+      .input:focus-visible, .select:focus-visible, .textarea:focus-visible {
+        outline: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+        outline-offset: 1px;
+      }
+
+      /* 模型多选 */
+      .picker { border: 1px solid var(--border); border-radius: 10px; background: var(--card); overflow: hidden; }
+      .picker-head { display: flex; align-items: center; gap: 6px; padding: 7px 8px; border-bottom: 1px solid var(--border); }
+      .picker-head .input { padding: 5px 9px; background: var(--bg); }
+      .picker-list { max-height: 216px; overflow: auto; }
+      .pick {
+        display: flex; align-items: center; gap: 9px;
+        padding: 7px 11px;
+        border-bottom: 1px solid var(--border);
+        cursor: pointer;
+        font-size: 12.5px;
+      }
+      .pick:last-child { border-bottom: 0; }
+      .pick:hover { background: var(--hover); }
+      .pick input { accent-color: var(--accent); width: 14px; height: 14px; flex: none; cursor: pointer; }
+      .pick-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .pick-prov { margin-left: auto; flex: none; font-size: 11px; color: var(--muted); }
+      .pick.is-locked { cursor: default; color: var(--muted); }
+      .pick.is-locked input { cursor: not-allowed; }
+      .pick-empty { padding: 14px 11px; font-size: 12px; color: var(--muted); text-align: center; }
+
+      .hint { margin: 6px 0 0; font-size: 11.5px; color: var(--muted); }
+      .warn { margin: 0 0 14px; font-size: 11.5px; color: var(--danger); }
+      .actions { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+      .toggle { margin-bottom: 16px; }
+      .actions .spacer { flex: 1 1 auto; }
+
+      details.adv { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
+      details.adv summary { font-size: 12px; color: var(--muted); cursor: pointer; }
+      details.adv .field { margin: 12px 0 0; }
+
+      /* --- 日志 --- */
+      details.log { border-top: 1px solid var(--border); }
+      details.log summary { padding: 10px 18px; font-size: 12px; color: var(--muted); cursor: pointer; }
+      .log-list { max-height: 190px; overflow: auto; font-size: 11.5px; border-top: 1px solid var(--border); }
+      .log-line { display: flex; gap: 8px; padding: 5px 18px; border-bottom: 1px solid var(--border); }
+      .log-line time { color: var(--muted); flex: none; font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+      .log-line span { overflow-wrap: anywhere; }
+      .log-foot { display: flex; align-items: center; gap: 8px; padding: 7px 18px; }
+      .log-foot .path {
+        flex: 1 1 auto; min-width: 0;
+        font-size: 10.5px; color: var(--muted);
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        direction: rtl; text-align: left;
+      }
+
+      .toast {
+        position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%);
+        max-width: min(520px, calc(100vw - 32px));
+        padding: 8px 14px;
+        border: 1px solid var(--border); border-radius: 10px;
+        background: var(--card);
+        box-shadow: 0 12px 30px rgb(0 0 0 / 35%);
+        font-size: 12px;
+        z-index: 20;
+      }
+      .toast.error { color: var(--danger); }
+
+      /* 单项开关：贴在表单里的一行 */
+      .toggle {
+        display: flex; align-items: center; gap: 10px;
+        padding: 9px 11px;
+        border: 1px solid var(--border); border-radius: 10px;
+        background: var(--card);
+        cursor: pointer; user-select: none;
+      }
+      .toggle input { position: absolute; opacity: 0; pointer-events: none; }
+      .toggle .track {
+        position: relative; flex: none;
+        width: 32px; height: 18px; border-radius: 999px;
+        background: color-mix(in oklab, var(--fg) 16%, transparent);
+        border: 1px solid var(--border);
+        transition: background 130ms ease;
+      }
+      .toggle .track::after {
+        content: ""; position: absolute; top: 2px; left: 2px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background: var(--bg);
+        transition: transform 130ms ease;
+      }
+      .toggle input:checked + .track { background: var(--accent); }
+      .toggle input:checked + .track::after { transform: translateX(14px); background: var(--accent-fg); }
+      .toggle input:focus-visible + .track { outline: 2px solid color-mix(in oklab, var(--accent) 60%, transparent); outline-offset: 2px; }
+      .toggle .toggle-label { font-size: 12.5px; }
+      .toggle .toggle-note { margin-left: auto; font-size: 11.5px; color: var(--muted); }
+      .toggle.is-off .toggle-label { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <h1>提示词注入</h1>
+      <span class="spacer"></span>
+      <button class="btn primary" id="newBtn">新建</button>
+    </header>
+
+    <!-- 列表：一项一行，点一行即可编辑 -->
+    <main id="listView">
+      <ul class="list" id="list"></ul>
+      <div class="empty" id="empty"></div>
+      <details class="log">
+        <summary>注入日志</summary>
+        <div class="log-list" id="logList"></div>
+        <div class="log-foot">
+          <button class="btn link" id="logRefresh">刷新</button>
+          <button class="btn link" id="logClear">清空</button>
+          <span class="path" id="logPath"></span>
+        </div>
+      </details>
+    </main>
+
+    <!-- 表单：新建 / 编辑一项 -->
+    <main id="formView" hidden>
+      <form class="form" id="form">
+        <button type="button" class="btn link back" id="backBtn">← 返回</button>
+
+        <div class="field">
+          <span class="label">模型（可多选）<span class="count" id="modelCount"></span></span>
+          <div class="picker">
+            <div class="picker-head">
+              <input class="input" id="modelSearch" placeholder="搜索模型" spellcheck="false" />
+              <button type="button" class="btn link" id="selectAll">全选</button>
+              <button type="button" class="btn link" id="clearAll">清空</button>
+            </div>
+            <div class="picker-list" id="modelList"></div>
+          </div>
+        </div>
+
+        <label class="field">
+          <span class="label">生效方式</span>
+          <select class="select" id="modeSelect"></select>
+        </label>
+
+        <label class="field">
+          <span class="label">提示词</span>
+          <textarea class="textarea" id="prompt" spellcheck="false"
+            placeholder="例如：回答前先用一句话复述我的问题；涉及代码时给出可直接运行的示例。"></textarea>
+        </label>
+
+        <label class="toggle" id="enableRow" title="只关这一项，其它项照常生效">
+          <input type="checkbox" id="itemEnabled" />
+          <span class="track"></span>
+          <span class="toggle-label">启用这一项</span>
+          <span class="toggle-note" id="enableNote"></span>
+        </label>
+
+        <p class="warn" id="warn" hidden></p>
+
+        <div class="actions">
+          <button type="submit" class="btn primary" id="saveBtn">保存</button>
+          <span class="spacer"></span>
+          <button type="button" class="btn danger" id="deleteBtn" hidden>删除</button>
+        </div>
+
+        <details class="adv" id="adv">
+          <summary>高级：包装模板（可选）</summary>
+          <label class="field">
+            <span class="label">
+              出现 <code>{{prompt}}</code> 时用它包裹提示词；可用
+              <code>{{prompt}}</code> <code>{{model}}</code> <code>{{provider}}</code> <code>{{modelKey}}</code>
+            </span>
+            <textarea class="textarea" id="template" rows="3" spellcheck="false"
+              placeholder="# 模型附加要求（{{modelKey}}）&#10;{{prompt}}"></textarea>
+          </label>
+        </details>
+      </form>
+    </main>
+
+    <div class="toast" id="toast" hidden></div>
+
+    <script>
+      const bridge = window.pluginBridge;
+      const $ = (id) => document.getElementById(id);
+
+      const el = {
+        newBtn: $("newBtn"),
+        listView: $("listView"),
+        list: $("list"),
+        empty: $("empty"),
+        logPath: $("logPath"),
+        logList: $("logList"),
+        logRefresh: $("logRefresh"),
+        logClear: $("logClear"),
+        formView: $("formView"),
+        form: $("form"),
+        backBtn: $("backBtn"),
+        modelCount: $("modelCount"),
+        modelSearch: $("modelSearch"),
+        selectAll: $("selectAll"),
+        clearAll: $("clearAll"),
+        modelList: $("modelList"),
+        modeSelect: $("modeSelect"),
+        prompt: $("prompt"),
+        itemEnabled: $("itemEnabled"),
+        enableRow: $("enableRow"),
+        enableNote: $("enableNote"),
+        warn: $("warn"),
+        saveBtn: $("saveBtn"),
+        deleteBtn: $("deleteBtn"),
+        adv: $("adv"),
+        template: $("template"),
+        toast: $("toast"),
+      };
+
+      // 生效方式：把「时机 + 位置」收成一个下拉，四种组合覆盖全部情况
+      const MODES = [
+        { value: "session|append", scope: "session", position: "append", label: "本会话一直生效 · 加在末尾" },
+        { value: "session|prepend", scope: "session", position: "prepend", label: "本会话一直生效 · 加在开头" },
+        { value: "first|append", scope: "first", position: "append", label: "只在第一轮 · 加在末尾" },
+        { value: "first|prepend", scope: "first", position: "prepend", label: "只在第一轮 · 加在开头" },
+      ];
+
+      const state = {
+        config: { enabled: true, template: "", bindings: [] },
+        models: [],
+        modelsError: null,
+        logPath: "",
+        /** 正在编辑的项 id；null 表示新建 */
+        editing: null,
+        /** 表单里的副本：{ id, models: [], prompt, scope, position } */
+        draft: null,
+      };
+
+      // ------------------------------------------------------------------ 小工具
+      let toastTimer = null;
+      function toast(message, variant) {
+        el.toast.textContent = String(message ?? "");
+        el.toast.className = variant === "error" ? "toast error" : "toast";
+        el.toast.hidden = false;
+        window.clearTimeout(toastTimer);
+        toastTimer = window.setTimeout(() => { el.toast.hidden = true; }, variant === "error" ? 6000 : 2400);
+      }
+
+      async function invoke(channel, payload) {
+        if (!bridge || typeof bridge.invoke !== "function") throw new Error("pluginBridge 不可用");
+        return await bridge.invoke(channel, payload || {});
+      }
+
+      function itemFor(id) {
+        return state.config.bindings.find((binding) => binding.id === id) || null;
+      }
+
+      function modelByKey(key) {
+        return state.models.find((model) => model.key === key) || null;
+      }
+
+      /** 模型显示名：modelId（Provider） */
+      function modelLabel(key) {
+        const model = modelByKey(key);
+        if (!model) return key;
+        return model.providerName ? `${model.modelId || key}（${model.providerName}）` : model.modelId || key;
+      }
+
+      function modeOf(binding) {
+        const value = `${binding.scope === "first" ? "first" : "session"}|${binding.position === "prepend" ? "prepend" : "append"}`;
+        return MODES.find((mode) => mode.value === value) || MODES[0];
+      }
+
+      function itemTitle(binding) {
+        const names = binding.models.map((key) => modelLabel(key));
+        if (names.length <= 2) return names.join("、");
+        return `${names.slice(0, 2).join("、")} 等 ${names.length} 个模型`;
+      }
+
+      function itemSummary(binding) {
+        const text = (binding.prompt || "").replace(/\s+/g, " ").trim();
+        const head = text.length > 40 ? `${text.slice(0, 40)}…` : text;
+        const body = [modeOf(binding).label, head ? `「${head}」` : "提示词为空"].join(" · ");
+        return binding.enabled === false ? `已停用 · ${body}` : body;
+      }
+
+      /** 提示词是否非空 —— 决定列表上的圆点是实心还是空心。 */
+      function hasPrompt(binding) {
+        return Boolean(binding && (binding.prompt || "").trim());
+      }
+
+      /** 已被其它项占用的模型：key -> 占用它的那一项标题 */
+      function lockedModels() {
+        const locked = new Map();
+        for (const binding of state.config.bindings) {
+          if (binding.id === state.editing) continue;
+          for (const key of binding.models) locked.set(key, itemTitle(binding));
+        }
+        return locked;
+      }
+
+      // ------------------------------------------------------------------ 列表
+      function renderList() {
+        const bindings = state.config.bindings;
+        el.list.textContent = "";
+        el.list.hidden = bindings.length === 0;
+        el.empty.hidden = bindings.length > 0;
+        el.empty.textContent = "";
+        if (bindings.length === 0) {
+          const titleLine = document.createElement("div");
+          titleLine.textContent = "还没有绑定。";
+          const hintLine = document.createElement("div");
+          hintLine.textContent = state.models.length === 0
+            ? "先在「设置 → 模型」里添加或登录一个模型，再回来新建。"
+            : "点右上角「新建」→ 勾选模型 → 写提示词 → 保存。";
+          el.empty.append(titleLine, hintLine);
+        }
+        el.newBtn.disabled = state.models.length === 0;
+
+        for (const binding of bindings) {
+          const row = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "item";
+
+          const dot = document.createElement("span");
+          dot.className = binding.enabled !== false && hasPrompt(binding) ? "dot on" : "dot";
+          button.append(dot);
+
+          const main = document.createElement("span");
+          main.className = "item-main";
+          const title = document.createElement("span");
+          title.className = "item-title";
+          title.textContent = itemTitle(binding);
+          const sub = document.createElement("span");
+          sub.className = "item-sub";
+          sub.textContent = itemSummary(binding);
+          main.append(title, sub);
+          button.append(main);
+
+          const chev = document.createElement("span");
+          chev.className = "chev";
+          chev.textContent = "›";
+          button.append(chev);
+
+          button.addEventListener("click", () => openForm(binding.id));
+          row.className = "row";
+          row.append(button);
+
+          // 首页直接开关这一项，不必进表单
+          const sw = document.createElement("label");
+          sw.className = "switch";
+          sw.title = "启用 / 停用这一项";
+          const swBox = document.createElement("input");
+          swBox.type = "checkbox";
+          swBox.checked = binding.enabled !== false;
+          swBox.addEventListener("change", async () => {
+            const bindings = state.config.bindings.map((entry) =>
+              entry.id === binding.id ? { ...entry, enabled: swBox.checked } : entry
+            );
+            const ok = await persist(bindings, renderList);
+            if (!ok) swBox.checked = !swBox.checked;
+          });
+          const swTrack = document.createElement("span");
+          swTrack.className = "track";
+          sw.append(swBox, swTrack);
+          row.append(sw);
+          el.list.append(row);
+        }
+      }
+
+      // ------------------------------------------------------------------ 表单
+      function fillModes() {
+        el.modeSelect.textContent = "";
+        for (const mode of MODES) {
+          const option = document.createElement("option");
+          option.value = mode.value;
+          option.textContent = mode.label;
+          el.modeSelect.append(option);
+        }
+        el.modeSelect.value = modeOf(state.draft).value;
+      }
+
+      function renderPicker() {
+        const query = el.modelSearch.value.trim().toLowerCase();
+        const locked = lockedModels();
+        const selected = new Set(state.draft.models);
+        el.modelList.textContent = "";
+
+        const visible = state.models.filter((model) => {
+          if (!query) return true;
+          return `${model.modelId} ${model.key} ${model.providerName || ""}`.toLowerCase().includes(query);
+        });
+
+        if (visible.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "pick-empty";
+          empty.textContent = state.models.length === 0
+            ? "没有读取到本机模型：先在「设置 → 模型」里添加或登录。"
+            : "没有匹配的模型。";
+          el.modelList.append(empty);
+        }
+
+        for (const model of visible) {
+          const owner = locked.get(model.key);
+          const label = document.createElement("label");
+          label.className = owner ? "pick is-locked" : "pick";
+
+          const box = document.createElement("input");
+          box.type = "checkbox";
+          box.value = model.key;
+          box.checked = selected.has(model.key);
+          box.disabled = Boolean(owner);
+          box.addEventListener("change", () => {
+            const next = new Set(state.draft.models);
+            if (box.checked) next.add(model.key);
+            else next.delete(model.key);
+            state.draft.models = [...next];
+            renderModelCount();
+          });
+          label.append(box);
+
+          const name = document.createElement("span");
+          name.className = "pick-name";
+          name.textContent = model.modelId || model.key;
+          label.append(name);
+
+          const note = document.createElement("span");
+          note.className = "pick-prov";
+          note.textContent = owner ? `已在「${owner}」中` : model.providerName || "";
+          label.append(note);
+
+          el.modelList.append(label);
+        }
+
+        renderModelCount();
+      }
+
+      function renderModelCount() {
+        const count = state.draft ? state.draft.models.length : 0;
+        el.modelCount.textContent = count === 0 ? "未选择" : `已选 ${count} 个`;
+      }
+
+      /** 单项开关的外观：.is-off 时标题变灰，右侧说明当前状态。 */
+      function renderEnableRow() {
+        const on = state.draft ? state.draft.enabled !== false : true;
+        el.itemEnabled.checked = on;
+        el.enableRow.classList.toggle("is-off", !on);
+        el.enableNote.textContent = on ? "本项生效" : "本项已停用，保存后不注入";
+      }
+
+      function renderForm() {
+        const draft = state.draft;
+        if (!draft) return;
+        el.modelSearch.value = "";
+        fillModes();
+        el.prompt.value = draft.prompt || "";
+        el.template.value = state.config.template || "";
+        el.deleteBtn.hidden = state.editing === null;
+        renderEnableRow();
+        renderPicker();
+        syncWarn();
+      }
+
+      function syncWarn() {
+        const hasModels = state.draft.models.length > 0;
+        const hasPrompt = Boolean((el.prompt.value || "").trim());
+        const message = !hasModels
+          ? "请至少勾选一个模型。"
+          : !hasPrompt
+            ? "提示词为空，这一项不会注入任何内容。"
+            : "";
+        el.warn.hidden = !message;
+        el.warn.textContent = message;
+      }
+
+      function newId() {
+        return `item_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+      }
+
+      function openForm(id) {
+        const binding = id ? itemFor(id) : null;
+        state.editing = binding ? binding.id : null;
+        state.draft = binding
+          ? { id: binding.id, models: [...binding.models], enabled: binding.enabled !== false, prompt: binding.prompt || "", scope: binding.scope, position: binding.position }
+          : { id: newId(), models: [], enabled: true, prompt: "", scope: "session", position: "append" };
+        el.listView.hidden = true;
+        el.formView.hidden = false;
+        renderForm();
+        el.modelSearch.focus();
+      }
+
+      function closeForm() {
+        state.editing = null;
+        state.draft = null;
+        el.formView.hidden = true;
+        el.listView.hidden = false;
+        renderList();
+      }
+
+      function readForm() {
+        if (state.draft.models.length === 0) {
+          toast("请至少勾选一个模型", "error");
+          return null;
+        }
+        // 必须读下拉当前值：用户改了生效方式后 draft 里的 scope/position 不会自动跟着变
+        const mode = MODES.find((entry) => entry.value === el.modeSelect.value) || MODES[0];
+        return {
+          id: state.draft.id,
+          models: [...state.draft.models],
+          enabled: el.itemEnabled.checked,
+          prompt: el.prompt.value,
+          scope: mode.scope,
+          position: mode.position,
+        };
+      }
+
+      async function persist(bindings, done) {
+        try {
+          const result = await invoke("injector.save", {
+            config: { enabled: state.config.enabled !== false, template: state.draft ? el.template.value : (state.config.template || ""), bindings },
+          });
+          if (result && result.config) state.config = result.config;
+          done();
+          return true;
+        } catch (error) {
+          toast(`保存失败：${String(error && error.message ? error.message : error)}`, "error");
+          return false;
+        }
+      }
+
+      async function save() {
+        const item = readForm();
+        if (!item) return;
+        el.saveBtn.disabled = true;
+        const others = state.config.bindings.filter((binding) => binding.id !== item.id);
+        await persist([...others, item], () => {
+          closeForm();
+        });
+        el.saveBtn.disabled = false;
+      }
+
+      async function remove() {
+        if (state.editing === null) return;
+        const binding = itemFor(state.editing);
+        if (!binding) return;
+        if (!window.confirm(`删除「${itemTitle(binding)}」这一项？`)) return;
+        el.deleteBtn.disabled = true;
+        await persist(
+          state.config.bindings.filter((entry) => entry.id !== state.editing),
+          () => {
+            closeForm();
+          }
+        );
+        el.deleteBtn.disabled = false;
+      }
+
+      // ------------------------------------------------------------------ 日志
+      /** 扩展写下的「为什么没注入」诊断，翻译成一句人话。 */
+      function describeDebug(entry) {
+        switch (entry.reason) {
+          case "no_match": {
+            const hint = entry.disabledMatches
+              ? `命中了这些项，但它们已停用：${entry.disabledMatches}。到面板里把它们的「启用这一项」打开，或给当前模型勾一项。`
+              : "到面板里把当前模型勾进某一项。";
+            return `这轮会话用的是 ${entry.model}，但生效的绑定里没有它（当前 ${entry.enabledBindings} 项生效，共绑定 ${entry.boundModels} 个模型；已配置 ${entry.configuredModels}）。${hint}`;
+          }
+          case "empty_block":
+            return `命中了 ${entry.binding}，但这一项的提示词为空（模板${entry.hasTemplate ? "有" : "无"}内容）。`;
+          default:
+            return JSON.stringify(entry);
+        }
+      }
+
+      function describe(entry) {
+        switch (entry.event) {
+          case "inject":
+            return `注入 ${entry.model}（${entry.scope === "first" ? "仅首轮" : "本会话"}，${entry.chars} 字符）`;
+          case "ready":
+            return "扩展已加载";
+          case "probe":
+            return `事件已触发：${entry.name}（pid ${entry.pid}）`;
+          case "turn":
+            return `钩子已触发：${entry.provider}/${entry.modelId}（会话 ${String(entry.session).slice(0, 8)}）`;
+          case "config_error":
+            return `配置错误：${entry.message}`;
+          case "error":
+            return `注入失败：${entry.message}`;
+          case "debug":
+            return `未注入：${describeDebug(entry)}`;
+          default:
+            return JSON.stringify(entry);
+        }
+      }
+
+      async function renderLog() {
+        el.logList.textContent = "";
+        try {
+          const result = await invoke("injector.log", { limit: 40 });
+          const entries = Array.isArray(result && result.entries) ? result.entries : [];
+          if (entries.length === 0) {
+            const empty = document.createElement("div");
+            empty.className = "log-line";
+            empty.textContent = "暂无记录，注入一次后这里会出现。";
+            el.logList.append(empty);
+          }
+          for (const entry of entries) {
+            const line = document.createElement("div");
+            line.className = "log-line";
+            const time = document.createElement("time");
+            time.textContent = (entry.ts || "").replace("T", " ").slice(5, 19);
+            const text = document.createElement("span");
+            text.textContent = describe(entry);
+            line.append(time, text);
+            el.logList.append(line);
+          }
+          if (result && result.logPath) {
+            state.logPath = result.logPath;
+            el.logPath.textContent = result.logPath;
+            el.logPath.title = result.logPath;
+          }
+        } catch (error) {
+          const line = document.createElement("div");
+          line.className = "log-line";
+          line.textContent = String(error && error.message ? error.message : error);
+          el.logList.append(line);
+        }
+      }
+
+      // ------------------------------------------------------------------ 装载
+      async function load() {
+        try {
+          const data = await invoke("injector.state");
+          state.config = data.config || { enabled: true, template: "", bindings: [] };
+          state.models = Array.isArray(data.models) ? data.models : [];
+          state.modelsError = data.modelsError || null;
+          state.logPath = data.logPath || "";
+          renderList();
+          if (data.configError) toast(data.configError, "error");
+          else if (state.modelsError) toast(state.modelsError, "error");
+          await renderLog();
+        } catch (error) {
+          toast(String(error && error.message ? error.message : error), "error");
+        }
+      }
+
+      // ------------------------------------------------------------------ 事件
+      el.newBtn.addEventListener("click", () => openForm(null));
+      el.backBtn.addEventListener("click", closeForm);
+      el.form.addEventListener("submit", (event) => { event.preventDefault(); save(); });
+      el.deleteBtn.addEventListener("click", remove);
+      el.modelSearch.addEventListener("input", renderPicker);
+      el.selectAll.addEventListener("click", () => {
+        const locked = lockedModels();
+        const next = new Set(state.draft.models);
+        for (const model of state.models) if (!locked.has(model.key)) next.add(model.key);
+        state.draft.models = [...next];
+        renderPicker();
+      });
+      el.clearAll.addEventListener("click", () => {
+        state.draft.models = [];
+        renderPicker();
+      });
+      el.prompt.addEventListener("input", syncWarn);
+      el.itemEnabled.addEventListener("change", () => {
+        if (!state.draft) return;
+        state.draft.enabled = el.itemEnabled.checked;
+        renderEnableRow();
+      });
+      el.logRefresh.addEventListener("click", renderLog);
+      el.logClear.addEventListener("click", async () => {
+        if (!window.confirm("清空注入日志？")) return;
+        try {
+          await invoke("injector.log", { clear: true, limit: 1 });
+          await renderLog();
+        } catch (error) {
+          toast(String(error && error.message ? error.message : error), "error");
+        }
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !el.formView.hidden) closeForm();
+      });
+
+      const applyAppearance = (appearance) => {
+        const base = appearance && appearance.base;
+        document.documentElement.dataset.base =
+          base === "light" || base === "dark"
+            ? base
+            : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      };
+      if (bridge && typeof bridge.on === "function") bridge.on("appearance:changed", applyAppearance);
+      invoke("app.getAppearance").then(applyAppearance).catch(() => applyAppearance(null));
+      load();
+    </script>
+  </body>
+</html>

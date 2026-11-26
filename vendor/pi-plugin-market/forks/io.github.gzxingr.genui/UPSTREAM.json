@@ -1,0 +1,11 @@
+{
+  "id": "io.github.gzxingr.genui",
+  "repository": "https://github.com/GzxingR/pi-desktop-genui",
+  "branch": "HEAD",
+  "commit": "91ebd8b",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/GzxingR/pi-desktop-genui/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:43:01.220Z",
+  "mode": "source-snapshot",
+  "sha256": "12958be7aedfd17880618e87c4f150a4606369a02f0398a3f6147284f5e8597c"
+}

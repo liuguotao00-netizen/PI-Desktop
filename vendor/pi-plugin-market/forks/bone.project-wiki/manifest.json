@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "bone.project-wiki",
+  "name": "BoneProjectWiki",
+  "version": "0.3.5",
+  "description": "A user-owned project knowledge base with document-linked memory, a read-only memory overview and explainable local recall.",
+  "author": "taokoplay",
+  "homepage": "https://github.com/taokoplay/bone-project-wiki",
+  "repository": "https://github.com/taokoplay/bone-project-wiki",
+  "categories": ["productivity", "developer-tools"],
+  "i18n": {
+    "en": {
+      "name": "Project Knowledge Base",
+      "description": "User-owned project knowledge, document-linked memory, a grouped read-only memory overview and explainable local recall.",
+      "safetyNotes": "Operates strictly locally within the project .bone-project-wiki directory. No cloud account or external network calls required."
+    },
+    "zh-CN": {
+      "name": "项目知识库",
+      "description": "用户私有的项目知识库，支持树形文件管理、文档关联记忆、只读记忆总览与可解释的本地召回。",
+      "safetyNotes": "完全本地运行，仅在当前项目 .bone-project-wiki/ 目录下读写文件，不向外网发送任何数据。"
+    }
+  },
+  "main": "main.js",
+  "ui": {
+    "panel": "renderer/index.html",
+    "title": "BoneProjectWiki",
+    "width": 1200,
+    "height": 820
+  },
+  "contributes": {
+    "commands": [{ "id": "bone-project-wiki.open", "title": "BoneProjectWiki", "keywords": ["wiki", "knowledge", "知识库"] }],
+    "views": [{ "id": "wiki", "title": "BoneProjectWiki", "icon": "book", "entry": "renderer/index.html", "order": 30 }],
+    "agentTools": [{ "name": "project_wiki", "description": "Read and maintain the current project's knowledge, prototypes, assets and memory.", "risk": "medium" }],
+    "skills": ["skills/project-wiki.md"],
+    "agentExtensions": ["extension.mjs"]
+  },
+  "permissions": ["ui.panel", "ui.view", "fs.read", "fs.write", "fs.delete", "agent.tool.register", "agent.prompt.inject", "agent.extension"],
+  "fs": {
+    "read": { "root": "workspace", "scope": [".bone-project-wiki/**"] },
+    "write": { "root": "workspace", "scope": [".bone-project-wiki/**"] },
+    "delete": { "own": false, "scope": [".bone-project-wiki/memory/**"] }
+  },
+  "engines": { "piDesktop": ">=0.4.22" },
+  "activationEvents": ["onStartup", "onCommand:bone-project-wiki.open"]
+}

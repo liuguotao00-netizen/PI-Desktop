@@ -1,0 +1,570 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "id": "host-smoke",
+      "title": "真实宿主面板交互验收",
+      "description": "0.7.1工作项架构影响/手动来源核对与工作区切换在隔离浏览器通过；新增同事件循环弹窗与保存迟到刷新回归red→green，88测试/76图回归及五代表图已实际检查。代码/包已合并GitHub main，但模拟宿主事件不证明本机实际切换验收。",
+      "blocker": "当前未通过受支持宿主安装/真实交互验收；MCP无插件安装/更新接口，遵守既有MCP-only授权。0.7.1未安装。",
+      "stage": "todo",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "release-acceptance",
+      "title": "汇总真实证据并完成总体验收",
+      "description": "0.7.0市场published、官方/GitHub目录和公开包核对完成；main9a96f16集成重测/普通推送通过。已保留85测试/74图及视觉证据。仍须host-smoke和既有指纹/接续执行验收，全部八条标准通过后才verify/close。",
+      "blocker": "host-smoke未通过，既有CRLF源码指纹与接续执行验收未完成，不总体close。",
+      "stage": "todo",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "ms-docs-visual-motion-0121",
+      "title": "Microsoft 风格文档精炼与工作台可视化动效升级 · 0.12.1",
+      "description": "全面对齐 Microsoft Writing Style Guide（结论先行、短句、列表/表格扫读，消除密集说明墙与学术分类术语）；放大全站操作按钮触感并引入分段胶囊控件、统计占比微柱图、卡片状态徽标、架构流向虚线动效及阅读进度条/滚动目录追踪。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "README与docs全目录对齐Microsoft写作风格，百行预算、死链与生成同步检查通过",
+        "全站按钮尺寸、微图可视化、卡片信息减负与prefers-reduced-motion无障碍动效通过全部浏览器回归",
+        "刷新0.12.1源码指纹并通过全量单元与浏览器检查"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": "ms-docs-visual-motion-0121",
+      "completedAt": "2026-11-21T10:40:00.000Z"
+    },
+    {
+      "id": "ui-docs-architecture-0120",
+      "title": "四目录意图文档架构、前端美化与 0.12.0 源码架构图",
+      "description": "按方案B将 docs/ 物理重构为 start/guides/reference/ops 四类人类易读子目录；升级全站明暗视觉层次、项目文档分组标题目录、四象限快速选读卡与历史归档折叠；同步更新 0.12.0 真实双宿主源码架构图。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "docs物理迁移为四类子目录且全仓链接、生成plugin/docs与行为绑定检查通过",
+        "前端视觉美化与项目文档分组标题导航、总览卡片、归档折叠交互通过全部浏览器回归",
+        "重建0.12.0真实源码架构图指纹并通过全量单元与浏览器检查"
+      ],
+      "architectureImpact": "affects",
+      "gitTaskId": "ui-docs-architecture-0120",
+      "completedAt": "2026-11-21T09:21:00.000Z"
+    },
+    {
+      "id": "doc-driven-slim-0110",
+      "title": "面向文档工作流精简、移除内置SSH与双宿主兼容 · 0.11.0",
+      "description": "按用户批准移除内置SSH/ssh2（解除原市场eval动态执行阻塞），GitHub权威协作仅保留本地与GitHub分支交互；精简AGENTS.md与STATE.json历史叠加约束，固化人管docs与Agent同轮维护docs闭环；新增antigravity.json并兼容Antigravity与PI-Desktop双宿主。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "移除内置SSH与ssh2且本地与GitHub权威协作回归通过",
+        "精简AGENTS.md与STATE.json并同步更新docs，同时兼容Antigravity与PI-Desktop",
+        "0.11.0一次构建、单元与浏览器回归通过并如实记录官方piplug边界"
+      ],
+      "architectureImpact": "affects",
+      "gitTaskId": "doc-driven-slim-0110",
+      "completedAt": "2026-11-21T07:42:00.000Z"
+    },
+    {
+      "id": "readonly-workbench",
+      "title": "只读工作台与精简文档职责",
+      "description": "操作留AI宿主；移除网页写入与独立行为页；Docs当前事实、Notes按需历史，每轮判断最小更新。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-28T16:54:23.796Z"
+    },
+    {
+      "id": "context-help-0102",
+      "title": "说明按需显示与内容优先",
+      "description": "0.10.2已交付：低频说明移到圆圈问号，hover/focus/click及触屏可读，浮层不挤正文；错误阻塞/确认保留。实际CI40289012495双OS各299测试/295截图/10行为成功，官方113文件包与4图目视完成。原总体宿主/物理触屏/市场阻塞保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-26T08:12:49.165Z"
+    },
+    {
+      "id": "ascii-authority-0101",
+      "title": "ASCII权威与可视化结构一致",
+      "description": "0.10.1已交付：受管ASCII解析后驱动画板，旧JSON不覆盖结构，旧基线/指纹兼容。实际完整CI40280774929双OS各299测试/279截图/10行为通过，官方110文件包。保留原总体宿主/目视和市场阻塞。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-26T06:48:20.924Z"
+    },
+    {
+      "id": "github-authority-0100",
+      "title": "GitHub权威协作0.10.0",
+      "description": "已交付源码a9bce18与官方110文件包至main8d1c703；实际双OS CI40016034271各293测试/279截图/10行为全通过。已绑定GitHub故障不降级、两端独立草稿分支、双端unknown与SHA核对；CLI非浏览器实时GitHub视图。原SSH市场eval拒绝保留，不重试。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": "github-authority-0100",
+      "completedAt": "2026-10-23T20:14:56.147Z"
+    },
+    {
+      "id": "visual-hierarchy-092",
+      "title": "0.9.2 图形概览与视觉层级优化",
+      "description": "0.9.2源码/官方包/本地UI检查保留；网络恢复后随0.10.0 main8d1c703正常同步，原UI未改，由实际CI40016034271双OS完整检查覆盖293测试/279截图/10行为。不是另跑0.9.2标签CI或人工安装验收。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "可见真实图形概览、任务层级、少说明，中英明暗手机桌面可用",
+        "相关及完整回归保留原确认、离线、隔离、阅读器和Git安全",
+        "0.9.2版本官方包与main双OS CI真实通过，原总体阻塞保留"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-23T20:14:56.157Z"
+    },
+    {
+      "id": "refactoring-ui-091",
+      "title": "Refactoring UI 呈现层重构 · 0.9.1",
+      "description": "0.9.1展示层重构已交付：任务优先、紧凑统计/按需概览工具、tokens/shell/业务样式归属；保留五页与安全契约。官方103文件包、main3a028cf及CI39783999993双OS各280测试/279截图/10行为全部通过。原宿主/目视/SSH市场拒绝阻塞不变。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-22T13:48:07.269Z"
+    },
+    {
+      "id": "git-history-quiet-085",
+      "title": "精简Git图分支信息 · 0.8.5",
+      "description": "用户贴出的Agent分支归属组合过多；默认只保留两项图例和主轴/HEAD标记，其余移到hover，不删除真实Git数据。补丁不市场。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T11:53:28.376Z"
+    },
+    {
+      "id": "git-history-polish-084",
+      "title": "优化Git图交互性能与0.8.4交付",
+      "description": "删除受管网页；main固定居中、branch清楚、hover信息/点击dialog；GitHub参考与加载提速；本轮补丁不市场，后续大更新自动版本/检查后提交市场。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T11:04:57.083Z"
+    },
+    {
+      "id": "git-history-view",
+      "title": "只读Git提交图与二级详情",
+      "description": "用户确认：最新在上/早期在下，真实分支与合并连线，节点打开提交/文件差异二级页并返回保留位置，保留受管工作区标签页；分页、有界、双语响应式，不执行合并/reset/push。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T10:15:48.348Z"
+    },
+    {
+      "id": "fast-workflow-082",
+      "title": "简化开发检查流程并交付0.8.2",
+      "description": "用户批准：局部定向、公共高风险及大版本全量；等同已测内容不重跑，记录快路、一次构建、一次浏览器/行为证据。仅源码包，无标签Release市场npm安装。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T06:10:47.097Z"
+    },
+    {
+      "id": "reference-ui",
+      "title": "参考图美化统一浏览器工作台",
+      "description": "参考图美化完成：导航/欢迎区/真实统计/三栏和右摘要，双语明暗/窄屏，原交互保留。188测试/135图/10行为、官方包与分发、main重测推送及CI39074954295双系统通过，宽屏及390明暗已实际看图。第二项未开始，继续只读文档阅读。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "参考图视觉语言、双语明暗与响应式可用",
+        "数据真实，原看板/画板/确认/隔离交互不退化",
+        "完整回归官方包与提交后交付通过"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-17T22:33:49.488Z"
+    },
+    {
+      "id": "lightweight-entry",
+      "title": "启动器与右侧工作面板轻量入口",
+      "description": "官方ui.panel/ui.view同一轻量页已实现；仅状态/刷新/显式打开浏览器，绑定项目版本，无自动打开/业务副本。188测试、115图/10行为、官方77文件包/分发、提交后与main重测推送通过，实际Linux+Windows CI39033694625成功。需人工更新/权限，非安装后E2E，总体阻塞保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "两官方入口可发现且同页",
+        "无自动打开/任意URL或跨项目点击",
+        "完整回归官方包及真实交付"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": "lightweight-entry",
+      "completedAt": "2026-10-17T12:52:59.691Z"
+    },
+    {
+      "id": "unified-browser",
+      "title": "所有宿主统一浏览器工作台",
+      "description": "统一浏览器入口已实现。PI/MCP共享显式工具与服务，项目隔离/页面租约/断开卸载回收实际通过；184测试、98+7+2图/10行为、官方72文件包/分发及main集成重测推送完成，实际Linux+Windows CI39028637631成功。不自动安装/发布，原总体宿主阻塞保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "同一浏览器UI和可信宿主项目上下文，无新聊天/选目录",
+        "服务隔离与租约/断开/卸载/切换回收实际通过",
+        "完整回归官方包分发及提交后交付真实"
+      ],
+      "architectureImpact": "affects",
+      "gitTaskId": "unified-browser",
+      "completedAt": "2026-10-17T11:33:36.408Z"
+    },
+    {
+      "id": "host-context",
+      "title": "复用宿主项目、会话与上下文",
+      "description": "开发和源码交付完成：原项目/已有会话复用、安全恢复、Claude环境/Codex只读Hook，共享核心。163测试、98+7图、10行为和Linux/Windows CI38975005223通过；main c79f838已正常同步，官方62文件包权限/版本不变。真实安装客户端未冒充通过；证据changes/active/project-board-release/host-context.md。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-16T22:33:08.488Z"
+    },
+    {
+      "id": "mcp-skills-release",
+      "title": "共享MCP/Skills与大版本GitHub发布",
+      "description": "共享核心MCP/Skills、多目标构建与仅稳定vN.0.0 GitHub Release Action已完成。本地及真实Ubuntu/Windows CI38782258411全部通过：ci/类型/构建/152测试/行为/浏览器；解包生产安装和官方PI61文件713439字节通过。main45a2f87已普通推送核对。两次CI问题已复现修复，不放宽门禁。0.7.8不建标签/真实Release/市场/npm发布/安装；原宿主检查保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-15T18:13:13.714Z"
+    },
+    {
+      "id": "architecture-skill-default",
+      "title": "默认Architecture Copilot与废弃内容清理",
+      "description": "0.7.8默认Skill双模式及旧操作记录/27旧包清理完成。bd40da3受管验证/来源同步，main4cdcd91集成141测试/95图/10行为场景重测及普通推送、远端SHA核对通过。当前目录只保留0.7.8包；二进制差异/暂存删除实际问题red→green。无新权限、不自动安装或重发旧会话，原总体真实宿主检查保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "分析入口实际prompt默认加载Skill且无旧提示词回退",
+        "现状与设计边界/既有安全回归通过",
+        "干净包检查、提交后验证及GitHub/main交付"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-15T10:30:33.923Z"
+    },
+    {
+      "id": "status-format-completed-history",
+      "title": "宿主状态兼容与近期完成历史",
+      "description": "0.7.7真实嵌套status兼容及近期5项/全部完成表格；历史不删除。c2f446f提交后、main6a3a06b集成136测试/95截图和原10行为场景通过；干净构建/官方包检查、来源同步、普通main推送和远端SHA核对完成。真实旧会话已通过公开MCP恢复completed；未重发/创建/abort，不自动安装。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "官方格式与安全边界回归通过",
+        "近期5项/全部表格/真实完成时间且历史不删除",
+        "实际组合/干净检查/包及GitHub main交付"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-13T12:44:27.313Z"
+    },
+    {
+      "id": "operation-state-sync",
+      "title": "结束会话状态同步与新任务放行",
+      "description": "启动新操作和打开进度自动核对旧running会话；明确空闲才同步，查询失败/未知保留，不重发/删除或后台轮询。\n实际结果：原场景red→green，130测试/89图/超时与并发保护、包检查通过；来源075d82b及main64d1072普通推送核对完成。真实旧会话读取未成功，未伪造完成或安装新版。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "实际操作回归复现并修复旧running阻塞",
+        "异常/超时/取消和项目变化安全、完整测试通过",
+        "包检查、提交后测试及main同步通过"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null
+    },
+    {
+      "id": "ascii-architecture",
+      "title": "同源ASCII架构与可视化",
+      "description": "架构仍可选；同一设计生成ASCII正文和现有画板，保留旧历史，未新增绘图依赖或验收。\n实际结果：125测试/88图/十场景、干净构建及包门禁通过，90a86a4来源/main9d77fc5同步核对完成。代表截图人工目视未完成，未声称真实宿主或模型测试通过。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "节点/关系与ASCII对应，重复保存/旧基线/特殊文本回归通过",
+        "类型/构建/单元/浏览器/干净安装/包检查实际完成",
+        "提交后检查和来源/main同步实际完成"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null
+    },
+    {
+      "id": "three-column-simplification",
+      "title": "三栏与可选架构简化",
+      "description": "用户要求删独立验收、保留三栏；架构可选，功能基于分层文档实现及测试。保留旧历史，不引入新开发流程。\n实际结果：类型/构建、122测试、87图浏览器、干净安装和包检查通过；源码b95dbe4与测试修复bace43b已同步，main远端核对一致。无独立验收步骤。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "三栏与无新验收路径回归通过",
+        "历史兼容和源码/权限/切换安全保留",
+        "实际构建测试、包检查和GitHub/main交付完成"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null
+    },
+    {
+      "id": "visual-check",
+      "title": "六组尺寸与主题截图目视复核",
+      "description": "0.6.12双语三尺寸/明暗六组目视已实际完成，窄屏详情与设置另看原图。仅修改测试截图为实际视口并断言1000px高度，回归red→green；74图交互/几何回归通过。新证据docs-0.6.12/visual/index.html，旧0.6.11证据原样保留。不把隔离测试当安装验收。",
+      "blocker": "",
+      "stage": "accepted",
+      "taskId": "project-board-release",
+      "gitTaskId": null,
+      "acceptance": {
+        "method": "agent",
+        "passed": true,
+        "accepted": [],
+        "valid": true,
+        "reviewer": "Agent · screenshot review",
+        "conclusion": "本项六组截图与代表性原尺寸图目视通过；只接受浏览器视觉检查范围，非真实宿主验收。",
+        "evidence": "实际运行test:browser生成74图；尺寸断言red：Launch图1606px≠1000px，改fullPage:false后全部green。实际通过BrowserPreview/browser screenshot查看390/768/1280×light/dark六组联系表（每组双语五视图），并打开en-modal-390-light、zh-launch-390-dark原尺寸图。检查列边界/响应式排列、详情遮罩/居中、文本/按钮、导航与架构。证据changes/active/project-board-release/docs-0.6.12/visual/index.html；插件来源2480906，测试截图方式修正，不更改插件。未证明实际宿主、物理触屏或收费模型运行。",
+        "itemFingerprint": "718808f6b6da7af9a21adf70702100a5db342ee4bdc80f9bf95c4cf639c51bbe",
+        "at": "2026-10-09T07:43:59.925Z"
+      }
+    },
+    {
+      "id": "clean-code-repair-cleanup",
+      "title": "Clean Code 修复与无用文件清理",
+      "description": "本轮具体修复与核实清理已完成并同步main。修复离线取消/解除、图状态残留、坏记录边界、有界浏览器等待；删除失效CSS/重复声明，集中发布边界，保留用户目录、有效运行产物和22个历史包。110测试/78图、官方包检查和历史扫描通过；源码be8e5e6、main58a2d10已真实重测推送。大型职责拆分/显式锁上下文/完整类型化仍是后续机会，不宣称全仓所有原则已满足。",
+      "blocker": "",
+      "stage": "accepted",
+      "taskId": "project-board-release",
+      "criteria": [
+        "确认的行为问题修复并具有针对性回归测试",
+        "清理项有引用/用途核查，保留用户数据、有效运行文件及发布追溯",
+        "typecheck、build、npm test及相关浏览器测试通过",
+        "diff审查、提交后测试及插件检查/打包具有真实证据"
+      ],
+      "architectureImpact": "none",
+      "acceptance": {
+        "method": "agent",
+        "passed": true,
+        "accepted": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "valid": true,
+        "reviewer": "Agent — source and test verification",
+        "conclusion": "仅验收本轮具体缺陷修复、核实清理及交付；不替代整体真实宿主验收，不宣称全部架构优化完成。",
+        "evidence": "来源be8e5e62bc140406fad172491d5a5a0fb27e3c48受管验证并release:auto源码同步成功；main58a2d1061a00b1a436001bcb9b5952d8f222bc39集成后typecheck/build、110测试、78图浏览器重测通过，普通推送并ls-remote核对一致。前端三回归与后端持久化回归red→green；CSS引用/级联与4/2/2/1列断言通过。PluginCheck/Pack43文件549908字节SHAfb0c52c294428885b295dee6c733f40806e7db7853e82329ba41b9bc14d10316。实际历史扫描通过；仅获批精确假令牌例外。同内容生成产物的HEAD/index/hash核对刷新stat修复先出现preflight失败再实际通过。日志session scratch。未安装，不代替真实宿主验收。",
+        "itemFingerprint": "61f3b63dcb76d37ccfedca4ee9ae54bd6d029e5645006247277af8ea730bcd00",
+        "at": "2026-10-12T09:30:02.206Z"
+      },
+      "gitTaskId": null
+    },
+    {
+      "id": "architecture-design-baseline",
+      "title": "架构设计Skill与稳定基线",
+      "description": "按用户批准接入Architecture Copilot，复用画板展示可读设计；独立草案/人工确认基线/显式修订/历史，不替代源码事实或STATE实施授权。新增agent.prompt.inject已明确获批；不自动安装或提交市场。",
+      "blocker": "",
+      "stage": "accepted",
+      "taskId": "project-board-release",
+      "criteria": [
+        "Skill固定来源、许可和批准权限正确；设计与源码/STATE独立",
+        "草案、确认、显式修订、历史及跨项目/任务/草案ID回归通过",
+        "类型/构建、单元/浏览器/关联行为、干净安装与官方包门禁实际通过",
+        "差异审查、提交后重测和main集成普通推送核对完成"
+      ],
+      "architectureImpact": "affects",
+      "acceptance": {
+        "method": "agent",
+        "passed": true,
+        "accepted": [
+          true,
+          true,
+          true,
+          true
+        ],
+        "valid": true,
+        "reviewer": "Agent",
+        "conclusion": "本次批准的架构设计功能和受检交付通过；不代表真实宿主、模型质量或总体任务通过。",
+        "evidence": "源码48bf88b30c367ce52c0b3ac409b3d620a93338c5提交后release:auto类型/120测试/86图通过并来源同步；main7f8fd90e5d82c439124fc2ecf889193105e979e9集成后类型/构建/120测试、固定浏览器及六行为九场景通过，普通main推送远端SHA一致。干净npm ci检查通过，i18n0失败/2既有提示；PluginCheck/Pack60文件687060字节SHA6207b00d250ee0e1e917d8edc53dce49f9879e52799f6408a75d88acdd872eab。源码/diff/包条目已核对，限定只读复核无具体问题。changes/active/project-board-release/architecture-design/index.html保留六组总览和确认弹窗目视证据；审阅人/模型/宿主事件均有夹具边界。新增权限获明确批准；未安装或提交市场。",
+        "itemFingerprint": "b0af90bf0de27a58f4e9272af4696dc87839dd19f9965657ee31563e9e74ccbf",
+        "at": "2026-10-12T11:32:22.765Z"
+      },
+      "gitTaskId": null
+    },
+    {
+      "id": "project-continuation-entry",
+      "title": "配置一次启动接续入口",
+      "description": "原生手动自动化已创建并列表核对：接续项目：已批准待办，Agent/perRun/当前项目；无定时、递归对话、自动安装或提权。配置完成不等于已启动自动执行。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "host-window-drag",
+      "title": "定位宿主外层窗口不能拖动",
+      "description": "已通过正常UI安装0.6.4，真实窗口854818顶部拖动位置1032,516→924,552，尺寸496×368保持。边缘缩放到656×448，关闭后原生窗口数0，插件页重开新句柄10293024。宿主按钮恢复，已查看真实中文截图；CSP冲突修复生效。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "github-delivery",
+      "title": "同步最新源码并集成main",
+      "description": "0.7.1源码dd5e421提交后类型/构建、88测试、76图与敏感历史扫描通过，补丁源码已同步；main ef7830f集成后重测并普通推送，远端一致。包含架构影响及安全工作区切换，WIP8ba1c20原历史保留；市场仍0.7.0，不自动安装。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "architecture-clarity",
+      "title": "精简核心架构与依赖可视化",
+      "description": "按文档提炼核心逻辑；实现依赖分层、简洁节点和折叠来源。保留真实依赖、键盘操作及来源校验；浏览器回归后交付新版。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "ssh-portable-090",
+      "title": "目录内可迁移SSH与远端优先备份 · 0.9.0",
+      "description": "0.9.0源码与双OS CI曾交付，因ssh2含eval动态执行被插件市场拒绝；2026-11-21用户明确批准0.11.0移除低频内置SSH与ssh2，仅保留本地与GitHub权威协作，本项历史阻塞已由0.11.0精简方案取代关闭。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-11-21T07:42:00.000Z"
+    },
+    {
+      "id": "host-theme-adaptation",
+      "title": "独立配色与宿主模式界面复验",
+      "description": "0.7.0运行UI源码与已目视双语三尺寸/明暗六组一致，新版代表图已查看；85测试/74图交互与几何回归通过。独立配色和宿主模式仍须本机真实主题复验，不能由发布或模拟API替代。",
+      "blocker": "本机0.6.10，0.7.0未安装/真实宿主主题验收未完成。",
+      "stage": "doing",
+      "taskId": "project-board-release",
+      "gitTaskId": null
+    },
+    {
+      "id": "local-web-console",
+      "title": "独立本地项目控制台与稳定次版本发布",
+      "description": "独立127.0.0.1项目Web控制台与稳定vX.Y.0主/次版本发布规则完成，MCP共享核心数据，不遥控外部Agent。受管6df5ff5实际提交后验证、main9236cca集成重测及普通推送核对；156测试/95+7浏览器图/10行为场景、官方PI62文件719477字节及通用分发通过。真实Tests CI38794612011 Ubuntu/Windows全成功；当前0.7.8未升版/建标签/实发Release/安装，原总体宿主阻塞保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "affects",
+      "gitTaskId": null,
+      "completedAt": "2026-10-15T19:41:35.780Z"
+    },
+    {
+      "id": "document-reader",
+      "title": "浏览器项目文档阅读",
+      "description": "第二项已完成：浏览器只读Markdown文档库、文件名搜索、正文/标题导航，限额和路径/敏感/链接/HTML资源/迟到保护。206测试/147浏览器图/10行为、82文件官方包与分发通过，main a286652正常同步；实际CI39079566860 Linux/Windows全部步骤成功，桌面/390明暗已实际目视。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "浏览器内可浏览搜索阅读项目文档与标题目录",
+        "只读并拒绝敏感/越界/链接路径及HTML脚本/外部资源执行",
+        "完整回归包与提交后交付通过"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-17T23:44:39.258Z"
+    },
+    {
+      "id": "reader-typography-080",
+      "title": "文档阅读体验优化与0.8.0交付",
+      "description": "0.8.0已完成：正文优先18px/1.8/受控行宽，折叠库目录、字号/专注、安全技术Markdown及手机紧凑首屏。208测试/175图/10行为与82文件官方包分发通过，桌面/手机明暗实际目视；main a4ccdb3正常同步，实际CI39146170388 Linux/Windows全部步骤成功。用户确认无标签/Release/市场/npm/自动安装。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "长文正文优先，双语明暗与窄屏/键盘阅读舒适",
+        "Markdown常用文档格式可读，原只读/资源/路径/隔离回归不退化",
+        "0.8.0全版本一致、完整回归/官方包分发/main正常同步与实际CI"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-18T16:51:25.614Z"
+    },
+    {
+      "id": "unified-shell-081",
+      "title": "统一工作台布局与可收起侧栏（0.8.1）",
+      "description": "0.8.1统一布局已完成：四页原导航/顶栏一致，全局侧栏手动展开或64px收起，切页/刷新/主题/离线不重置；文档局部阅读优化保留，手机共享紧凑顶栏。208测试/239图/10行为和82文件官方包分发通过；main f063f9c正常同步，实际CI39155509173 Linux/Windows全部步骤成功。首轮框架已目视，最新微调截图保存但Browser前台未满足；原总体验收限制保留。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [
+        "全页面壳层一致，侧栏可收起可恢复、跨页状态稳定且键盘窄屏可用",
+        "保留文档阅读排版与原看板/架构/确认/离线/隔离功能安全",
+        "0.8.1版本及官方包一致，完整回归/main同步与双OS CI真实通过"
+      ],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-18T18:54:06.186Z"
+    },
+    {
+      "id": "hover-behaviors-083",
+      "title": "悬停导航与行为文档一级页 · 0.8.3",
+      "description": "0.8.3两项及源码官方包已交付main1a03e65；219测试/251图/10行为及双OS CI39213296229通过。市场单次提交后approved、0阻塞，待运营发布，不等于published/安装。证据changes/active/project-board-release/hover-behaviors-083.md",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T07:11:44.978Z"
+    },
+    {
+      "id": "behavior-reader-fixes",
+      "title": "行为读取与内部文档跳转修复",
+      "description": "已修复真实CRLF行为预算拒绝与安全内部Markdown/标题跳转；mainf2dc852实际HTTP200/7条说明、README开发键盘跳转通过。双OS CI39221478181各222测试/255图/10行为通过；官方包82文件938188字节。不升版本或覆盖市场approved包；证据changes/active/project-board-release/behavior-reader-fixes.md。",
+      "blocker": "",
+      "stage": "done",
+      "taskId": "project-board-release",
+      "criteria": [],
+      "architectureImpact": "none",
+      "gitTaskId": null,
+      "completedAt": "2026-10-19T08:25:19.973Z"
+    }
+  ],
+  "updatedAt": "2026-10-28T16:54:23.797Z"
+}

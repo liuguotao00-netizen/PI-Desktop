@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.thinkrail",
+  "name": "ThinkRail",
+  "version": "1.7.1",
+  "description": "ThinkRail for PI-Desktop: a spec-graph the agent can read, query and maintain (7 spec_* tools), 11 workflow skills (including the authoring checklist for the family), and a panel with a specs browser.",
+  "changelog": "1.7.1: The gate no longer waits for a failure it can never see. PI-Desktop hands a plugin tool's `{ error }` payload back as a SUCCESSFUL result (`isError: false`, and `ok: true` in plugin.log), so `spec_validate` answering `{\"error\": \"No workspace is open\"}` looked like an ordinary result: no `[thinkrail-state]` line, no `isError`, and every work tool stayed refused for the whole session — the fail-open path added in 1.6.0 could never fire. `spec_validate` now decides on its own evidence: a strict first line `[thinkrail-state] specs=N` records the graph; any other outcome — an error, no workspace, an unregistered tool, rejected arguments, a missing state line — opens the gate for the rest of the session. The refusal fuse stays at 16: it is a backstop for a model that ignores the gate, and a burst of parallel work tools in one turn must not trip it — the evidence rule above is what actually recovers a stuck session. Nothing else about the gate changes: read-only tools, `Skill`, questions, todos and the spec read tools still pass, unknown tool names still pass, and 0 durable specs still requires onboarding before the project is changed. 1.7.0: Adds the worker a partial spec graph was missing. `extending-a-spec-graph` audits the gaps with evidence, proposes the repair in one task-spec, approves once, then repairs root → architecture → modules and validates; it documents what the system IS and hands behaviour design back to `brainstorming`, reached from the root router's new maintenance row and from the dispatcher's accepted review/extend offer instead of the old \"no skill covers it\" note. Its gap table refuses two temptations: `specs=N` is not a score, and a directory without a `SPEC.md` is not a gap; duplicate ids are fixed per file because `spec_update` refuses `id` in `set`. `spec-graph` now carries only graph mechanics (nodes, frontmatter, link kinds, status values, the tools) while `writing-specs` is the single home for spec content and for which evidence permits a status move. Meta-rule 16 replaces hit-counting: a candidate earns a skill by naming the flow it fixes, its unique gate, its ending and the duplication it removes — frequency is evidence, never a threshold, and the router records nothing, so a read-only request never writes. Tests check the skills directory against contributes.skills in both directions and pin the new route lines. 1.6.0: First-session onboarding is ENFORCED, not advised — a code project with no durable spec graph can no longer be changed before setup, whatever the request asks. The standing-rule extension now also runs a `tool_call` gate: until the session has called `spec_validate`, every work tool (bash, edit, write, task, browser, spec_create/update/delete) is refused with the next call named in the refusal; once `spec_validate` reports 0 durable specs, work stays refused until the `setting-up-a-project` skill has been loaded. A refused call never runs. `spec_validate` now leads with a machine-readable `[thinkrail-state] specs=N` line, and the rule block carries the recorded state into the next turn so the decision is not left to memory. Read-only tools, `Skill`, questions, todos and the spec read tools always pass; unknown tool names, a spec-tool error or 16 consecutive refusals open the gate for the rest of the session (fail-open beats a stuck session). 1.5.2: The spec-graph no longer counts a brainstorming draft as project state. task-spec files under `.thinkrail/context/` were indexed as ordinary specs, so a code-only project holding nothing but a draft read as `durable spec graph present` and the router's automatic first-session onboarding was skipped; spec_graph, spec_grep, spec_validate and the panel now share the rule's definition of durable. Drafts stay usable: spec_create still writes into `.thinkrail/context/`, and spec_update / spec_delete still resolve them by id. Carries over 1.5.1's dual-channel rule delivery and 1.5.0's onboarding, broad router, specs-before-code lookup, and approved-design-before-build gate.",
+  "i18n": {
+    "en": {
+      "name": "ThinkRail",
+      "description": "ThinkRail for PI-Desktop: a spec-graph the agent can read, query and maintain (7 spec_* tools), 11 workflow skills (including the authoring checklist for the family), and a panel with a specs browser.",
+      "safetyNotes": "Reads and writes project files through the host fs gateway (declared scope: read anywhere in the project, write only .md files and the .thinkrail/ scratch dir, delete only files it wrote, always to the system trash); the host resolves every path against the project of the session that invoked the tool, so the plugin never picks a project itself. Ships ONE agent-process extension (`extensions/workflow-rule.mjs`, declared under contributes.agentExtensions, requires agent.extension): no imports, no filesystem access, no network, small enough to read before enabling. Each turn it delivers one fixed paragraph pointing the agent at the choosing-a-workflow skill, over whichever channel the running host actually reads: (1) on hosts that expose a named prompt-section map (PI-Desktop 0.15.x-0.19.x, and upstream pi), it writes only its own section `pi-thinkrail-workflow` and returns nothing else; (2) on hosts without one (PI-Desktop 0.20.x and newer hard-code an empty options object and read only a returned string), it APPENDS that same paragraph, wrapped in `<pi-thinkrail-workflow>` tags, to the end of the system prompt and returns the combined string. The append is idempotent: a prompt that already contains the block is left untouched, and the host prompt is always preserved rather than replaced. It never sends, reads, or writes anything beyond that text. That module runs inside the agent process with the agent's own tool permissions, so it is NOT covered by the fs gateway above; read it before enabling. Registers 7 agent tools and 11 skills (skills are prose; no code runs from them); sends nothing over the network and reads no credentials. It also REFUSES TOOL CALLS: in a session that has not yet called `spec_validate`, and again while `spec_validate` reports 0 durable specs and no onboarding skill has been loaded, it answers the host's `tool_call` event with `{ block: true, reason }` for work tools (bash, edit, write, task, browser, spec_create/update/delete), so that call never executes; the reason names the next call. Read-only tools, the `Skill` tool, questions, todos and the spec read tools always pass, and unknown tool names, a spec-tool error or 16 consecutive refusals open the gate for the rest of the session; so does a `spec_validate` result that carries no `[thinkrail-state] specs=N` line (no workspace open, tool not registered, arguments rejected) — the host reports those failures as successes, so the result itself is the only signal there is."
+    },
+    "zh-CN": {
+      "name": "ThinkRail",
+      "description": "PI-Desktop 版 ThinkRail：agent 可读、可查、可维护的 spec 图（7 个 spec_* 工具）、11 篇工作流技能（含编写工作流技能的清单与元规则），以及一个含 spec 浏览器的面板。",
+      "safetyNotes": "文件的读写一律走宿主的 fs 网关（已声明的范围：项目内可读，只写 .md 与 .thinkrail/ 草稿目录，只删本插件写过的文件，且删到系统回收站）；宿主按发起调用的会话解析每一个路径，插件自己不判定项目。**附带一个 agent 进程内扩展**（`extensions/workflow-rule.mjs`，声明在 contributes.agentExtensions，需要 agent.extension 权限）：无任何 import、不碰文件系统、不发起网络请求，小到可以在启用前读完。它每轮投递一段固定文字，指向 choosing-a-workflow 技能，走**运行中的宿主实际会读的那条通道**：(1) 宿主提供具名 prompt section 表时（PI-Desktop 0.15.x–0.19.x 与上游 pi），只写自己的 section `pi-thinkrail-workflow`，不返回别的东西；(2) 宿主没有那张表时（PI-Desktop 0.20.x 起把 options 硬编码成空对象、只读返回的字符串），把同一段文字用 `<pi-thinkrail-workflow>` 标签包好**追加**到系统提示末尾，并返回合并后的整条。追加是幂等的：提示里已经有这个块就原样不动，且**始终保留**宿主原有的提示而不是替换它。除这段文字外不发送、不读取、不写入任何东西。该模块运行在 agent 进程内、权限等同于 agent 自身工具，**不受上面那条 fs 网关约束**；启用前请阅读该文件。注册 7 个模型工具与 10 篇技能（技能全是文字说明，不执行任何代码）；不发起任何网络请求，也不读取凭据。它还会**拒绝工具调用**：在本会话跑过 spec_validate 之前，以及 spec 图仍为空且没加载 onboarding 技能时，它会对「干活」类工具（bash/edit/write/task/browser/spec_create/update/delete）返回 `{ block: true, reason }`，那个调用在宿主机上**不会执行**，理由里点名下一步该调什么。只读工具、Skill 工具、提问、待办与 spec 只读工具永远放行；未知工具名、spec 工具自身报错、`spec_validate` 的结果里没有 `[thinkrail-state] specs=N` 状态行（无工作区、工具没注册、参数被拒——宿主会把这类失败报成成功，所以结果本身就是唯一信号）、或连续 16 次被拒，则本会话永久放行。"
+    }
+  },
+  "author": "andrewliu",
+  "categories": [
+    "developer-tools",
+    "productivity"
+  ],
+  "main": "main.js",
+  "ui": {
+    "title": {
+      "en": "ThinkRail",
+      "zh-CN": "ThinkRail"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "thinkrail.open",
+        "title": "ThinkRail: Open",
+        "keywords": [
+          "thinkrail",
+          "spec",
+          "规格"
+        ],
+        "category": "Developer"
+      },
+      {
+        "id": "thinkrail.openSpecs",
+        "title": "ThinkRail: Open Specs",
+        "keywords": [
+          "thinkrail",
+          "spec",
+          "graph",
+          "图",
+          "规格"
+        ],
+        "category": "Developer"
+      }
+    ],
+    "views": [
+      {
+        "id": "thinkrail",
+        "title": {
+          "en": "ThinkRail",
+          "zh-CN": "ThinkRail"
+        },
+        "icon": "workflow",
+        "entry": "renderer/index.html",
+        "order": 22
+      }
+    ],
+    "agentTools": [
+      {
+        "name": "spec_grep",
+        "description": "search the project's spec-graph by content (narrowable by metadata); reach for it before grep/read when exploring or planning. Matches within spec files only (files whose frontmatter carries `id` + `type`), optionally narrowed by type / tag / parent / depends-on. Returns path:line matches with a snippet; read a matched file's body with the normal read tool.",
+        "risk": "low"
+      },
+      {
+        "name": "spec_get",
+        "description": "look up one spec by id: its frontmatter, resolved links, and path (read the body with `read`). Resolves forward and reverse edges across parent / depends-on / references / implements. Returns no prose body.",
+        "risk": "low"
+      },
+      {
+        "name": "spec_graph",
+        "description": "walk a bounded slice of the spec-graph (subtree / ancestors / neighbors) from a node. `subtree` goes down the parent tree, `ancestors` up to the tree root, `neighbors` across a chosen edge and its reverse. Bounded by `depth` (default 1).",
+        "risk": "low"
+      },
+      {
+        "name": "spec_create",
+        "description": "create a new spec file with scaffolded frontmatter (id/type/title/links) and heading stubs. Fails if the file already exists, the id is already in use, or the path is not an indexable root-relative .md path. Edit prose afterward with the write/edit tools.",
+        "risk": "medium"
+      },
+      {
+        "name": "spec_update",
+        "description": "edit a spec's frontmatter only (scalar fields + list entries); never its prose. Preserves the file's field order, comments, and non-dialect fields. Prose is edited with the write/edit tools.",
+        "risk": "medium"
+      },
+      {
+        "name": "spec_delete",
+        "description": "delete a spec file by id, to the system trash. Other specs may still reference it afterward — run spec_validate to find dangling links.",
+        "risk": "high"
+      },
+      {
+        "name": "spec_validate",
+        "description": "report the project's durable spec count and check the spec-graph for dangling links, duplicate ids, and parent cycles. The first line is `[thinkrail-state] specs=N`; the plugin's standing-rule extension reads it to decide whether first-time onboarding must run before the project is changed.",
+        "risk": "low"
+      }
+    ],
+    "agentExtensions": [
+      "extensions/workflow-rule.mjs"
+    ],
+    "skills": [
+      "skills/spec-graph.md",
+      "skills/choosing-a-workflow.md",
+      "skills/setting-up-a-project.md",
+      "skills/starting-a-new-project.md",
+      "skills/importing-a-codebase.md",
+      "skills/brainstorming.md",
+      "skills/writing-specs.md",
+      "skills/asking-user-questions.md",
+      "skills/shipping-a-pr.md",
+      "skills/writing-workflow-skills.md",
+      "skills/extending-a-spec-graph.md"
+    ],
+    "settings": []
+  },
+  "permissions": [
+    "ui.view",
+    "agent.tool.register",
+    "agent.prompt.inject",
+    "agent.extension",
+    "fs.read",
+    "fs.write",
+    "fs.delete"
+  ],
+  "fs": {
+    "read": {
+      "scope": [
+        "**/*"
+      ]
+    },
+    "write": {
+      "scope": [
+        "**/*.md",
+        ".thinkrail/**"
+      ]
+    },
+    "delete": {
+      "own": true
+    }
+  },
+  "engines": {
+    "piDesktop": ">=0.15.6"
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:thinkrail.open",
+    "onCommand:thinkrail.openSpecs"
+  ]
+}

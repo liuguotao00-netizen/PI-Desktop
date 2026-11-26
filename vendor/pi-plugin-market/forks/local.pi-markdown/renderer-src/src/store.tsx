@@ -1,0 +1,230 @@
+import {
+  createContext,
+  useContext,
+  useReducer,
+  type Dispatch,
+  type ReactNode,
+} from "react";
+import type {
+  AppState,
+  DropPos,
+  ExternalFile,
+  FolderNode,
+  NoteNode,
+  SideTab,
+  ThemeMode,
+  ThemeSource,
+  TreeNode,
+} from "./types";
+import {
+  findNode,
+  insertAtRoot,
+  insertNode,
+  isDescendant,
+  removeNode,
+  uid,
+  updateNode,
+} from "./lib/tree";
+import { t } from "./lib/i18n";
+
+export type Action =
+  | {
+      type: "init";
+      tree: TreeNode[];
+      activeId: string | null;
+      dataDir: string | null;
+      theme: ThemeMode;
+      themeSource: ThemeSource;
+    }
+  | { type: "newNote"; parentId: string | null; title?: string; content?: string }
+  | { type: "newFolder"; parentId: string | null; name?: string }
+  | { type: "rename"; id: string; name: string }
+  | { type: "remove"; id: string }
+  | { type: "move"; id: string; targetId: string; pos: DropPos }
+  | { type: "setActive"; id: string | null }
+  | { type: "toggleExpanded"; id: string }
+  | { type: "setTab"; tab: SideTab }
+  | { type: "setQuery"; q: string }
+  | { type: "setTheme"; theme: ThemeMode }
+  // host 模式：官方外观通道推送的宿主亮暗 base（不改 themeSource）
+  | { type: "setThemeHost"; theme: ThemeMode }
+  | { type: "externalOpen"; file: ExternalFile }
+  | { type: "externalSave"; content: string }
+  | { type: "setContent"; id: string; content: string }
+  | {
+      type: "setSave";
+      status: AppState["saveState"]["status"];
+      at?: number | null;
+      message?: string;
+    };
+
+const initialState: AppState = {
+  tree: [],
+  activeId: null,
+  expanded: {},
+  tab: "notes",
+  query: "",
+  saveState: { status: "saved", at: null },
+  dataDir: null,
+  theme: "light",
+  themeSource: "host",
+  externalFile: null,
+};
+
+function reducer(state: AppState, action: Action): AppState {
+  switch (action.type) {
+    case "init":
+      return {
+        ...state,
+        tree: action.tree,
+        activeId: action.activeId,
+        dataDir: action.dataDir,
+        theme: action.theme,
+        themeSource: action.themeSource,
+        expanded: {},
+      };
+
+    case "newNote": {
+      const node: NoteNode = {
+        id: uid("n"),
+        type: "note",
+        title: action.title?.trim() || t("common.newNote"),
+        content: action.content ?? "",
+        updatedAt: Date.now(),
+      };
+      const tree =
+        action.parentId && findNode(state.tree, action.parentId)
+          ? insertNode(state.tree, action.parentId, "inside", node)
+          : insertAtRoot(state.tree, node);
+      const expanded =
+        action.parentId && findNode(state.tree, action.parentId)
+          ? { ...state.expanded, [action.parentId]: true }
+          : state.expanded;
+      return { ...state, tree, expanded, activeId: node.id };
+    }
+
+    case "newFolder": {
+      const node: FolderNode = {
+        id: uid("f"),
+        type: "folder",
+        name: action.name?.trim() || t("common.newFolder"),
+        children: [],
+      };
+      const tree =
+        action.parentId && findNode(state.tree, action.parentId)
+          ? insertNode(state.tree, action.parentId, "inside", node)
+          : insertAtRoot(state.tree, node);
+      const expanded =
+        action.parentId && findNode(state.tree, action.parentId)
+          ? { ...state.expanded, [action.parentId]: true }
+          : { ...state.expanded, [node.id]: true };
+      return { ...state, tree, expanded };
+    }
+
+    case "rename": {
+      const name = action.name.trim();
+      if (!name) return state;
+      return { ...state, tree: updateNode(state.tree, action.id, { name }) };
+    }
+
+    case "remove": {
+      const tree = removeNode(state.tree, action.id);
+      const activeId = state.activeId === action.id ? null : state.activeId;
+      return { ...state, tree, activeId };
+    }
+
+    case "move": {
+      const { id, targetId, pos } = action;
+      if (id === targetId) return state;
+      if (pos === "inside" && isDescendant(state.tree, id, targetId)) {
+        return state;
+      }
+      const node = findNode(state.tree, id);
+      if (!node) return state;
+      const tree2 = removeNode(state.tree, id);
+      const tree3 = insertNode(tree2, targetId, pos, node);
+      const expanded =
+        pos === "inside" && node.type === "note"
+          ? { ...state.expanded, [targetId]: true }
+          : state.expanded;
+      return { ...state, tree: tree3, expanded };
+    }
+
+    case "setActive":
+      return { ...state, activeId: action.id };
+
+    case "toggleExpanded":
+      return {
+        ...state,
+        expanded: {
+          ...state.expanded,
+          [action.id]: !state.expanded[action.id],
+        },
+      };
+
+    case "setTab":
+      return { ...state, tab: action.tab };
+
+    case "setQuery":
+      return { ...state, query: action.q };
+
+    case "setTheme":
+      // 面板内切换 = 手动覆盖（宿主主题不再自动生效）
+      return { ...state, theme: action.theme, themeSource: "manual" };
+
+    case "setThemeHost":
+      return { ...state, theme: action.theme };
+
+    case "externalOpen":
+      return { ...state, externalFile: action.file };
+
+    case "externalSave":
+      return state.externalFile
+        ? { ...state, externalFile: { ...state.externalFile, content: action.content } }
+        : state;
+
+    case "setContent":
+      return {
+        ...state,
+        tree: updateNode(state.tree, action.id, {
+          content: action.content,
+          updatedAt: Date.now(),
+        }),
+      };
+
+    case "setSave":
+      return {
+        ...state,
+        saveState: {
+          status: action.status,
+          at: action.at ?? state.saveState.at,
+          message: action.message,
+        },
+      };
+
+    default:
+      return state;
+  }
+}
+
+const StateCtx = createContext<AppState>(initialState);
+const DispatchCtx = createContext<Dispatch<Action>>(() => {});
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, initialState);
+  return (
+    <StateCtx.Provider value={state}>
+      <DispatchCtx.Provider value={dispatch}>
+        {children}
+      </DispatchCtx.Provider>
+    </StateCtx.Provider>
+  );
+}
+
+export function useAppState(): AppState {
+  return useContext(StateCtx);
+}
+
+export function useAppDispatch(): Dispatch<Action> {
+  return useContext(DispatchCtx);
+}

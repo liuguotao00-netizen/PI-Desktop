@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="pi-plugin-chrome" content="v2">
+  <title>Side Questions</title>
+  <link href="style.css" rel="stylesheet">
+  <script src="view.js" defer></script>
+</head>
+<body>
+  <header>
+    <div class="heading">
+      <h1 id="heading"></h1>
+      <span id="parent"></span>
+    </div>
+    <button id="new" type="button"></button>
+  </header>
+  <main>
+    <details id="history" hidden>
+      <summary id="history-title"></summary>
+      <div class="history-body">
+        <input id="search" type="search">
+        <ol id="branches"></ol>
+        <button id="more" type="button" hidden></button>
+      </div>
+    </details>
+    <section class="conversation-header" id="branch-header" hidden>
+      <span id="anchor-preview"></span>
+      <button id="delete" type="button"></button>
+    </section>
+    <p id="error" role="alert" hidden></p>
+    <div class="transcript" id="transcript" tabindex="0" role="log" aria-live="polite">
+      <p id="empty" class="empty"></p>
+      <button id="older" type="button" hidden></button>
+      <div id="rows"></div>
+    </div>
+    <section id="interactive" aria-live="polite" hidden></section>
+    <form id="composer" hidden>
+      <label for="anchor" id="anchor-label"></label>
+      <select id="anchor"></select>
+      <textarea id="draft" rows="3" maxlength="65536"></textarea>
+      <div class="composer-actions">
+        <span id="working" role="status"></span>
+        <button id="stop" type="button" hidden></button>
+        <button id="send" type="submit"></button>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

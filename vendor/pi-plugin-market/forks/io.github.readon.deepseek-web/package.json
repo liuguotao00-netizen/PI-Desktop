@@ -1,0 +1,32 @@
+{
+  "name": "pi-deepseek-web",
+  "version": "0.1.1",
+  "description": "Pi extension: DeepSeek Search & Fetch tools for real-time web search and page extraction, reusing your existing DeepSeek API key",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "deepseek",
+    "search",
+    "fetch",
+    "web"
+  ],
+  "license": "MIT",
+  "files": [
+    "extensions",
+    "README.md",
+    "LICENSE"
+  ],
+  "pi": {
+    "extensions": [
+      "./extensions/deepseek-web/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-ai": "*",
+    "@earendil-works/pi-coding-agent": "*",
+    "@earendil-works/pi-tui": "*"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

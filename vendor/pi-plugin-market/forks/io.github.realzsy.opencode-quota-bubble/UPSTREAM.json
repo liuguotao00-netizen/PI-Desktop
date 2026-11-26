@@ -1,0 +1,11 @@
+{
+  "id": "io.github.realzsy.opencode-quota-bubble",
+  "repository": "https://github.com/realzsy/opencode-quota-bubble",
+  "branch": "HEAD",
+  "commit": "f362775",
+  "version": "0.5.0",
+  "tarball": "https://api.github.com/repos/realzsy/opencode-quota-bubble/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:43:43.021Z",
+  "mode": "source-snapshot",
+  "sha256": "5b4c9cc681157834e8929f58c5cf56fc0f5af9893b3929791be30149a544b783"
+}

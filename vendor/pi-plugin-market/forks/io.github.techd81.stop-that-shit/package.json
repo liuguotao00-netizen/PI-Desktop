@@ -1,0 +1,18 @@
+{
+  "name": "stop-that-shit",
+  "version": "0.2.7",
+  "private": true,
+  "description": "PI-Desktop plugin: explicit task contracts checked before every tool call, with a local audit panel",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "pretest": "npm run check:desktop",
+    "test": "node scripts/test.cjs",
+    "check:desktop": "node scripts/desktop-plugin-check.cjs",
+    "eval:desktop": "node scripts/eval-desktop-cases.cjs",
+    "pack:desktop": "node scripts/pack-desktop.cjs",
+    "prompts:desktop": "node scripts/install-desktop-prompts.cjs"
+  }
+}

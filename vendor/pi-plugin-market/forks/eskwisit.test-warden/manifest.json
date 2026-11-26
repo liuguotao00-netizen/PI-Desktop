@@ -1,0 +1,288 @@
+{
+	"schemaVersion": 1,
+	"id": "eskwisit.test-warden",
+	"name": "Test Warden",
+	"version": "0.8.0",
+	"description": "Keeps unit tests in step with code, for any test framework: uses the project's own verified test command, finds regressions on old vs new code, builds test suites for files without touching them, keeps only tests that can fail, and reports bugs instead of fixing them.",
+	"author": "eskwisit",
+	"license": "Apache-2.0",
+	"homepage": "https://github.com/eskwisit/pi-test-warden",
+	"repository": "https://github.com/eskwisit/pi-test-warden",
+	"categories": [
+		"coding"
+	],
+	"main": "main.js",
+	"i18n": {
+		"en": {
+			"name": "Test Warden",
+			"description": "Keeps unit tests in step with code, for any test framework: uses the project's own verified test command, finds regressions on old vs new code, builds test suites for files without touching them, keeps only tests that can fail, and reports bugs instead of fixing them.",
+			"safetyNotes": "Agent tools, a skill and one sub-agent; no network access and the plugin itself runs no process. agent.prompt.inject indexes the Test Warden skill for the Skill tool. agent.tool.register adds four tools (warden_profile, warden_check, warden_gate, warden_lessons). fs.read covers the workspace (to read the project's own test commands, configs, CI files and tests; the host always refuses credential files); fs.write is scoped to .test-warden/**, where the profile, the lessons and each run's files live, including exact snapshots of the source files a run protects. The check and gate tools write bash scripts into .test-warden/runs/<id>/ that the agent runs with its own Bash tool, subject to your Bash approval: they run the project's own test command on the current code, and on old or deliberately emptied copies of the code inside a temporary git worktree; they never write to the working tree. Beyond the host file API the plugin uses Node fs for one thing: on load it copies its test-warden-writer sub-agent to ~/.agents/subagents (the only place PI-Desktop loads sub-agents from) and removes it on unload unless you edited it. agent.extension loads one module that, while a run is open (.test-warden/guard.json, written by warden_check plan and removed by warden_lessons add or warden_check release), blocks Edit, Write and obvious Bash writes to the sources under test, blocks the fixer agent, and requires a timeout of at least 900 s for the run scripts. The writer sub-agent can edit files and run Bash; the gate detects any change it made to the code under test by content hash and returns the command that restores the snapshot."
+		},
+		"zh-CN": {
+			"name": "测试守卫",
+			"description": "适用于任何测试框架，让单元测试与代码保持同步：使用项目自身经过验证的测试命令，对比新旧代码以发现回归，在不改动目标文件的前提下为其编写测试套件，只保留确实能够失败的测试，发现的缺陷只报告、不修复。",
+			"safetyNotes": "智能体工具、一个技能和一个子智能体；不访问网络，插件本身不运行任何进程。agent.prompt.inject 用于为 Skill 工具索引测试守卫技能。agent.tool.register 注册四个工具（warden_profile、warden_check、warden_gate、warden_lessons）。fs.read 覆盖整个工作区（用于读取项目自身的测试命令、配置、CI 文件和测试；宿主始终拒绝读取凭据文件）；fs.write 仅限 .test-warden/**，其中保存配置档、经验条目以及每次运行的文件，包括本次运行所保护源文件的精确快照。check 与 gate 工具会在 .test-warden/runs/<id>/ 中生成 bash 脚本，由智能体通过其自身的 Bash 工具运行，并受你的 Bash 审批设置约束：脚本在当前代码上运行项目自身的测试命令，并在临时 git worktree 中对旧代码或被刻意清空的代码副本运行；脚本从不写入工作区。在宿主文件 API 之外，插件仅用 Node fs 做一件事：加载时将其 test-warden-writer 子智能体复制到 ~/.agents/subagents（PI-Desktop 唯一加载子智能体的位置），卸载时删除它（你修改过的除外）。agent.extension 加载一个模块：在一次运行进行期间（.test-warden/guard.json，由 warden_check plan 写入，由 warden_lessons add 或 warden_check release 删除），它阻止对被测源文件的 Edit、Write 和明显的 Bash 写入，阻止 fixer 智能体，并要求运行脚本的超时不少于 900 秒。编写测试的子智能体可以编辑文件并运行 Bash；gate 通过内容哈希检测它对被测代码的任何改动，并返回从快照恢复的命令。"
+		}
+	},
+	"safetyNotes": "Agent tools, a skill and one sub-agent; no network access and the plugin itself runs no process. agent.prompt.inject indexes the Test Warden skill for the Skill tool. agent.tool.register adds four tools (warden_profile, warden_check, warden_gate, warden_lessons). fs.read covers the workspace (to read the project's own test commands, configs, CI files and tests; the host always refuses credential files); fs.write is scoped to .test-warden/**, where the profile, the lessons and each run's files live, including exact snapshots of the source files a run protects. The check and gate tools write bash scripts into .test-warden/runs/<id>/ that the agent runs with its own Bash tool, subject to your Bash approval: they run the project's own test command on the current code, and on old or deliberately emptied copies of the code inside a temporary git worktree; they never write to the working tree. Beyond the host file API the plugin uses Node fs for one thing: on load it copies its test-warden-writer sub-agent to ~/.agents/subagents (the only place PI-Desktop loads sub-agents from) and removes it on unload unless you edited it. agent.extension loads one module that, while a run is open (.test-warden/guard.json, written by warden_check plan and removed by warden_lessons add or warden_check release), blocks Edit, Write and obvious Bash writes to the sources under test, blocks the fixer agent, and requires a timeout of at least 900 s for the run scripts. The writer sub-agent can edit files and run Bash; the gate detects any change it made to the code under test by content hash and returns the command that restores the snapshot.",
+	"changelog": "Code under test is now blocked for Edit, Write and Bash writes during a run, the fixer agent is refused, and warden_check release lifts the guard.",
+	"contributes": {
+		"agentExtensions": [
+			"extension/warden-guard.js"
+		],
+		"skills": [
+			"skills/test-warden.md"
+		],
+		"agentTools": [
+			{
+				"name": "warden_profile",
+				"description": "Test Warden: get the project's test profile (per language: declared and verified test commands, test-file patterns, helpers, examples, CI hints), or set a verified command or patterns and pin it. Use only from the test-warden skill.",
+				"risk": "low",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"action": {
+							"type": "string",
+							"enum": [
+								"get",
+								"set"
+							],
+							"description": "get (default) or set"
+						},
+						"refresh": {
+							"type": "boolean",
+							"description": "get: re-detect even when the cached profile is current"
+						},
+						"stack": {
+							"type": "string",
+							"description": "set: language group id from the profile, e.g. js, py, go"
+						},
+						"suite": {
+							"type": "string",
+							"description": "set: command that runs the whole test suite"
+						},
+						"file": {
+							"type": "string",
+							"description": "set: command that runs one test file, with {file} (or {dir} for per-directory runners); empty for none"
+						},
+						"verified": {
+							"type": "boolean",
+							"description": "set: true once you ran the command and it ran tests"
+						},
+						"patterns": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "set: globs that match the project's test files"
+						}
+					}
+				}
+			},
+			{
+				"name": "warden_check",
+				"description": "Test Warden: plan maps changed files (mode change) or target files (mode suite) to their tests, snapshots them and writes the script that runs those tests; verdict reports regressions, failing tests, uncovered sources and where new tests go. Use only from the test-warden skill.",
+				"risk": "low",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"action": {
+							"type": "string",
+							"enum": [
+								"plan",
+								"verdict",
+								"release"
+							],
+							"description": "plan (default), verdict, or release (lift the read-only guard on the sources: only when the user explicitly asks for a source fix)"
+						},
+						"mode": {
+							"type": "string",
+							"enum": [
+								"change",
+								"suite"
+							],
+							"description": "plan: change (default) checks a change against base; suite prepares a test suite for unchanged target files"
+						},
+						"changed": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "plan: workspace-relative paths, changed since base (change) or the files to build a suite for (suite)"
+						},
+						"base": {
+							"type": "string",
+							"description": "plan, change mode: git ref of the old code; default HEAD (uncommitted changes)"
+						},
+						"run": {
+							"type": "string",
+							"description": "The run directory returned by warden_check plan, e.g. .test-warden/runs/20260101-120000-ab12"
+						}
+					}
+				}
+			},
+			{
+				"name": "warden_gate",
+				"description": "Test Warden: plan detects any change to the protected sources, checks writers touched only tests, and writes the script that proves new tests can fail and bug reproductions do fail; verdict keeps, rejects and confirms bugs with exact undo commands. Use only from the test-warden skill.",
+				"risk": "low",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"action": {
+							"type": "string",
+							"enum": [
+								"plan",
+								"verdict"
+							],
+							"description": "plan (default) or verdict"
+						},
+						"run": {
+							"type": "string",
+							"description": "The run directory returned by warden_check plan, e.g. .test-warden/runs/20260101-120000-ab12"
+						},
+						"kind": {
+							"type": "string",
+							"enum": [
+								"fix",
+								"feature",
+								"refactor",
+								"suite"
+							],
+							"description": "plan: fix/feature (must fail on the old code), refactor (must pass on both), suite (must pass now and fail with the targets emptied)"
+						},
+						"tests": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "plan: test files the writers created or changed that must pass"
+						},
+						"bugs": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "plan: test files that reproduce suspected source bugs and must fail"
+						},
+						"written": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "plan: every file the writers reported writing"
+						},
+						"base": {
+							"type": "string",
+							"description": "plan: git ref of the old code; default the check run's base"
+						}
+					},
+					"required": [
+						"run"
+					]
+				}
+			},
+			{
+				"name": "warden_lessons",
+				"description": "Test Warden: the project's capped, deduplicated list of one-line testing lessons, each backed by an existing evidence path; get, add or remove. Use only from the test-warden skill.",
+				"risk": "low",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"action": {
+							"type": "string",
+							"enum": [
+								"get",
+								"add",
+								"remove"
+							],
+							"description": "get (default), add or remove"
+						},
+						"lessons": {
+							"type": "array",
+							"description": "add: [{ text, evidence }]; text is one line, evidence a workspace path (optionally :line)",
+							"items": {
+								"type": "object",
+								"properties": {
+									"text": {
+										"type": "string"
+									},
+									"evidence": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"text",
+									"evidence"
+								]
+							}
+						},
+						"ids": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "remove: lesson ids"
+						}
+					}
+				}
+			}
+		],
+		"settings": [
+			{
+				"key": "maxWriters",
+				"title": "Maximum writers",
+				"description": "Upper bound on parallel test-writer sub-agents per run (1-8). The orchestrator uses 1 unless the gaps are in independent test files.",
+				"type": "number",
+				"default": 3
+			},
+			{
+				"key": "writerModel",
+				"title": "Writer model",
+				"description": "Delegation model id for the test writer, e.g. anthropic/claude-sonnet-5-5. Empty: the agent's default.",
+				"type": "string",
+				"default": ""
+			},
+			{
+				"key": "runTimeout",
+				"title": "Run timeout (seconds)",
+				"description": "Each test run of a check or gate script is stopped after this many seconds (30-7200) and reported as timed out, never as a failure. Raise it for a slow whole-suite command.",
+				"type": "number",
+				"default": 600
+			},
+			{
+				"key": "guardMinutes",
+				"title": "Guard duration (minutes)",
+				"description": "After warden_check plan, the sources under test stay read-only for every tool call (Edit, Write, Bash writes, the fixer agent) for at most this many minutes (1-1440), or until the run ends with warden_lessons add or warden_check release.",
+				"type": "number",
+				"default": 120
+			}
+		]
+	},
+	"permissions": [
+		"agent.extension",
+		"agent.prompt.inject",
+		"agent.tool.register",
+		"fs.read",
+		"fs.write"
+	],
+	"fs": {
+		"read": {
+			"root": "workspace",
+			"scope": [
+				"**/*"
+			]
+		},
+		"write": {
+			"root": "workspace",
+			"scope": [
+				".test-warden/**"
+			]
+		}
+	},
+	"engines": {
+		"piDesktop": ">=0.9.0"
+	},
+	"activationEvents": [
+		"onStartup"
+	]
+}

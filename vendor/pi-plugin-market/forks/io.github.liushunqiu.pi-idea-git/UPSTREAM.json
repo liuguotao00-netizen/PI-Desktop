@@ -1,0 +1,11 @@
+{
+  "id": "io.github.liushunqiu.pi-idea-git",
+  "repository": "https://github.com/liushunqiu/pi-idea-git",
+  "branch": "HEAD",
+  "commit": "24b0f47",
+  "version": "0.3.0",
+  "tarball": "https://api.github.com/repos/liushunqiu/pi-idea-git/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:44:02.499Z",
+  "mode": "source-snapshot",
+  "sha256": "db44b90b1ae6d46939f7f01ca02a0757a7d339761cc00d02693377b7a4db7420"
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.g1oow.sidebar-note",
+  "name": "Notes",
+  "version": "0.1.2",
+  "description": "工作面板里的笔记：按项目隔离的笔记列表加一个全局收件箱，Markdown 编辑与预览，自动保存。",
+  "author": "G1oow",
+  "homepage": "https://github.com/G1oow/PI-desktop-Note",
+  "repository": "https://github.com/G1oow/PI-desktop-Note",
+  "icon": "icon.png",
+  "safetyNotes": "笔记保存在插件自己的数据目录（notes.json，附自动快照），不读写工作区文件，不访问网络，不使用剪贴板读取。仅在用户主动点“复制”时写入剪贴板。",
+  "main": "main.js",
+  "contributes": {
+    "views": [
+      {
+        "id": "note",
+        "title": {
+          "en": "Notes",
+          "zh-CN": "笔记"
+        },
+        "icon": "book",
+        "entry": "views/index.html",
+        "order": 10
+      }
+    ],
+    "commands": [
+      {
+        "id": "note.open",
+        "title": "Notes: Open notes",
+        "keywords": ["note", "notes", "笔记", "memo", "scratch"],
+        "category": "Notes"
+      }
+    ],
+    "settings": [
+      {
+        "key": "openShortcut",
+        "title": "打开笔记的快捷键",
+        "description": "仅当 PI-Desktop 窗口获得焦点时生效。留空表示不绑定快捷键；也可以直接从 Ctrl+K 搜索里的“Notes: Open notes”打开。",
+        "type": "shortcut",
+        "default": "Mod+Shift+N",
+        "command": "note.open",
+        "scope": "plugin"
+      }
+    ]
+  },
+  "permissions": ["ui.view", "clipboard.write"],
+  "engines": {
+    "piDesktop": ">=0.9.0"
+  },
+  "activationEvents": ["onStartup", "onCommand:note.open"],
+  "i18n": {
+    "en": {
+      "name": "Notes",
+      "description": "Notes in the work panel: per-project notes plus a global inbox, Markdown editing and preview, autosave.",
+      "safetyNotes": "Notes live in the plugin's own data directory (notes.json with automatic snapshots). The plugin does not read or write workspace files, makes no network requests, and never reads the clipboard; it writes to it only when the user clicks Copy."
+    },
+    "zh-CN": {
+      "name": "PI·侧边栏笔记",
+      "description": "工作面板里的笔记：按项目隔离的笔记列表加一个全局收件箱，Markdown 编辑与预览，自动保存。",
+      "safetyNotes": "笔记保存在插件自己的数据目录（notes.json，附自动快照），不读写工作区文件，不访问网络，不使用剪贴板读取。仅在用户主动点“复制”时写入剪贴板。"
+    }
+  }
+}

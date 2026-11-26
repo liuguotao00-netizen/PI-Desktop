@@ -1,0 +1,11 @@
+{
+  "id": "community.cloudflare-workers-ai",
+  "repository": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop",
+  "branch": "HEAD",
+  "commit": "167e273bc9d8dbb4",
+  "version": "0.1.2",
+  "tarball": "https://api.github.com/repos/wxaef/cloudflare-workers-ai-pi-desktop/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:30:16.511Z",
+  "mode": "source-snapshot",
+  "sha256": "167e273bc9d8dbb45d50546a0d478be35e7b16d6e7856c3afae8de2796d16531"
+}

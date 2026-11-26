@@ -1,0 +1,12 @@
+{
+  "id": "io.github.muzimu217.vision-kit",
+  "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+  "branch": "plugins/vision-kit-0.2.0",
+  "commit": "deec5d87d3cb28bd",
+  "version": "0.2.0",
+  "tarball": "https://codeload.github.com/muzimu217/pi-desktop-plugins/tar.gz/refs/heads/plugins/vision-kit-0.2.0",
+  "sourceRoot": "plugins/io.github.muzimu217.vision-kit",
+  "fetchedAt": "2026-11-25T18:57:41.836Z",
+  "mode": "source-snapshot",
+  "sha256": "deec5d87d3cb28bd2e0802151b072d36a1fef9ca706d6116bcdcbf75c88b4543"
+}

@@ -1,0 +1,43 @@
+interface PiWorkspace {
+  path?: string;
+}
+
+interface PiToolRegistration {
+  name: string;
+  description: string;
+  risk: string;
+  schema: Record<string, unknown>;
+  execute?: (args: any, context?: { sessionId?: string; turnId?: string; signal?: AbortSignal }) => any;
+}
+
+interface PiCommandRegistration {
+  id: string;
+  title: string;
+  keywords?: string[];
+  run: () => unknown;
+}
+
+declare var pi: {
+  app?: { getLocale(): Promise<string> };
+  models?: { list(): Promise<Array<{ key: string; providerId: string; providerName: string; modelId: string; label: string; supportsReasoning: boolean; thinkingLevels: string[] }>> };
+  desktop?: {
+    listOperations(): Promise<Array<{ id: string; description: string; risk: 'read' | 'write' | 'dangerous' }>>;
+    invoke(input: { operation: string; args?: unknown[]; confirm?: boolean }): Promise<unknown>;
+  };
+  workspace: {
+    get(): Promise<PiWorkspace>;
+  };
+  agent: {
+    registerTool(tool: PiToolRegistration): Promise<void>;
+    unregisterTool(name: string): Promise<void>;
+  };
+  commands: {
+    register(command: PiCommandRegistration): Promise<void>;
+    unregister(id: string): Promise<void>;
+  };
+  shell?: { openExternal(url: string): Promise<void> };
+  events?: {
+    on(event: string, handler: (...args: any[]) => any): unknown;
+    off(event: string, handler: (...args: any[]) => any): unknown;
+  };
+};

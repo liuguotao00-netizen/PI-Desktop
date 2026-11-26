@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "task": "project-board-release",
+  "status": "working",
+  "goal": "Deliver read-only project workbench (board, source/design architecture, Git DAG, Docs reader), doc-driven workflow and dual-host compatibility across Antigravity/MCP and PI-Desktop.",
+  "criteria": [
+    "Read-only three-column work-item board with detail and completed-history views",
+    "Workspace architecture data with validated source references and ASCII-backed optional design",
+    "Dynamic architecture, Git history DAG and safe Markdown documentation reader views",
+    "Core, collaboration and Git safety regressions pass",
+    "Browser interaction and responsive/theme checks pass",
+    "Clean build/test, portable mcp-skills package and official PI-Desktop package checks pass",
+    "Local supported installation and real host smoke pass",
+    "Reviewed committed code, synchronized Docs and truthful evidence"
+  ],
+  "scope": [
+    "plugin/",
+    "test/",
+    "scripts/",
+    "types/",
+    "docs/",
+    "notes/",
+    "tsconfig.json",
+    "AGENTS.md",
+    "README.md",
+    "package.json",
+    "package-lock.json",
+    ".github/",
+    ".governance/",
+    "STATE.json",
+    ".gitignore",
+    "changes/",
+    "mcp/",
+    "web/"
+  ],
+  "constraints": [
+    "人面向 docs/ 开发，Agent 同轮最小更新受影响 docs/（单篇≤100行，构建自动同步 plugin/docs/）；notes/ 仅按需记 1–4 行简史，无实质变化不写。功能按文档实现并通过实际测试即完成，不设独立二次验收。",
+    "统一浏览器工作台仅监听 127.0.0.1 且严格只读（看板、架构、Git、文档）；开发、项目操作与可选 Architecture Copilot 草案保存在原宿主会话完成，不开放网页写入、远程控制或自动基线确认。",
+    "同时兼容 Antigravity/CLI（本地 stdio MCP + 可移植 Skills + 工作区 AGENTS.md）与 PI-Desktop（薄宿主连接器 + 轻量启动入口 ui.panel/ui.view）。内置 SSH/ssh2 已按批准移除；GitHub 权威协作仅保留本地工作区与已绑定 GitHub 分支交互，故障绝不静默降级。",
+    "局部改动定向测，公共/高风险/版本改动跑一次完整检查，合并按实际变化补测；修改经受管 Git 留痕，禁止自动 stash/reset/强推或绕过确认/修订/锁守卫。保留已忽略的 .pi/ 与 changes/archive/redesign-governance-panel/，保留未合并工作区与发布追溯。",
+    "历史秘密扫描保持启用；唯一获批测试夹具例外为 blob d2c45515b924a1f69d92ef00b771e77b7318bbfe 的两条合成令牌，真实凭据、私钥与敏感路径一律拦截。",
+    "产品更新按 SemVer 判级升版（纯记录不升版）；PI-Desktop 官方 .piplug 须在 PI-Desktop 内由 PluginCheck/PluginPack 生成，禁止脚本自制；1.x 起稳定 vX.Y.0 标签由人创建触发单次 GitHub Release，不自动发 npm 或静默安装。"
+  ],
+  "current": "0.12.1 Microsoft 风格文档收敛与前端视觉动效升级已完成：全仓文档对齐结论先行与扫读式列表/表格，升级工作台按钮触感尺寸、统计微柱图、卡片状态胶囊、阅读进度条/目录追踪与受控无障碍过渡动效。",
+  "next": [],
+  "blocked": [
+    "0.12.1 源码已完成全量检查与 mcp-skills 包验证；plugin/dist/ 的当前版本官方 .piplug 待在 PI-Desktop 内执行 PluginCheck/PluginPack 生成后再提交市场（当前保留可用 0.10.3 包）",
+    "隔离浏览器与真实 MCP SDK 回归已通过；PI-Desktop 安装后真实宿主完整交互与物理触屏目视验收仍未完成"
+  ],
+  "followUp": null,
+  "change": "changes/active/project-board-release",
+  "layer": "docs"
+}

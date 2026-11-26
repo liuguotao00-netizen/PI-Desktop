@@ -1,0 +1,11 @@
+{
+  "id": "pi.file-manager",
+  "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager",
+  "branch": "HEAD",
+  "commit": "fbd832035c92677e",
+  "version": "0.13.0",
+  "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-file-manager/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:13:46.506Z",
+  "mode": "source-snapshot",
+  "sha256": "fbd832035c92677e6e21affd3a290b3253536c035d5cb257536eef91667a646e"
+}

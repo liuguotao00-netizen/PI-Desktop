@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.xideadev.task-dida",
+  "name": "任务提示音",
+  "version": "1.0.4",
+  "description": "专为 PI-Desktop 打造的高并发原生声音通知插件。智能分级节流、内置高保真无依赖音效，多端无缝兼容并支持在线试听与自定义替换。",
+  "author": "XideaDev",
+  "license": "MIT",
+  "main": "main.js",
+  "homepage": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
+  "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
+  "categories": [
+    "productivity"
+  ],
+  "engines": {
+    "piDesktop": ">=0.14.0"
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:task-dida.openSettings"
+  ],
+  "ui": {
+    "panel": "renderer/index.html",
+    "width": 640,
+    "height": 620,
+    "title": {
+      "en": "Sound Alert Settings",
+      "zh-CN": "提示音设置与试听"
+    }
+  },
+  "permissions": [
+    "desktop.control",
+    "ui.panel"
+  ],
+  "safetyNotes": "调用本地操作系统音频播放命令（macOS 为 afplay，Windows 为内置多媒体播放接口，Linux 为 paplay/aplay）播放插件内置提示音。无任何外部网络请求，绝不接触任何 API 密钥、凭据或代码文件。",
+  "i18n": {
+    "en": {
+      "name": "TASK Dida",
+      "description": "High-concurrency task sound alert plugin for PI-Desktop with smart priority throttling, bundled offline audio, and cross-platform playback.",
+      "safetyNotes": "Invokes local operating system audio players to produce bundled local alert sounds. Zero network requests, and no access to your API keys, credentials, or personal code files."
+    },
+    "zh-CN": {
+      "name": "任务提示音",
+      "description": "专为 PI-Desktop 打造的高并发原生声音通知插件。智能分级节流、内置高保真无依赖音效，多端无缝兼容并支持在线试听与自定义替换。",
+      "safetyNotes": "调用本地操作系统音频播放命令（macOS 为 afplay，Windows 为内置多媒体播放接口，Linux 为 paplay/aplay）播放插件内置提示音。无任何外部网络请求，绝不接触任何 API 密钥、凭据或代码文件。"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "task-dida.openSettings",
+        "title": "任务提示音: 打开设置面板",
+        "keywords": [
+          "taskdida",
+          "dida",
+          "sound",
+          "alert",
+          "声音",
+          "提示音",
+          "试听",
+          "设置"
+        ]
+      }
+    ]
+  }
+}

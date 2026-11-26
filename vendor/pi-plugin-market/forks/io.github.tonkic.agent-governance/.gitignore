@@ -1,0 +1,20 @@
+node_modules/
+.governance.lock
+*.tmp
+
+# Local publishing credentials; never commit or package.
+/.secrets/
+
+# Disposable compiled tooling and tests; plugin/runtime is versioned for packaging.
+/build/
+
+# Generated local behavior verification; re-run in each workspace, never publish.
+/.governance/behavior-evidence.json
+/.governance/behavior-check.lock/
+
+# User-approved local host goals and pre-existing redesign evidence; preserve on disk.
+/.pi/
+/changes/archive/redesign-governance-panel/
+
+# User-approved portable SSH credentials, trust records, journals and offline backups.
+/.remote-local/

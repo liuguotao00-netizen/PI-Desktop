@@ -1,0 +1,11 @@
+{
+  "id": "pi.todo",
+  "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo",
+  "branch": "HEAD",
+  "commit": "36fb4ec532833127",
+  "version": "0.6.5",
+  "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-pi-todo/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:15:56.864Z",
+  "mode": "source-snapshot",
+  "sha256": "36fb4ec5328331278fd6c868ed8c0c87f140efdb9c7d0a57fa99d4ab756141c1"
+}

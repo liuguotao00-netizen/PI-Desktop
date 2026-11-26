@@ -1,0 +1,46 @@
+"use strict";
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const motion = require("../features/appearance/motion.js");
+
+test("权限模式标记跟随宿主文本变化并可清理", async () => {
+  const module = await import("../renderer/permission-icons.mjs");
+  let label = '全自动', value = null;
+  const button = { querySelector: () => ({ textContent: label }), getAttribute: () => value,
+    hasAttribute: () => value !== null, setAttribute: (_, next) => { value = next; }, removeAttribute: () => { value = null; } };
+  const previous = global.document;
+  global.document = { querySelectorAll: () => [button] };
+  try {
+    for (const [text, expected] of [['全自动', 'auto'], ['允许编辑', 'edit'], ['每次询问', 'ask'], ['Auto', 'auto'], ['unknown', null]]) {
+      label = text;
+      module.__internals.scan();
+      assert.equal(value, expected);
+    }
+    label = '全自动'; module.__internals.scan(); module.unmountPermissionIcons();
+    assert.equal(value, null);
+  } finally { global.document = previous; }
+});
+
+test("权限图标只在动效优化启用时输出尺寸", async () => {
+  const enabled = motion.buildThemeCss({ override: true });
+  const disabled = motion.buildThemeCss({ override: false });
+  const { PERMISSION_ICON_CSS } = await import('../renderer/permission-icons.mjs');
+  for (const mode of ['ask', 'edit', 'auto']) assert.ok(PERMISSION_ICON_CSS.includes(`data-piopt-permission-icon="${mode}"`));
+  assert.ok(enabled.includes('--piopt-permission-icon-size:14px'));
+  assert.ok(!disabled.includes('--piopt-permission-icon-size'));
+});
+
+test("左侧三个控件由实测布局状态驱动折叠", () => {
+  const css = motion.buildThemeCss({ override: true });
+  for (const selector of ['.composer-mode-chip', 'button[data-piopt-permission-icon]', 'button[data-piopt-command-button]']) assert.ok(css.includes(selector));
+  assert.ok(css.includes('data-piopt-compact="true"'));
+  assert.ok(!motion.buildThemeCss({ override: false }).includes('data-piopt-compact'));
+});
+
+test("模式按钮展开时按完整文案自适应，窄屏仍可折叠", () => {
+  const css = motion.buildThemeCss({ override: true });
+  assert.match(css, /\.composer-left \.composer-mode-chip\{flex:0 0 auto;width:max-content;min-width:max-content;max-width:none\}/);
+  assert.match(css, /\.composer-left \.composer-mode-chip-face,\.composer-left \.composer-mode-chip-label\{min-width:max-content;max-width:none;overflow:visible\}/);
+  assert.ok(css.indexOf('data-piopt-compact="true"') > css.indexOf('width:max-content'));
+  assert.doesNotMatch(motion.buildThemeCss({ override: false }), /width:max-content/);
+});

@@ -1,0 +1,11 @@
+{
+  "id": "hawchou.mumu-player",
+  "repository": "https://github.com/hawchou1995/pi-mumu-player",
+  "branch": "HEAD",
+  "commit": "f35873b",
+  "version": "0.3.1",
+  "tarball": "https://api.github.com/repos/hawchou1995/pi-mumu-player/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:44.532Z",
+  "mode": "source-snapshot",
+  "sha256": "e2f3a63708f30cf8b3ca3ed5c8d306a9dcc8445710b8b920839d820cae940a24"
+}

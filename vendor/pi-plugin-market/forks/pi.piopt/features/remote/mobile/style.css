@@ -1,0 +1,1167 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef0f4;
+  --text: #14161a;
+  --text-dim: #61656d;
+  --line: rgba(16, 20, 28, 0.09);
+  --accent: #2f6df6;
+  --accent-soft: rgba(47, 109, 246, 0.12);
+  --danger: #c8362f;
+  --radius: 14px;
+  --bar-h: 52px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1013;
+    --surface: #16191e;
+    --surface-2: #1d2126;
+    --text: #e8eaed;
+    --text-dim: #9aa0a8;
+    --line: rgba(255, 255, 255, 0.08);
+    --accent: #6f9bff;
+    --accent-soft: rgba(111, 155, 255, 0.16);
+    --danger: #ff6b60;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* The panes below declare their own display, so the attribute has to win. */
+[hidden] { display: none !important; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  -webkit-text-size-adjust: 100%;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--bar-h);
+  padding: 0 12px;
+  padding-top: env(safe-area-inset-top);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 13px;
+}
+.mark i {
+  display: block;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.mark i:nth-child(1) { height: 7px; opacity: 0.55; }
+.mark i:nth-child(2) { height: 13px; }
+.mark i:nth-child(3) { height: 9px; opacity: 0.75; }
+
+.brand-title {
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.icon:active { background: var(--surface-2); }
+
+/* One scrolling column of the app: the bar never scrolls, everything under it
+   is a pane. A wide window puts two panes side by side instead of letting them
+   take turns. */
+.workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-resizer { display: none; }
+
+.list-pane,
+.detail-pane {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list-pane { overflow-x: hidden; }
+
+.detail-pane {
+  display: flex;
+  flex-direction: column;
+}
+
+.detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wide windows only: the right column before a session is chosen. */
+.placeholder {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: var(--text-dim);
+  font-size: 13.5px;
+}
+
+/* ---- pairing ------------------------------------------------------------ */
+
+.gate {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 40px 22px;
+  overflow-y: auto;
+}
+
+.gate-inner {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+}
+.gate h1 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 650;
+}
+.gate p {
+  margin: 0 0 22px;
+  color: var(--text-dim);
+  font-size: 13.5px;
+}
+#pair-form {
+  display: grid;
+  gap: 10px;
+}
+#pair-form input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+#code {
+  font-size: 22px;
+  letter-spacing: 0.36em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+#pair-form input:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.primary {
+  height: 46px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font: 600 15px/1 inherit;
+  cursor: pointer;
+}
+.primary:active { filter: brightness(0.93); }
+
+.error {
+  margin-top: 14px !important;
+  color: var(--danger);
+  font-size: 13px;
+}
+
+/* ---- session list ------------------------------------------------------- */
+
+.list-error {
+  margin: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sessions {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 18px;
+}
+/* ---- session groups ----------------------------------------------------- */
+
+/* Sessions are filed under the folder they were started in. The row below says
+   nothing about its project: the heading above already did. */
+
+.session-group + .session-group { margin-top: 8px; }
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 12px 18px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+/* Local Lucide icons inherit the heading color in both color schemes. */
+.group-mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  opacity: 0.8;
+  -webkit-mask: center / contain no-repeat;
+  mask: center / contain no-repeat;
+}
+.group-mark--folder {
+  -webkit-mask-image: url("./folder.svg");
+  mask-image: url("./folder.svg");
+}
+.group-mark--temporary {
+  -webkit-mask-image: url("./clock.svg");
+  mask-image: url("./clock.svg");
+}
+.group-head:active { background: var(--surface-2); }
+
+.group-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+  letter-spacing: 0.01em;
+}
+
+.group-arrow {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transform: rotate(90deg);
+  transition: transform 140ms ease;
+}
+.group-head[aria-expanded="false"] .group-arrow { transform: rotate(0deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .group-arrow { transition: none; }
+}
+
+.group-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.group-rows > li { border-bottom: 1px solid var(--line); }
+.group-rows > li:last-child { border-bottom: 0; }
+.group-rows button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+  width: 100%;
+  padding: 12px 18px 12px 34px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.group-rows button:active { background: var(--surface-2); }
+
+/* The row that is open. On a phone it is the row you just came back from; in a
+   wide window it is the one the conversation beside it belongs to. */
+.group-rows button[aria-current="true"] {
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+}
+.group-rows button[aria-current="true"] .row-title { color: var(--text); }
+
+.row-head {
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
+  gap: 8px;
+}
+.row-title {
+  font-weight: 560;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.row-time {
+  flex: none;
+  color: var(--text-dim);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.row-preview {
+  color: var(--text-dim);
+  font-size: 13px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+.row-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.row-running::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+.empty {
+  padding: 60px 22px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---- transcript --------------------------------------------------------- */
+
+.messages {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 16px 20px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* ---- user: the only side that gets a bubble ------------------------------ */
+
+.bubble {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 4px 16px;
+  background: var(--accent-soft);
+  overflow-wrap: anywhere;
+}
+
+.bubble .md {
+  font-size: 15px;
+}
+
+.bubble .md > *:first-child { margin-top: 0; }
+.bubble .md > *:last-child { margin-bottom: 0; }
+
+/* The gap between the opening question and the recent tail. */
+.omitted {
+  align-self: center;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 11.5px;
+}
+
+.chip-attachment {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 11.5px;
+}
+
+/* ---- agent: the page itself, no bubble ----------------------------------- */
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.turn-time {
+  margin-top: -3px;
+  color: var(--text-dim);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.8;
+}
+
+.turn-agent {
+  color: var(--text-dim);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+}
+
+/* ---- markdown ------------------------------------------------------------ */
+
+.md {
+  font-size: 15px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.md > *:first-child { margin-top: 0; }
+.md > *:last-child { margin-bottom: 0; }
+.md p { margin: 0 0 10px; }
+
+.md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+  margin: 16px 0 8px;
+  line-height: 1.35;
+  font-weight: 650;
+}
+.md h1 { font-size: 19px; }
+.md h2 { font-size: 17.5px; }
+.md h3 { font-size: 16px; }
+.md h4, .md h5, .md h6 { font-size: 15px; }
+
+.md ul, .md ol { margin: 0 0 10px; padding-left: 22px; }
+.md li { margin: 3px 0; }
+.md li > ul, .md li > ol { margin: 3px 0; }
+
+.md blockquote {
+  margin: 0 0 10px;
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--line);
+  color: var(--text-dim);
+}
+
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 16px 0;
+}
+
+.md code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+}
+
+.md pre {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.md pre code {
+  padding: 0;
+  background: none;
+  font-size: 12.5px;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.md a { color: var(--accent); text-decoration: none; }
+.md a:active { text-decoration: underline; }
+
+.md-table {
+  margin: 0 0 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.md table {
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.md th, .md td {
+  border: 1px solid var(--line);
+  padding: 5px 9px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.md th {
+  background: var(--surface-2);
+  font-weight: 600;
+}
+
+/* ---- folded blocks: thinking and tool calls ------------------------------ */
+
+.fold { border-radius: 10px; }
+
+.fold > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 2px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.fold > summary::-webkit-details-marker { display: none; }
+
+.fold .chevron {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transition: transform 140ms ease;
+}
+
+.fold[open] .chevron { transform: rotate(90deg); }
+
+.fold-label { flex: none; }
+
+.fold-preview {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+.fold[open] .fold-preview { display: none; }
+
+.fold-body { padding: 2px 0 6px 11px; }
+
+.fold-thinking .fold-body { border-left: 2px solid var(--line); }
+
+.thinking-text {
+  color: var(--text-dim);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.fold-tool {
+  padding: 2px 10px;
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+}
+
+.fold-tool > summary {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.tool-name {
+  flex: none;
+  color: var(--text);
+  font-weight: 550;
+}
+
+.tool-target {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+.tool-state {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-state.is-error { color: var(--danger); }
+
+.fold-caption {
+  margin: 6px 0 3px;
+  color: var(--text-dim);
+  font-size: 11.5px;
+}
+
+.fold-tool pre {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.fold-tool pre code {
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.fold-empty {
+  padding: 4px 0 8px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+/* ---- composer ----------------------------------------------------------- */
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid var(--line);
+}
+.composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 132px;
+  padding: 10px 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  resize: none;
+  field-sizing: content;
+}
+.composer textarea:focus {
+  outline: 2px solid var(--accent-soft);
+  border-color: var(--accent);
+}
+.send, .stop {
+  flex: none;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  cursor: pointer;
+  font: 600 14px/1 inherit;
+}
+.send {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  background: var(--accent);
+  color: #fff;
+}
+.stop {
+  background: var(--surface-2);
+  color: var(--danger);
+}
+.send:active, .stop:active { filter: brightness(0.93); }
+
+/* ---- waiting on an answer ------------------------------------------------ */
+
+/* Sits between the scrolling transcript and the composer: the one state the
+   phone cannot clear, so it stays visible while the conversation scrolls. */
+.pending {
+  flex-shrink: 0;
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--accent-soft);
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.pending-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.pending-line + .pending-line { margin-top: 4px; }
+
+.pending-kind {
+  flex: none;
+  color: var(--accent);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+}
+
+.pending-options {
+  flex-basis: 100%;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.pending-hint {
+  margin: 6px 0 0;
+  color: var(--text-dim);
+  font-size: 11.5px;
+}
+
+.row-waiting {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  font-size: 12px;
+}
+.row-waiting::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+/* ---- new session sheet --------------------------------------------------- */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(6, 8, 12, 0.45);
+  backdrop-filter: blur(2px);
+}
+
+.sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 21;
+  display: flex;
+  flex-direction: column;
+  max-height: 72vh;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 32px rgba(6, 8, 12, 0.28);
+  animation: sheet-in 220ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes sheet-in {
+  from {
+    transform: translateY(14%);
+    opacity: 0.5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet { animation: none; }
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 6px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sheet-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.sheet-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px 0 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sheet-list li + li {
+  border-top: 1px solid var(--line);
+}
+
+.sheet-list button {
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  padding: 13px 18px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sheet-list button:active {
+  background: var(--surface-2);
+}
+
+.sheet-name {
+  font-weight: 550;
+}
+
+.sheet-detail {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-loading {
+  padding: 13px 18px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* ---- message actions ----------------------------------------------------- */
+
+.actions {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: calc(8px + env(safe-area-inset-bottom));
+  z-index: 22;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--line);
+  box-shadow: 0 10px 32px rgba(6, 8, 12, 0.3);
+  animation: actions-in 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes actions-in {
+  from {
+    transform: translateY(8px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .actions { animation: none; }
+}
+
+.actions button {
+  padding: 15px 16px;
+  border: 0;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.actions button:active {
+  background: var(--surface-2);
+}
+
+.actions-cancel {
+  color: var(--text-dim);
+  font-weight: 550;
+}
+
+/* ---- wide windows ------------------------------------------------------- */
+
+/* Above this width the two panes stop taking turns: the session list keeps its
+   place on the left and the conversation fills the rest, which is what a
+   browser window on a desk is for. */
+
+@media (min-width: 900px) {
+  :root {
+    --list-w: 316px;
+    /* Keeps the transcript on a readable measure however wide the window is. */
+    --read-pad: max(24px, calc((100vw - var(--list-w) - 820px) / 2));
+  }
+
+  .bar { padding: 0 18px; }
+
+  .workspace { flex-direction: row; }
+
+  .list-pane {
+    flex: none;
+    width: var(--list-w);
+    border-right: 1px solid var(--line);
+    background: color-mix(in srgb, var(--surface) 55%, transparent);
+  }
+
+  .list-resizer {
+    position: absolute;
+    z-index: 2;
+    left: var(--list-w);
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    transform: translateX(-50%);
+    cursor: col-resize;
+    touch-action: none;
+    outline: none;
+  }
+  .list-resizer:not([hidden]) { display: block; }
+  .list-resizer::after {
+    content: "";
+    position: absolute;
+    inset: 0 5px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+  .list-resizer:hover::after,
+  .list-resizer:focus-visible::after,
+  body.resizing-list .list-resizer::after { opacity: 0.75; }
+  body.resizing-list { cursor: col-resize; user-select: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .list-resizer::after { transition: none; }
+  }
+
+  .sessions {
+    padding: 8px 8px 20px;
+  }
+  .group-head {
+    padding: 8px 10px 4px;
+    border-radius: 8px;
+  }
+  .group-rows { padding-bottom: 4px; }
+  .group-rows > li {
+    border-bottom: 0;
+    margin-top: 2px;
+  }
+  .group-rows button {
+    border-radius: 10px;
+    padding: 11px 12px 11px 30px;
+  }
+  .list-error { padding: 12px 16px; }
+
+  .messages {
+    padding: 24px var(--read-pad) 30px;
+  }
+
+  .composer,
+  .pending {
+    padding-left: var(--read-pad);
+    padding-right: var(--read-pad);
+  }
+
+  .composer textarea { min-height: 44px; }
+
+  .gate { padding: 48px 24px; }
+
+  /* A sheet that slides up from the bottom edge of a phone is a dialog in the
+     middle of a window. */
+  .sheet {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    bottom: auto;
+    width: min(520px, calc(100% - 64px));
+    max-height: min(72vh, 560px);
+    padding-bottom: 0;
+    border-radius: 16px;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 24px 64px rgba(6, 8, 12, 0.38);
+    animation: dialog-in 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+
+  .actions {
+    left: 50%;
+    right: auto;
+    bottom: 24px;
+    width: min(320px, calc(100% - 32px));
+    transform: translateX(-50%);
+    animation: dialog-fade 140ms ease;
+  }
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dialog-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---- pointer affordances (desktop) -------------------------------------- */
+
+/* A phone gets :active on touch; a mouse hovers first. */
+
+@media (hover: hover) {
+  .icon:hover {
+    background: var(--surface-2);
+    color: var(--text);
+  }
+  .group-rows button:hover {
+    background: color-mix(in srgb, var(--text) 5%, transparent);
+  }
+  .group-head:hover { color: var(--text); }
+  .sheet-list button:hover,
+  .actions button:hover {
+    background: var(--surface-2);
+  }
+  .primary:hover,
+  .send:hover,
+  .stop:hover {
+    filter: brightness(1.06);
+  }
+}
+
+@media (pointer: fine) {
+  .list-pane,
+  .messages,
+  .sheet-list,
+  .gate,
+  .pending {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text) 24%, transparent) transparent;
+  }
+  .list-pane::-webkit-scrollbar,
+  .messages::-webkit-scrollbar {
+    width: 10px;
+  }
+  .list-pane::-webkit-scrollbar-thumb,
+  .messages::-webkit-scrollbar-thumb {
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-color: color-mix(in srgb, var(--text) 24%, transparent);
+    background-clip: content-box;
+  }
+  .list-pane::-webkit-scrollbar-track,
+  .messages::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* Last, so it also reaches the dialog animations declared above. */
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .actions { animation: none; }
+}
+
+/* ---- a turn in flight ---------------------------------------------------- */
+
+/* The host closes a busy reply with a live counter; so does this page. The node
+   lives at the end of the transcript, so it scrolls with it. */
+
+.turn-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 4px;
+  color: var(--text-dim);
+  font-size: 12.5px;
+}
+
+.progress-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.progress-dots i {
+  display: block;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.3;
+  animation: dot-pulse 1.1s ease-in-out infinite;
+}
+.progress-dots i:nth-child(2) { animation-delay: 150ms; }
+.progress-dots i:nth-child(3) { animation-delay: 300ms; }
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+
+.progress-elapsed { font-variant-numeric: tabular-nums; }
+
+/* ---- status lights ------------------------------------------------------- */
+
+/* 6px is a speck; the halo is what makes it read as a lamp from arm's length. */
+.row-running::before,
+.row-waiting::before {
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 16%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progress-dots i {
+    animation: none;
+    opacity: 0.7;
+  }
+  .row-running::before,
+  .row-waiting::before {
+    animation: none;
+    opacity: 1;
+  }
+}

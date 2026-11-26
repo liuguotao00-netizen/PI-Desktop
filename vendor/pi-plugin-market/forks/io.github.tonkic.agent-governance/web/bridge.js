@@ -1,0 +1,110 @@
+'use strict';
+(() => {
+  const zh = /^zh/i.test(navigator.language);
+  const key = 'governance-local-session';
+  let token = '';
+  const fragment = location.hash.slice(1);
+  if (/^[a-f0-9]{64}$/.test(fragment)) {
+    token = fragment;
+    try { sessionStorage.setItem(key, token); } catch { /* In-memory session still works. */ }
+    history.replaceState(null, '', location.pathname);
+  } else {
+    try { token = sessionStorage.getItem(key) || ''; } catch { /* Ask user to reopen startup link. */ }
+  }
+  const missing = zh ? '请回到宿主重新打开浏览器工作台；手动CLI模式请使用终端新输出的完整私有地址。' : 'Reopen the browser workbench from your host; for manual CLI mode use its newly printed full private URL.';
+  window.pluginBridge = Object.freeze({
+    invoke: async (channel, payload = {}) => {
+      if (channel === 'app.getLocale') return navigator.language;
+      if (channel === 'app.getAppearance') return { theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light' };
+      if (!/^[a-f0-9]{64}$/.test(token)) throw Error(missing);
+      const read = ['governance.snapshot', 'governance.project', 'governance.git', 'governance.behaviors'].includes(channel) ||
+        (channel === 'governance.design' && payload.action === 'snapshot') ||
+        (channel === 'governance.documents' && ['list', 'read'].includes(payload.action)) ||
+        (channel === 'governance.gitHistory' && ['list', 'detail', 'diff'].includes(payload.action));
+      if (!read) throw Error(zh ? '工作台只读，请在原AI客户端进行操作。' : 'Read-only workbench. Make changes in your original AI client.');
+      const response = await fetch('/api/invoke', {
+        method: 'POST', credentials: 'omit', cache: 'no-store',
+        headers: { 'Content-Type': 'application/json', 'X-Governance-Token': token },
+        body: JSON.stringify({ channel, payload }), signal: AbortSignal.timeout(20000)
+      });
+      if (response.status === 403) throw Error(missing);
+      const result = await response.json();
+      if (!result.ok) throw Error(result.error || (zh ? '操作失败，请刷新。' : 'Operation failed; refresh before retrying.'));
+      return result;
+    },
+    on: (event, handler) => {
+      if (event !== 'appearance:changed') return;
+      const query = matchMedia('(prefers-color-scheme: dark)');
+      query.addEventListener('change', e => handler({ theme: e.matches ? 'dark' : 'light' }));
+    }
+  });
+  // A random ID per document activation (never sessionStorage: duplicated tabs must differ).
+  // Failures stop the loop; only pageshow/online can resume it. No queued retry backlog.
+  let leaseId = '';
+  let leaseTimer;
+  let leaseRequest;
+  let generation = 0;
+  let hidden = false;
+  let unmanaged = false;
+  const leasePost = (id, event, extra = {}) => fetch('/api/invoke', {
+    method: 'POST', credentials: 'omit', cache: 'no-store',
+    headers: { 'Content-Type': 'application/json', 'X-Governance-Token': token },
+    body: JSON.stringify({ channel: 'governance.lease', payload: { id, event } }), ...extra
+  });
+  const renew = async (event, epoch) => {
+    if (hidden || unmanaged || epoch !== generation || leaseRequest || !/^[a-f0-9]{64}$/.test(token)) return;
+    const controller = new AbortController();
+    leaseRequest = controller;
+    // The only timer also bounds this request; replace it with the next heartbeat on success.
+    leaseTimer = setTimeout(() => controller.abort(), 20000);
+    let scheduled = false;
+    try {
+      const response = await leasePost(leaseId, event, { signal: controller.signal });
+      if (!response.ok) return;
+      const message = await response.json();
+      if (!message.ok || epoch !== generation || hidden) return;
+      if (message.result?.managed === false) { unmanaged = true; return; }
+      const delay = message.result?.heartbeatMs;
+      if (message.result?.managed !== true || !Number.isSafeInteger(delay) || delay <= 0) return;
+      clearTimeout(leaseTimer);
+      leaseTimer = setTimeout(() => { leaseTimer = undefined; void renew('heartbeat', epoch); }, delay);
+      scheduled = true;
+    } catch { /* Offline/closed server: no automatic retry. */ }
+    finally {
+      if (leaseRequest === controller) {
+        leaseRequest = undefined;
+        // Clear only the request timeout on failure, not a scheduled heartbeat.
+        if (!scheduled) { clearTimeout(leaseTimer); leaseTimer = undefined; }
+      }
+    }
+  };
+  const resume = () => {
+    if (unmanaged || leaseRequest || leaseTimer || !/^[a-f0-9]{64}$/.test(token)) return;
+    hidden = false;
+    if (!leaseId) leaseId = Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
+    void renew('join', ++generation);
+  };
+  window.addEventListener('pagehide', () => {
+    hidden = true; generation++;
+    clearTimeout(leaseTimer); leaseTimer = undefined;
+    leaseRequest?.abort(); leaseRequest = undefined;
+    if (leaseId && !unmanaged) void leasePost(leaseId, 'leave', { keepalive: true }).catch(() => {});
+    leaseId = '';
+  });
+  window.addEventListener('pageshow', resume);
+  window.addEventListener('online', () => { if (!hidden) resume(); });
+  resume();
+
+  const info = document.createElement('section');
+  info.id = 'local-console-info';
+  info.setAttribute('aria-label', zh ? '本地控制台连接' : 'Local console connection');
+  const title = document.createElement('strong');
+  title.textContent = zh ? '本地项目控制台' : 'Local project console';
+  const description = document.createElement('p');
+  description.textContent = zh ? '所有宿主共用此浏览器工作台 · 仅查看当前项目。开发、操作和文档维护在原AI客户端完成；外部修改后手动刷新。' : 'One browser workbench for all hosts · Read-only project view. Develop, make changes and maintain docs in your original AI client; refresh after external changes.';
+  const design = document.createElement('p');
+  design.className = 'muted';
+  design.textContent = zh ? 'Docs是当前功能与架构依据；Notes仅供按需追溯。设计草案和历史在此查看，不从网页保存或确认。' : 'Docs describe current features and architecture; Notes are for optional history. View designs here; saving and confirmation are not available in the browser.';
+  info.append(title, description, design);
+  document.querySelector('footer').before(info);
+})();

@@ -1,0 +1,11 @@
+{
+  "id": "bone.aimedia.services",
+  "repository": "https://github.com/taokoplay/bone-aimedia-services",
+  "branch": "HEAD",
+  "commit": "f87ebf8",
+  "version": "0.7.2",
+  "tarball": "https://api.github.com/repos/taokoplay/bone-aimedia-services/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:33.494Z",
+  "mode": "source-snapshot",
+  "sha256": "55719cad713ad12b431a78598428373770aa7a90f00360448e5de14d1ca9b121"
+}

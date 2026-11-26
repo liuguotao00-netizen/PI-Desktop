@@ -1,0 +1,12 @@
+{
+  "id": "io.github.muzimu217.session-import",
+  "repository": "https://github.com/ily55421/pi-desktop-plugins",
+  "branch": "HEAD",
+  "commit": "2a84b8d08e0016e6",
+  "version": "0.4.8",
+  "tarball": "https://api.github.com/repos/ily55421/pi-desktop-plugins/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:49:37.087Z",
+  "mode": "source-snapshot",
+  "sha256": "2a84b8d08e0016e6403fa9aa6ec663a2f8f5a5d582e78ec658cef27f7be3f441",
+  "sourceRoot": "plugins/io.github.muzimu217.session-import"
+}

@@ -1,0 +1,825 @@
+{
+  "generatedAt": "2026-11-25T18:49:54.441Z",
+  "count": 117,
+  "plugins": [
+    {
+      "id": "adoin.deepseek-harness",
+      "repository": "https://github.com/adoin/pi-desktop-plugin-monorepo",
+      "coordinate": "adoin/pi-desktop-plugin-monorepo",
+      "owner": "adoin",
+      "verified": true
+    },
+    {
+      "id": "adoin.panel.anywhere",
+      "repository": "https://github.com/adoin/pi-desktop-plugins",
+      "coordinate": "adoin/pi-desktop-plugins",
+      "owner": "adoin",
+      "verified": true
+    },
+    {
+      "id": "adoin.sax-design-theme",
+      "repository": "https://github.com/adoin/pi-desktop-plugin-monorepo",
+      "coordinate": "adoin/pi-desktop-plugin-monorepo",
+      "owner": "adoin",
+      "verified": true
+    },
+    {
+      "id": "axc00.project-knowledge",
+      "repository": "https://github.com/AXC00/pi-desktop-plugins-skills",
+      "coordinate": "AXC00/pi-desktop-plugins-skills",
+      "owner": "axc00",
+      "verified": true
+    },
+    {
+      "id": "bone.aimedia.services",
+      "repository": "https://github.com/taokoplay/bone-aimedia-services",
+      "coordinate": "taokoplay/bone-aimedia-services",
+      "owner": "taokoplay",
+      "verified": true
+    },
+    {
+      "id": "bone.openpencil",
+      "repository": "https://github.com/taokoplay/bone-openpencil-plugin",
+      "coordinate": "taokoplay/bone-openpencil-plugin",
+      "owner": "taokoplay",
+      "verified": true
+    },
+    {
+      "id": "bone.project-wiki",
+      "repository": "https://github.com/taokoplay/bone-project-wiki",
+      "coordinate": "taokoplay/bone-project-wiki",
+      "owner": "taokoplay",
+      "verified": true
+    },
+    {
+      "id": "bone.token.statistics",
+      "repository": "https://github.com/taokoplay/bone-token-statistics",
+      "coordinate": "taokoplay/bone-token-statistics",
+      "owner": "taokoplay",
+      "verified": true
+    },
+    {
+      "id": "cc.fee.pi-terminal",
+      "repository": "https://github.com/yanecc/PI-Terminal",
+      "coordinate": "yanecc/PI-Terminal",
+      "owner": "yanecc",
+      "verified": true
+    },
+    {
+      "id": "cc.mcii.session-notify",
+      "repository": "https://github.com/LectWolf/pi-session-notify",
+      "coordinate": "LectWolf/pi-session-notify",
+      "owner": "lectwolf",
+      "verified": true
+    },
+    {
+      "id": "cc.mcii.session-usage",
+      "repository": "https://github.com/LectWolf/pi-session-usage",
+      "coordinate": "LectWolf/pi-session-usage",
+      "owner": "lectwolf",
+      "verified": true
+    },
+    {
+      "id": "cn.star.computer-use",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Computer-Use",
+      "coordinate": "TheFlareStar-Re/PI-Computer-Use",
+      "owner": "theflarestar-re",
+      "verified": true
+    },
+    {
+      "id": "cn.star.grok-enhance",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance",
+      "coordinate": "TheFlareStar-Re/PI-Grok-Enhance",
+      "owner": "theflarestar-re",
+      "verified": true
+    },
+    {
+      "id": "cn.star.jianying-assistant",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant",
+      "coordinate": "TheFlareStar-Re/PI-Jianying-Assistant",
+      "owner": "theflarestar-re",
+      "verified": true
+    },
+    {
+      "id": "cn.star.skill-learning",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Skill-Learning",
+      "coordinate": "TheFlareStar-Re/PI-Skill-Learning",
+      "owner": "theflarestar-re",
+      "verified": true
+    },
+    {
+      "id": "cn.star.user-profile",
+      "repository": "https://github.com/TheFlareStar-Re/PI-User-Profile",
+      "coordinate": "TheFlareStar-Re/PI-User-Profile",
+      "owner": "theflarestar-re",
+      "verified": true
+    },
+    {
+      "id": "com.dragonnahs.session-usage-toolbar",
+      "repository": "https://github.com/dragonnahs/session-usage-toolbar",
+      "coordinate": "dragonnahs/session-usage-toolbar",
+      "owner": "dragonnahs",
+      "verified": true
+    },
+    {
+      "id": "com.github.yy568821795-max.session-recorder",
+      "repository": "https://github.com/yy568821795-max/pi-session-recorder",
+      "coordinate": "yy568821795-max/pi-session-recorder",
+      "owner": "hatricks",
+      "verified": true
+    },
+    {
+      "id": "com.opencode2pi",
+      "repository": "https://github.com/JasonYu0822/opencode2pi-desktop",
+      "coordinate": "JasonYu0822/opencode2pi-desktop",
+      "owner": "jasonyu",
+      "verified": true
+    },
+    {
+      "id": "com.vastsa.side-chat",
+      "repository": "https://github.com/vastsa/pi-desktop-side-chat",
+      "coordinate": "vastsa/pi-desktop-side-chat",
+      "owner": "vastsa",
+      "verified": true
+    },
+    {
+      "id": "community.cloudflare-workers-ai",
+      "repository": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop",
+      "coordinate": "wxaef/cloudflare-workers-ai-pi-desktop",
+      "owner": "wxaef",
+      "verified": true
+    },
+    {
+      "id": "community.workbuddy-connect",
+      "repository": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect",
+      "coordinate": "JHua07/Pi_desktop_plugins_workbuddy_connnect",
+      "owner": "jhua07",
+      "verified": true
+    },
+    {
+      "id": "corripo.computer-use",
+      "repository": "https://github.com/ProgramerLiang/pi-computer-use",
+      "coordinate": "ProgramerLiang/pi-computer-use",
+      "owner": "programerliang",
+      "verified": true
+    },
+    {
+      "id": "corripo.superagent-orchestrator",
+      "repository": "https://github.com/ProgramerLiang/piD-super-agent",
+      "coordinate": "ProgramerLiang/piD-super-agent",
+      "owner": "programerliang",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.ast-lens",
+      "repository": "https://github.com/eskwisit/pi-ast-lens",
+      "coordinate": "eskwisit/pi-ast-lens",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.llm-council",
+      "repository": "https://github.com/eskwisit/pi-llm-council",
+      "coordinate": "eskwisit/pi-llm-council",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.llm-superagent",
+      "repository": "https://github.com/eskwisit/pi-llm-superagent",
+      "coordinate": "eskwisit/pi-llm-superagent",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.mumble",
+      "repository": "https://github.com/eskwisit/pi-mumble",
+      "coordinate": "eskwisit/pi-mumble",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.neural-radar",
+      "repository": "https://github.com/eskwisit/pi-neural-radar",
+      "coordinate": "eskwisit/pi-neural-radar",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.test-warden",
+      "repository": "https://github.com/eskwisit/pi-test-warden",
+      "coordinate": "eskwisit/pi-test-warden",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "eskwisit.world-model-hjepa",
+      "repository": "https://github.com/eskwisit/pi-world-model-hjepa",
+      "coordinate": "eskwisit/pi-world-model-hjepa",
+      "owner": "eskwisit",
+      "verified": true
+    },
+    {
+      "id": "hawchou.mumu-player",
+      "repository": "https://github.com/hawchou1995/pi-mumu-player",
+      "coordinate": "hawchou1995/pi-mumu-player",
+      "owner": "hawchou1995",
+      "verified": true
+    },
+    {
+      "id": "icedly.moyu-games",
+      "repository": "https://github.com/CJLY-0915/pi-timer-killer-games",
+      "coordinate": "CJLY-0915/pi-timer-killer-games",
+      "owner": "icedly",
+      "verified": true
+    },
+    {
+      "id": "in.memcode.memory",
+      "repository": "https://github.com/vivekgupta-memcode/pi-desktop-plugins",
+      "coordinate": "vivekgupta-memcode/pi-desktop-plugins",
+      "owner": "vivekgupta-memcode",
+      "verified": true
+    },
+    {
+      "id": "io.github.akshayxkill.nexus-scenic-themes",
+      "repository": "https://github.com/alphalaughs2024-netizen/pi-desktop-plugins",
+      "coordinate": "alphalaughs2024-netizen/pi-desktop-plugins",
+      "owner": "alphalaughs2024-netizen",
+      "verified": true
+    },
+    {
+      "id": "io.github.b1eight.pi-desktop-claude-theme",
+      "repository": "https://github.com/B1eight/pi-desktop-claude-theme",
+      "coordinate": "B1eight/pi-desktop-claude-theme",
+      "owner": "b18",
+      "verified": true
+    },
+    {
+      "id": "io.github.caopengfei.opencode-quota",
+      "repository": "https://github.com/caopengfei/pi-desktop-opencode-quota",
+      "coordinate": "caopengfei/pi-desktop-opencode-quota",
+      "owner": "caopengfei",
+      "verified": true
+    },
+    {
+      "id": "io.github.catdford.color-picker",
+      "repository": "https://github.com/catDforD/pi-desktop-color-picker",
+      "coordinate": "catDforD/pi-desktop-color-picker",
+      "owner": "catdford",
+      "verified": true
+    },
+    {
+      "id": "io.github.chengzhi-c.pi-desktop-wtq-pool",
+      "repository": "https://github.com/chengzhi-c/pi-desktop-wtq-pool",
+      "coordinate": "chengzhi-c/pi-desktop-wtq-pool",
+      "owner": "chengzhi-c",
+      "verified": true
+    },
+    {
+      "id": "io.github.cydione.prompt-injector",
+      "repository": "https://github.com/cyDione/pi-prompt-injector",
+      "coordinate": "cyDione/pi-prompt-injector",
+      "owner": "cydione",
+      "verified": true
+    },
+    {
+      "id": "io.github.czp0312.subscription-quota",
+      "repository": "https://github.com/czp0312/pi-desktop-quota-visualizer",
+      "coordinate": "czp0312/pi-desktop-quota-visualizer",
+      "owner": "czp0312",
+      "verified": true
+    },
+    {
+      "id": "io.github.eonova.theme-dracula",
+      "repository": "https://github.com/eonova/pi-theme-dracula",
+      "coordinate": "eonova/pi-theme-dracula",
+      "owner": "eonova",
+      "verified": true
+    },
+    {
+      "id": "io.github.eureka-0x01.open-with",
+      "repository": "https://github.com/Eureka-0x01/open-with",
+      "coordinate": "Eureka-0x01/open-with",
+      "owner": "eureka-0x01",
+      "verified": true
+    },
+    {
+      "id": "io.github.g1oow.sidebar-note",
+      "repository": "https://github.com/G1oow/PI-desktop-Note",
+      "coordinate": "G1oow/PI-desktop-Note",
+      "owner": "gloow",
+      "verified": true
+    },
+    {
+      "id": "io.github.gzxingr.genui",
+      "repository": "https://github.com/GzxingR/pi-desktop-genui",
+      "coordinate": "GzxingR/pi-desktop-genui",
+      "owner": "gzxingr",
+      "verified": true
+    },
+    {
+      "id": "io.github.hufangyuan460-blip.windows-terminal",
+      "repository": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop",
+      "coordinate": "hufangyuan460-blip/windows-terminal-for-pi-desktop",
+      "owner": "hufangyuan460-blip",
+      "verified": true
+    },
+    {
+      "id": "io.github.jeasonloop.theme-craftdesk",
+      "repository": "https://github.com/JeasonLoop/pi-theme-craftdesk",
+      "coordinate": "JeasonLoop/pi-theme-craftdesk",
+      "owner": "jeasonloop",
+      "verified": true
+    },
+    {
+      "id": "io.github.ldzhouquan.fast-browser",
+      "repository": "https://github.com/ldzhouquan/pi-fast-browser",
+      "coordinate": "ldzhouquan/pi-fast-browser",
+      "owner": "ldzhouquan",
+      "verified": true
+    },
+    {
+      "id": "io.github.linuxdazhao.side-questions",
+      "repository": "https://github.com/Linuxdazhao/pi-side-questions",
+      "coordinate": "Linuxdazhao/pi-side-questions",
+      "owner": "linuxdazhao",
+      "verified": true
+    },
+    {
+      "id": "io.github.liushunqiu.pi-idea-git",
+      "repository": "https://github.com/liushunqiu/pi-idea-git",
+      "coordinate": "liushunqiu/pi-idea-git",
+      "owner": "liushunqiu",
+      "verified": true
+    },
+    {
+      "id": "io.github.mafeis.layout-control",
+      "repository": "https://github.com/mafeis/pi-desktop-layout-control",
+      "coordinate": "mafeis/pi-desktop-layout-control",
+      "owner": "mafeis",
+      "verified": true
+    },
+    {
+      "id": "io.github.moyunliuyin.cline-upstream",
+      "repository": "https://github.com/moyunliuyin/pi-desktop-cline-upstream",
+      "coordinate": "moyunliuyin/pi-desktop-cline-upstream",
+      "owner": "moyunliuyin",
+      "verified": true
+    },
+    {
+      "id": "io.github.muzimu217.deps-audit",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "coordinate": "muzimu217/pi-desktop-plugins",
+      "owner": "muzimu217",
+      "verified": true
+    },
+    {
+      "id": "io.github.muzimu217.session-import",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "coordinate": "muzimu217/pi-desktop-plugins",
+      "owner": "muzimu217",
+      "verified": true
+    },
+    {
+      "id": "io.github.muzimu217.theme-forge",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "coordinate": "muzimu217/pi-desktop-plugins",
+      "owner": "muzimu217",
+      "verified": true
+    },
+    {
+      "id": "io.github.muzimu217.usage-dashboard",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "coordinate": "muzimu217/pi-desktop-plugins",
+      "owner": "muzimu217",
+      "verified": true
+    },
+    {
+      "id": "io.github.muzimu217.vision-kit",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "coordinate": "muzimu217/pi-desktop-plugins",
+      "owner": "muzimu217",
+      "verified": true
+    },
+    {
+      "id": "io.github.new-beginner.session-usage",
+      "repository": "https://github.com/new-Beginner/pi-session-usage",
+      "coordinate": "new-Beginner/pi-session-usage",
+      "owner": "new-beginner",
+      "verified": true
+    },
+    {
+      "id": "io.github.readon.deepseek-web",
+      "repository": "https://github.com/Readon/pi-deepseek-web",
+      "coordinate": "Readon/pi-deepseek-web",
+      "owner": "readon",
+      "verified": true
+    },
+    {
+      "id": "io.github.realzsy.opencode-quota-bubble",
+      "repository": "https://github.com/realzsy/opencode-quota-bubble",
+      "coordinate": "realzsy/opencode-quota-bubble",
+      "owner": "realzsy",
+      "verified": true
+    },
+    {
+      "id": "io.github.techd81.pi-desktop-usage",
+      "repository": "https://github.com/Techd81/pi-desktop-usage",
+      "coordinate": "Techd81/pi-desktop-usage",
+      "owner": "techd81",
+      "verified": true
+    },
+    {
+      "id": "io.github.techd81.stop-that-shit",
+      "repository": "https://github.com/Techd81/pi-desktop-stop-that-shit",
+      "coordinate": "Techd81/pi-desktop-stop-that-shit",
+      "owner": "techd81",
+      "verified": true
+    },
+    {
+      "id": "io.github.tonkic.agent-governance",
+      "repository": "https://github.com/Tonkic/pi-agent-governance",
+      "coordinate": "Tonkic/pi-agent-governance",
+      "owner": "tonkic",
+      "verified": true
+    },
+    {
+      "id": "io.github.w1ndys.pi-open-git-web",
+      "repository": "https://github.com/w1ndys/pi-open-git-web",
+      "coordinate": "w1ndys/pi-open-git-web",
+      "owner": "w1ndys",
+      "verified": true
+    },
+    {
+      "id": "io.github.w1ndys.pi-open-in-vscode",
+      "repository": "https://github.com/w1ndys/pi-open-in-vscode",
+      "coordinate": "w1ndys/pi-open-in-vscode",
+      "owner": "w1ndys",
+      "verified": true
+    },
+    {
+      "id": "io.github.wenziji-hub.market-translator",
+      "repository": "https://github.com/wenziji-hub/pi-market-translator",
+      "coordinate": "wenziji-hub/pi-market-translator",
+      "owner": "wenziji",
+      "verified": true
+    },
+    {
+      "id": "io.github.xelzsss.macos-classic-theme",
+      "repository": "https://github.com/XELZSSS/PI-Mac-OS-Classic-Theme",
+      "coordinate": "XELZSSS/PI-Mac-OS-Classic-Theme",
+      "owner": "xelzsss",
+      "verified": true
+    },
+    {
+      "id": "io.github.xideadev.pi-wechatbot",
+      "repository": "https://github.com/XideaDev/Pi-WechatBot",
+      "coordinate": "XideaDev/Pi-WechatBot",
+      "owner": "xidea",
+      "verified": true
+    },
+    {
+      "id": "io.github.xideadev.skill-hub",
+      "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub",
+      "coordinate": "XideaDev/PI-Desktop-Plugin-SkillHub",
+      "owner": "xidea",
+      "verified": true
+    },
+    {
+      "id": "io.github.xideadev.task-dida",
+      "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
+      "coordinate": "XideaDev/PI-Desktop-Plugin-TaskDida",
+      "owner": "xidea",
+      "verified": true
+    },
+    {
+      "id": "io.github.xinzhihong.group-rooms",
+      "repository": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms",
+      "coordinate": "xinzhihong-ship-it/pi-plugin-group-rooms",
+      "owner": "xinzhihong-ship-it",
+      "verified": true
+    },
+    {
+      "id": "local.chrome-cdp",
+      "repository": "https://github.com/nnda152-prog/chrome-cdp",
+      "coordinate": "nnda152-prog/chrome-cdp",
+      "owner": "nnda152-prog",
+      "verified": true
+    },
+    {
+      "id": "local.context-guard",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-context-guard",
+      "coordinate": "RugkeyPro/pi-desktop-context-guard",
+      "owner": "rugkey",
+      "verified": true
+    },
+    {
+      "id": "local.git-workbench",
+      "repository": "https://github.com/itzhoujun/pi-desktop-plugin",
+      "coordinate": "itzhoujun/pi-desktop-plugin",
+      "owner": "itzhoujun",
+      "verified": true
+    },
+    {
+      "id": "local.hindsight.memory",
+      "repository": "https://github.com/zwwangoo/pi-hindsight-memory",
+      "coordinate": "zwwangoo/pi-hindsight-memory",
+      "owner": "zwwangoo",
+      "verified": true
+    },
+    {
+      "id": "local.igniter",
+      "repository": "https://github.com/zwwangoo/pi-igniter",
+      "coordinate": "zwwangoo/pi-igniter",
+      "owner": "zwwangoo",
+      "verified": true
+    },
+    {
+      "id": "local.image-budget",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-image-budget",
+      "coordinate": "RugkeyPro/pi-desktop-image-budget",
+      "owner": "rugkey",
+      "verified": true
+    },
+    {
+      "id": "local.mac-file-open",
+      "repository": "https://github.com/RugkeyPro/agent-skills",
+      "coordinate": "RugkeyPro/agent-skills",
+      "owner": "rugkey",
+      "verified": true
+    },
+    {
+      "id": "local.mi-note",
+      "repository": "https://github.com/sucjs/mi-note-for-pi",
+      "coordinate": "sucjs/mi-note-for-pi",
+      "owner": "sucjs",
+      "verified": true
+    },
+    {
+      "id": "local.miku-theme",
+      "repository": "https://github.com/cainiao0502/pi-desktop-skin",
+      "coordinate": "cainiao0502/pi-desktop-skin",
+      "owner": "cainiao0502",
+      "verified": true
+    },
+    {
+      "id": "local.nebula-spectrum",
+      "repository": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum",
+      "coordinate": "LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum",
+      "owner": "liuhongxumaritime",
+      "verified": true
+    },
+    {
+      "id": "local.next-reply",
+      "repository": "https://github.com/RugkeyPro/agent-skills",
+      "coordinate": "RugkeyPro/agent-skills",
+      "owner": "rugkey",
+      "verified": true
+    },
+    {
+      "id": "local.pi-bot",
+      "repository": "https://github.com/vsd269/PI-Bot",
+      "coordinate": "vsd269/PI-Bot",
+      "owner": "vsd269",
+      "verified": true
+    },
+    {
+      "id": "local.pi-canvas",
+      "repository": "https://github.com/payAgain/pi-canvas",
+      "coordinate": "payAgain/pi-canvas",
+      "owner": "payagain",
+      "verified": true
+    },
+    {
+      "id": "local.pi-commandcode-desktop",
+      "repository": "https://github.com/eric8bit/pi-commandcode-desktop",
+      "coordinate": "eric8bit/pi-commandcode-desktop",
+      "owner": "eric8bit",
+      "verified": true
+    },
+    {
+      "id": "local.pi-desktop-workbuddy",
+      "repository": "https://github.com/eric8bit/pi-desktop-workbuddy",
+      "coordinate": "eric8bit/pi-desktop-workbuddy",
+      "owner": "eric8bit",
+      "verified": true
+    },
+    {
+      "id": "local.pi-markdown",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-pi-markdown",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "local.pi-session-filter",
+      "repository": "https://github.com/mai-ming/pi-desktop-session-filter",
+      "coordinate": "mai-ming/pi-desktop-session-filter",
+      "owner": "mai-ming",
+      "verified": true
+    },
+    {
+      "id": "local.project-memory-api-probe",
+      "repository": "https://github.com/new-Beginner/KnowStack",
+      "coordinate": "new-Beginner/KnowStack",
+      "owner": "new-beginner",
+      "verified": true
+    },
+    {
+      "id": "local.remote-tools",
+      "repository": "https://github.com/jiege6-66/pi-desktop-remote-tools",
+      "coordinate": "jiege6-66/pi-desktop-remote-tools",
+      "owner": "443729425",
+      "verified": true
+    },
+    {
+      "id": "local.sidebar-labels",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels",
+      "coordinate": "RugkeyPro/pi-desktop-sidebar-labels",
+      "owner": "rugkey",
+      "verified": true
+    },
+    {
+      "id": "local.source-code-mgmt",
+      "repository": "https://github.com/ysanjin1/pi-desktop-source-code-mgmt",
+      "coordinate": "ysanjin1/pi-desktop-source-code-mgmt",
+      "owner": "ysanjin1",
+      "verified": true
+    },
+    {
+      "id": "local.starry-bus-theme",
+      "repository": "https://github.com/yuehan1228/starry-bus-theme",
+      "coordinate": "yuehan1228/starry-bus-theme",
+      "owner": "yuehan1228",
+      "verified": true
+    },
+    {
+      "id": "local.task-board",
+      "repository": "https://github.com/ws1993/GeneralBound",
+      "coordinate": "ws1993/GeneralBound",
+      "owner": "walker93",
+      "verified": true
+    },
+    {
+      "id": "local.terminal",
+      "repository": "https://github.com/zwwangoo/pi-terminal",
+      "coordinate": "zwwangoo/pi-terminal",
+      "owner": "zwwangoo",
+      "verified": true
+    },
+    {
+      "id": "local.unipi",
+      "repository": "https://github.com/vsd269/UniPi",
+      "coordinate": "vsd269/UniPi",
+      "owner": "vsd269",
+      "verified": true
+    },
+    {
+      "id": "mfy.pi-desktop-open-tools",
+      "repository": "https://github.com/mfy/pi-desktop-plugin-open-tools",
+      "coordinate": "mfy/pi-desktop-plugin-open-tools",
+      "owner": "mfy",
+      "verified": true
+    },
+    {
+      "id": "net.aiuo.session-title",
+      "repository": "https://github.com/vastsa/pi-session-title-plugin",
+      "coordinate": "vastsa/pi-session-title-plugin",
+      "owner": "vastsa",
+      "verified": true
+    },
+    {
+      "id": "net.stronghe.session-title-ubuntu",
+      "repository": "https://github.com/strongxp/pi-session-title-ubuntu",
+      "coordinate": "strongxp/pi-session-title-ubuntu",
+      "owner": "stronghe",
+      "verified": true
+    },
+    {
+      "id": "pi.agents-anywhere",
+      "repository": "https://github.com/mazongYY/pi-desktop-plugins",
+      "coordinate": "mazongYY/pi-desktop-plugins",
+      "owner": "mazongyy",
+      "verified": true
+    },
+    {
+      "id": "pi.clinepass",
+      "repository": "https://github.com/banned104/Cline-Pi-Desktop",
+      "coordinate": "banned104/Cline-Pi-Desktop",
+      "owner": "banned104",
+      "verified": true
+    },
+    {
+      "id": "pi.clipboard-history",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-pi-clipboard-history",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.file-manager",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-file-manager",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.log-viewer",
+      "repository": "https://github.com/Tioit-Wang/pi-plugin-log-viewer",
+      "coordinate": "Tioit-Wang/pi-plugin-log-viewer",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.mobile-remote-control",
+      "repository": "https://github.com/CJLY-0915/pi-desktop-bot",
+      "coordinate": "CJLY-0915/pi-desktop-bot",
+      "owner": "icedly",
+      "verified": true
+    },
+    {
+      "id": "pi.piopt",
+      "repository": "https://github.com/Lu-Mine/PiOpt",
+      "coordinate": "Lu-Mine/PiOpt",
+      "owner": "lu-mine",
+      "verified": true
+    },
+    {
+      "id": "pi.prompt-enhancement",
+      "repository": "https://github.com/vastsa/pi-prompt-enhancement",
+      "coordinate": "vastsa/pi-prompt-enhancement",
+      "owner": "vastsa",
+      "verified": true
+    },
+    {
+      "id": "pi.prompt-switcher",
+      "repository": "https://github.com/mikulo/pi-prompt-switcher",
+      "coordinate": "mikulo/pi-prompt-switcher",
+      "owner": "mikulo",
+      "verified": true
+    },
+    {
+      "id": "pi.scratch-calc",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-scratch-calc",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.session-orchestrator",
+      "repository": "https://github.com/vastsa/pi-plugin-session-orchestrator",
+      "coordinate": "vastsa/pi-plugin-session-orchestrator",
+      "owner": "vastsa",
+      "verified": true
+    },
+    {
+      "id": "pi.super-domain-man",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-pi-super-domain-man",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.theme.opencode",
+      "repository": "https://github.com/hzz12138/pi-desktop-plugins",
+      "coordinate": "hzz12138/pi-desktop-plugins",
+      "owner": "hzz12138",
+      "verified": true
+    },
+    {
+      "id": "pi.theme.studio",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-theme-studio",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.thinkrail",
+      "repository": "https://github.com/andrewliu83/pideskthinkrails",
+      "coordinate": "andrewliu83/pideskthinkrails",
+      "owner": "liuganquan",
+      "verified": true
+    },
+    {
+      "id": "pi.todo",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo",
+      "coordinate": "Tioit-Wang/pi-desktop-plugin-pi-todo",
+      "owner": "tioit-wang",
+      "verified": true
+    },
+    {
+      "id": "pi.token-insights",
+      "repository": "https://github.com/vastsa/pi-plugin-token-insights",
+      "coordinate": "vastsa/pi-plugin-token-insights",
+      "owner": "vastsa",
+      "verified": true
+    },
+    {
+      "id": "pi.web-access",
+      "repository": "https://github.com/Techd81/pi-desktop-web-access",
+      "coordinate": "Techd81/pi-desktop-web-access",
+      "owner": "techd81",
+      "verified": true
+    }
+  ]
+}

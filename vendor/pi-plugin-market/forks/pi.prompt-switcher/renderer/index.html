@@ -1,0 +1,970 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>提示词切换设置</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #141416;
+        --surface: #1e1f23;
+        --surface-card: #26272c;
+        --surface-hover: rgba(255, 255, 255, 0.05);
+        --surface-active: rgba(255, 255, 255, 0.08);
+        --fg: #f4f4f6;
+        --fg-muted: #9496a1;
+        --border: rgba(255, 255, 255, 0.09);
+        --border-focus: #6366f1;
+        --accent: #6366f1;
+        --accent-hover: #4f46e5;
+        --accent-glow: rgba(99, 102, 241, 0.25);
+        --success: #10b981;
+        --success-bg: rgba(16, 185, 129, 0.12);
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --radius-sm: 6px;
+        --radius: 10px;
+        --radius-lg: 14px;
+        --shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      }
+
+      :root[data-base="light"] {
+        color-scheme: light;
+        --bg: #f8fafc;
+        --surface: #ffffff;
+        --surface-card: #f1f5f9;
+        --surface-hover: rgba(0, 0, 0, 0.03);
+        --surface-active: rgba(0, 0, 0, 0.06);
+        --fg: #0f172a;
+        --fg-muted: #64748b;
+        --border: rgba(0, 0, 0, 0.08);
+        --border-focus: #4f46e5;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --accent-glow: rgba(79, 70, 229, 0.18);
+        --success: #059669;
+        --success-bg: rgba(5, 150, 105, 0.1);
+        --warning: #d97706;
+        --danger: #dc2626;
+        --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: var(--pi-plugin-titlebar-height, 0px) 16px 80px 16px;
+        overflow-y: auto;
+        font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background: var(--bg);
+        color: var(--fg);
+        user-select: none;
+      }
+
+      .container {
+        max-width: 680px;
+        margin: 0 auto;
+        padding-top: 10px;
+      }
+
+      /* Header */
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header-title-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .header-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: var(--radius);
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        box-shadow: 0 2px 8px var(--accent-glow);
+      }
+
+      .header h1 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+      }
+
+      .header p {
+        margin: 2px 0 0 0;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+
+      /* Card Section */
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 16px;
+        margin-bottom: 16px;
+        box-shadow: var(--shadow);
+      }
+
+      .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .card-title span.count-badge {
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: var(--surface-card);
+        color: var(--fg-muted);
+      }
+
+      /* Directory Input Box */
+      .dir-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .input-wrapper {
+        flex: 1;
+        position: relative;
+      }
+
+      input[type="text"] {
+        width: 100%;
+        height: 36px;
+        padding: 0 12px;
+        font-size: 13px;
+        font-family: inherit;
+        background: var(--surface-card);
+        color: var(--fg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        outline: none;
+        transition: border-color 150ms ease, box-shadow 150ms ease;
+      }
+
+      input[type="text"]:focus {
+        border-color: var(--border-focus);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+
+      /* Buttons */
+      .btn {
+        height: 36px;
+        padding: 0 14px;
+        border-radius: var(--radius);
+        font-size: 13px;
+        font-weight: 500;
+        font-family: inherit;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 150ms ease;
+        border: 1px solid var(--border);
+        background: var(--surface-card);
+        color: var(--fg);
+        white-space: nowrap;
+      }
+
+      .btn:hover {
+        background: var(--surface-hover);
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #ffffff;
+      }
+
+      .btn-primary:hover {
+        background: var(--accent-hover);
+        box-shadow: 0 2px 8px var(--accent-glow);
+      }
+
+      .btn-sm {
+        height: 28px;
+        padding: 0 10px;
+        font-size: 12px;
+        border-radius: var(--radius-sm);
+      }
+
+      .dir-hint {
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--fg-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .dir-hint code {
+        background: var(--surface-card);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: Consolas, Monaco, "Courier New", monospace;
+      }
+
+      /* Toolbar */
+      .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        gap: 8px;
+      }
+
+      .toolbar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .search-box {
+        position: relative;
+        width: 180px;
+      }
+
+      .search-box input {
+        height: 28px;
+        font-size: 12px;
+        padding-left: 26px;
+      }
+
+      .search-box .search-icon {
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        color: var(--fg-muted);
+        pointer-events: none;
+      }
+
+      /* Prompt Items List */
+      .prompt-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 380px;
+        overflow-y: auto;
+        padding-right: 2px;
+      }
+
+      .prompt-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        background: var(--surface-card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        transition: all 150ms ease;
+        cursor: pointer;
+      }
+
+      .prompt-item:hover {
+        background: var(--surface-hover);
+        border-color: rgba(255, 255, 255, 0.16);
+      }
+
+      .prompt-item.is-enabled {
+        border-color: rgba(99, 102, 241, 0.35);
+        background: color-mix(in oklab, var(--accent) 5%, var(--surface-card));
+      }
+
+      .prompt-item-left {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .file-icon {
+        font-size: 20px;
+        line-height: 1;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+
+      .prompt-meta {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .prompt-name-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .prompt-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .prompt-tag {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--fg-muted);
+        flex-shrink: 0;
+      }
+
+      .prompt-desc {
+        margin-top: 3px;
+        font-size: 12px;
+        color: var(--fg-muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Switch / Checkbox */
+      .switch-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding-left: 12px;
+        flex-shrink: 0;
+      }
+
+      .switch-label {
+        font-size: 12px;
+        color: var(--fg-muted);
+        user-select: none;
+      }
+
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 38px;
+        height: 22px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.16);
+        transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 999px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 16px;
+        width: 16px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+      }
+
+      input:checked + .slider {
+        background-color: var(--accent);
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(16px);
+      }
+
+      /* Empty State */
+      .empty-state {
+        text-align: center;
+        padding: 32px 16px;
+        color: var(--fg-muted);
+      }
+
+      .empty-state-icon {
+        font-size: 32px;
+        margin-bottom: 8px;
+        opacity: 0.6;
+      }
+
+      /* Usage Guide */
+      .guide-box {
+        background: var(--surface-card);
+        border-radius: var(--radius);
+        padding: 12px 14px;
+        font-size: 12px;
+        color: var(--fg-muted);
+        line-height: 1.6;
+      }
+
+      .guide-box ol {
+        margin: 6px 0 0 0;
+        padding-left: 18px;
+      }
+
+      .guide-box li {
+        margin-bottom: 4px;
+      }
+
+      .guide-box strong {
+        color: var(--fg);
+      }
+
+      .badge-guard {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: rgba(245, 158, 11, 0.15);
+        color: var(--warning);
+        font-weight: 500;
+        font-size: 11px;
+      }
+
+      /* Fixed Footer */
+      .footer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+      }
+
+      .sync-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+
+      .sync-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+      }
+
+      .sync-dot.is-busy {
+        background: var(--warning);
+        animation: pulse 1.5s infinite;
+      }
+
+      @keyframes pulse {
+        0% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.4; transform: scale(1.3); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-title-group">
+          <div class="header-icon">⚡</div>
+          <div>
+            <h1>提示词切换器 (Prompt Switcher)</h1>
+            <p>快速切换对话初始提示词 · 会话首轮输入 / 自动生效</p>
+          </div>
+        </div>
+        <button id="btn-sync" class="btn btn-sm" title="重新从本地目录扫描并同步">
+          🔄 刷新同步
+        </button>
+      </header>
+
+      <!-- Section 1: Directory Configuration -->
+      <section class="card">
+        <div class="card-title">
+          <span>提示词本地目录 (Prompts Directory)</span>
+          <span class="count-badge" id="badge-dir-type">本地文件夹</span>
+        </div>
+        <div class="dir-row">
+          <div class="input-wrapper">
+            <input
+              type="text"
+              id="input-directory"
+              placeholder="例如：prompts 或 D:/my-prompts"
+              spellcheck="false"
+            />
+          </div>
+          <button id="btn-pick-dir" class="btn" title="选择本地文件夹">
+            📁 浏览...
+          </button>
+          <button id="btn-reset-dir" class="btn btn-sm" title="恢复默认工作区 prompts 目录">
+            默认
+          </button>
+        </div>
+        <div class="dir-hint">
+          <span>实际扫描路径:</span>
+          <code id="text-resolved-path">加载中...</code>
+        </div>
+      </section>
+
+      <!-- Section 2: Prompts Files List with Checkboxes -->
+      <section class="card">
+        <div class="card-title">
+          <span>已发现的提示词文件 (.md)</span>
+          <span class="count-badge" id="badge-file-count">0 个文件</span>
+        </div>
+
+        <div class="toolbar">
+          <div class="toolbar-left">
+            <button id="btn-enable-all" class="btn btn-sm">全选启用</button>
+            <button id="btn-disable-all" class="btn btn-sm">全选禁用</button>
+          </div>
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              id="input-search"
+              placeholder="筛选提示词..."
+              spellcheck="false"
+            />
+          </div>
+        </div>
+
+        <div class="prompt-list" id="prompt-list">
+          <!-- 动态渲染提示词列表 -->
+          <div class="empty-state">
+            <div class="empty-state-icon">📂</div>
+            <div>正在扫描本地提示词目录...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Usage Guide & Scope Rules -->
+      <section class="card">
+        <div class="card-title">
+          <span>使用说明与会话规则</span>
+          <span class="badge-guard">首轮生效约束</span>
+        </div>
+        <div class="guide-box">
+          <ol>
+            <li><strong>勾选启用提示词</strong>：在上方列表中勾选需要使用的 <code>.md</code> 文件，勾选后将自动生效并持久化。</li>
+            <li><strong>会话首轮输入 <code>/</code></strong>：在任何<strong>全新或第一轮对话</strong>的输入框中输入 <code>/</code>，系统将自动列出所有已启用的提示词模板。</li>
+            <li><strong>快速切换提示词</strong>：选中提示词后点击发送，提示词全文将作为类似 <code>agents.md</code> 的全局引导指令发送给 AI 大模型。</li>
+            <li><strong>已有历史对话自动无视</strong>：为了保证长篇对话的连续性与安全性，<strong>仅在会话最开始（首轮）有效</strong>；若会话已有历史交互，将自动无视提示词输入，继续基于原有上下文沟通。</li>
+            <li><strong>支持 <code>@</code> 引用</strong>：您也可以在输入框输入 <code>@文件名</code> 直接引用本地提示词。</li>
+          </ol>
+        </div>
+      </section>
+    </div>
+
+    <!-- Fixed Footer Bar -->
+    <footer class="footer">
+      <div class="sync-status">
+        <div class="sync-dot" id="sync-dot"></div>
+        <span id="sync-text">已与本地目录保持同步</span>
+      </div>
+      <div>
+        <button id="btn-save-bottom" class="btn btn-primary">
+          💾 保存并立即同步
+        </button>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        // 状态变量
+        let state = {
+          directory: "prompts",
+          resolvedDirectory: "",
+          workspaceRoot: "",
+          files: [],
+          enabledMap: {},
+          searchQuery: "",
+          dirty: false,
+          isSyncing: false,
+        };
+
+        // DOM 元素引用
+        const inputDir = document.getElementById("input-directory");
+        const textResolvedPath = document.getElementById("text-resolved-path");
+        const promptList = document.getElementById("prompt-list");
+        const badgeFileCount = document.getElementById("badge-file-count");
+        const inputSearch = document.getElementById("input-search");
+        const btnPickDir = document.getElementById("btn-pick-dir");
+        const btnResetDir = document.getElementById("btn-reset-dir");
+        const btnSync = document.getElementById("btn-sync");
+        const btnEnableAll = document.getElementById("btn-enable-all");
+        const btnDisableAll = document.getElementById("btn-disable-all");
+        const btnSaveBottom = document.getElementById("btn-save-bottom");
+        const syncDot = document.getElementById("sync-dot");
+        const syncText = document.getElementById("sync-text");
+
+        // 统一 Bridge 调用封装
+        async function bridgeCall(channel, payload) {
+          if (window.pluginBridge && typeof window.pluginBridge.invoke === "function") {
+            return window.pluginBridge.invoke(channel, payload);
+          }
+          console.warn("pluginBridge not available, mocking operation:", channel);
+          return { ok: false, error: "pluginBridge 不可用" };
+        }
+
+        // 显示系统 Toast
+        async function showToast(msg, level) {
+          try {
+            await bridgeCall("ui.showToast", { message: msg, level: level || "info" });
+          } catch (_) {
+            console.log("[Toast]", msg);
+          }
+        }
+
+        // 更新同步指示灯状态
+        function setSyncStatus(isSyncing, text) {
+          state.isSyncing = isSyncing;
+          if (isSyncing) {
+            syncDot.className = "sync-dot is-busy";
+            syncText.textContent = text || "正在扫描同步提示词...";
+          } else {
+            syncDot.className = "sync-dot";
+            syncText.textContent = text || "已与本地目录保持同步";
+          }
+        }
+
+        // 格式化文件大小
+        function formatBytes(bytes) {
+          if (!bytes || bytes <= 0) return "0 B";
+          if (bytes < 1024) return bytes + " B";
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+          return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+        }
+
+        // 渲染提示词列表
+        function renderList() {
+          const query = state.searchQuery.trim().toLowerCase();
+          const filtered = state.files.filter((f) => {
+            if (!query) return true;
+            return (
+              f.name.toLowerCase().includes(query) ||
+              (f.title && f.title.toLowerCase().includes(query)) ||
+              (f.description && f.description.toLowerCase().includes(query))
+            );
+          });
+
+          const total = state.files.length;
+          const enabledCount = state.files.filter((f) => state.enabledMap[f.name] === true).length;
+          badgeFileCount.textContent = `共 ${total} 个文件 (已启用 ${enabledCount} 个)`;
+
+          if (filtered.length === 0) {
+            promptList.innerHTML = `
+              <div class="empty-state">
+                <div class="empty-state-icon">🔍</div>
+                <div>${state.files.length === 0 ? "未在目标目录下找到任何 .md 格式的提示词文件" : "没有匹配搜索条件的提示词"}</div>
+                <div style="font-size: 11px; margin-top: 4px; color: var(--fg-muted);">
+                  ${state.files.length === 0 ? "请在上方指定正确的本地文件夹，或在当前目录放入 .md 提示词" : ""}
+                </div>
+              </div>
+            `;
+            return;
+          }
+
+          let html = "";
+          for (const file of filtered) {
+            const isEnabled = state.enabledMap[file.name] === true;
+            const desc = file.description || file.preview || "无描述信息";
+
+            html += `
+              <div class="prompt-item ${isEnabled ? "is-enabled" : ""}" data-filename="${escapeHtml(file.name)}">
+                <div class="prompt-item-left">
+                  <div class="file-icon">📄</div>
+                  <div class="prompt-meta">
+                    <div class="prompt-name-row">
+                      <span class="prompt-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+                      <span class="prompt-tag">${formatBytes(file.size)}</span>
+                      ${file.title && file.title !== file.baseName ? `<span class="prompt-tag" style="color: var(--accent);">${escapeHtml(file.title)}</span>` : ""}
+                    </div>
+                    <div class="prompt-desc" title="${escapeHtml(desc)}">${escapeHtml(desc)}</div>
+                  </div>
+                </div>
+                <div class="switch-container" onclick="event.stopPropagation()">
+                  <span class="switch-label">${isEnabled ? "已启用" : "未启用"}</span>
+                  <label class="switch">
+                    <input type="checkbox" ${isEnabled ? "checked" : ""} data-toggle="${escapeHtml(file.name)}" />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+            `;
+          }
+
+          promptList.innerHTML = html;
+
+          // 绑定点击切换事件
+          const items = promptList.querySelectorAll(".prompt-item");
+          items.forEach((item) => {
+            const fileName = item.getAttribute("data-filename");
+            item.addEventListener("click", () => {
+              toggleFile(fileName);
+            });
+          });
+
+          const checkboxes = promptList.querySelectorAll("input[data-toggle]");
+          checkboxes.forEach((cb) => {
+            cb.addEventListener("change", (e) => {
+              const fileName = e.target.getAttribute("data-toggle");
+              setFileEnabled(fileName, e.target.checked);
+            });
+          });
+        }
+
+        function escapeHtml(str) {
+          if (!str) return "";
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+        }
+
+        // 切换单文件状态
+        function toggleFile(fileName) {
+          const next = !state.enabledMap[fileName];
+          setFileEnabled(fileName, next);
+        }
+
+        function setFileEnabled(fileName, isEnabled) {
+          state.enabledMap[fileName] = isEnabled;
+          state.dirty = true;
+          renderList();
+          autoSaveAndSync();
+        }
+
+        // 批量启用/禁用
+        function setAll(enabled) {
+          for (const f of state.files) {
+            state.enabledMap[f.name] = enabled;
+          }
+          state.dirty = true;
+          renderList();
+          autoSaveAndSync();
+          showToast(enabled ? "已启用全部提示词" : "已禁用全部提示词");
+        }
+
+        // 防抖自动保存并同步
+        let autoSaveTimer = null;
+        function autoSaveAndSync() {
+          if (autoSaveTimer) clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(() => {
+            saveAndSync(false);
+          }, 400);
+        }
+
+        // 保存并同步
+        async function saveAndSync(showManualToast = true) {
+          setSyncStatus(true, "正在保存配置并同步模板...");
+          try {
+            const res = await bridgeCall("saveSettings", {
+              directory: state.directory,
+              enabledFiles: state.enabledMap,
+            });
+
+            if (res && res.ok) {
+              state.dirty = false;
+              setSyncStatus(false, `同步成功 (共启用 ${res.syncResult?.count ?? 0} 个提示词)`);
+              if (showManualToast) {
+                showToast(`已成功保存并同步 ${res.syncResult?.count ?? 0} 个已启用提示词至系统模板库！`, "success");
+              }
+            } else {
+              setSyncStatus(false, "同步失败: " + (res?.error || "未知错误"));
+              if (showManualToast) {
+                showToast("保存失败: " + (res?.error || "未知错误"), "error");
+              }
+            }
+          } catch (e) {
+            setSyncStatus(false, "同步出错: " + e.message);
+          }
+        }
+
+        // 扫描目录
+        async function scanCurrentDir() {
+          setSyncStatus(true, "正在扫描提示词文件...");
+          try {
+            const res = await bridgeCall("scanDirectory", {
+              directory: state.directory,
+            });
+
+            if (res && res.ok) {
+              state.files = res.files || [];
+              state.resolvedDirectory = res.dir || "";
+              textResolvedPath.textContent = state.resolvedDirectory || state.directory;
+
+              // 如果是首次加载且 enabledMap 为空，默认将已有文件全部启用
+              let hasAny = Object.keys(state.enabledMap).length > 0;
+              if (!hasAny && state.files.length > 0) {
+                for (const f of state.files) {
+                  state.enabledMap[f.name] = true;
+                }
+                state.dirty = true;
+                saveAndSync(false);
+              }
+
+              renderList();
+              setSyncStatus(false, `扫描完成，发现 ${state.files.length} 个提示词文件`);
+            } else {
+              state.files = [];
+              renderList();
+              textResolvedPath.textContent = res?.error || "目录不存在";
+              setSyncStatus(false, res?.error || "扫描目录失败");
+            }
+          } catch (err) {
+            setSyncStatus(false, "扫描出错: " + err.message);
+          }
+        }
+
+        // 初始化加载配置
+        async function init() {
+          setSyncStatus(true, "正在载入配置...");
+          try {
+            const res = await bridgeCall("getSettings");
+            if (res && res.ok) {
+              state.directory = res.settings?.directory || "prompts";
+              state.enabledMap = res.settings?.enabledFiles || {};
+              state.workspaceRoot = res.workspaceRoot || "";
+              state.resolvedDirectory = res.resolvedDirectory || "";
+
+              inputDir.value = state.directory;
+              textResolvedPath.textContent = state.resolvedDirectory || state.directory;
+
+              await scanCurrentDir();
+            }
+          } catch (e) {
+            console.error("加载配置失败", e);
+            setSyncStatus(false, "无法连接插件服务");
+          }
+        }
+
+        // 绑定各种事件监听
+        inputDir.addEventListener("change", () => {
+          state.directory = inputDir.value.trim() || "prompts";
+          scanCurrentDir();
+        });
+
+        inputDir.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            state.directory = inputDir.value.trim() || "prompts";
+            scanCurrentDir();
+          }
+        });
+
+        btnResetDir.addEventListener("click", () => {
+          inputDir.value = "prompts";
+          state.directory = "prompts";
+          scanCurrentDir();
+          showToast("已恢复默认工作区 prompts 目录");
+        });
+
+        btnPickDir.addEventListener("click", async () => {
+          try {
+            const res = await bridgeCall("requestDirectory");
+            if (res && res.ok && res.path) {
+              inputDir.value = res.path;
+              state.directory = res.path;
+              await scanCurrentDir();
+              await saveAndSync(false);
+              showToast(`已切换至新目录: ${res.path}`);
+            }
+          } catch (err) {
+            showToast("选择文件夹失败: " + err.message, "error");
+          }
+        });
+
+        btnSync.addEventListener("click", () => {
+          scanCurrentDir().then(() => saveAndSync(true));
+        });
+
+        btnEnableAll.addEventListener("click", () => setAll(true));
+        btnDisableAll.addEventListener("click", () => setAll(false));
+        btnSaveBottom.addEventListener("click", () => saveAndSync(true));
+
+        inputSearch.addEventListener("input", (e) => {
+          state.searchQuery = e.target.value;
+          renderList();
+        });
+
+        // 外观与主题同步
+        const applyAppearance = (appearance) => {
+          const base = appearance?.base;
+          document.documentElement.dataset.base =
+            base === "light" || base === "dark"
+              ? base
+              : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+          if (typeof appearance?.locale === "string" && appearance.locale) {
+            document.documentElement.lang = appearance.locale;
+          }
+        };
+
+        if (window.pluginBridge && typeof window.pluginBridge.on === "function") {
+          window.pluginBridge.on("appearance:changed", applyAppearance);
+          window.pluginBridge.invoke("app.getAppearance").then(applyAppearance).catch(() => applyAppearance(null));
+        }
+
+        // 启动初始化
+        init();
+      })();
+    </script>
+  </body>
+</html>

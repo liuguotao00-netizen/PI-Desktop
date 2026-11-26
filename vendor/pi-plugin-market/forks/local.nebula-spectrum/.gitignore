@@ -1,0 +1,6 @@
+# dist/ is committed on purpose: the plugin centre reads the packed artifact
+# out of the tagged commit, so the .piplug must be in the repo.
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db

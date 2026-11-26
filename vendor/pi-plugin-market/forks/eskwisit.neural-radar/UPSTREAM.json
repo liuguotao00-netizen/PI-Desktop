@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.neural-radar",
+  "repository": "https://github.com/eskwisit/pi-neural-radar",
+  "branch": "HEAD",
+  "commit": "0a6cc17",
+  "version": "0.45.3",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-neural-radar/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:43.866Z",
+  "mode": "source-snapshot",
+  "sha256": "1c6f9f40887c01ceb1103a9df07279840f17615d85a013d421c965d79979adec"
+}

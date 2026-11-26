@@ -1,0 +1,11 @@
+{
+  "id": "local.hindsight.memory",
+  "repository": "https://github.com/zwwangoo/pi-hindsight-memory",
+  "branch": "HEAD",
+  "commit": "a1f2580bd12db589",
+  "version": "0.2.3",
+  "tarball": "https://api.github.com/repos/zwwangoo/pi-hindsight-memory/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:15:00.864Z",
+  "mode": "source-snapshot",
+  "sha256": "a1f2580bd12db589d2134b16a94156fd8ec7cd0a2da361ceb4ed1c9c186d12db"
+}

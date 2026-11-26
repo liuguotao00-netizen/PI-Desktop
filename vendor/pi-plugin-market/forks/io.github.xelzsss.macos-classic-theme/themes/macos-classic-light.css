@@ -1,0 +1,214 @@
+/*
+  macOS Classic Light — PI-Desktop 0.23 contributed theme (base: light).
+
+  Token overrides carry the appearance. Host-owned primitives (geometry, type,
+  radii, motion) stay untouched. The small rule set below handles surfaces the
+  built-in stylesheet still paints with literals.
+*/
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ds-bg-primary: #f2f2f2;
+  --ds-bg-under: #dedede;
+  --ds-bg-inset: #e0e0e0;
+  --ds-bg-secondary: #e4e4e4;
+  --ds-bg-tertiary: #d8d8d8;
+  --ds-bg-elevated: #fafafa;
+  --ds-bg-elevated-opaque: #fafafa;
+  --ds-bg-elevated-primary: #fafafa;
+  --ds-bg-hover: #d0d0d0;
+  --ds-bg-active: #c2c2c2;
+  --ds-bg-composer: #ffffff;
+  --ds-bg-chip: color-mix(in oklab, #000000 8%, transparent);
+  --ds-bg-dock: #e4e4e4;
+  --ds-bg-dock-raised: #fafafa;
+  --ds-settings-rail-bg: #e4e4e4;
+  --ds-bg-sidebar: #e4e4e4;
+  --ds-bg-sidebar-image: none;
+  --ds-sidebar-glass-tint: color-mix(in oklab, #e4e4e4 55%, transparent);
+  --ds-sidebar-glass-sheen-top: color-mix(in oklab, #ffffff 45%, transparent);
+  --ds-sidebar-glass-sheen-bottom: color-mix(in oklab, #ffffff 30%, transparent);
+  --ds-text-primary: #000000;
+  --ds-text-secondary: #2b2b2b;
+  --ds-text-muted: #4a4a4a;
+  --ds-text-faint: #6a6a6a;
+  --ds-text-tertiary: #6a6a6a;
+  --ds-text-link: #1f6ae2;
+  --ds-placeholder-ink: #7a7a7a;
+  --ds-prose-kbd-fg: #333333;
+  --ds-border-default: #b8b8b8;
+  --ds-border-subtle: #d4d4d4;
+  --ds-border-strong: #9a9a9a;
+  --ds-tile: color-mix(in oklab, #000000 6%, transparent);
+  --ds-tile-hover: color-mix(in oklab, #000000 9%, transparent);
+  --ds-tile-deep: color-mix(in oklab, #000000 13%, transparent);
+  --ds-raised: #fafafa;
+  --ds-raised-shadow: none;
+  --ds-accent: #1f6ae2;
+  --ds-accent-hover: #1a5ac4;
+  --ds-accent-soft: #84adef;
+  --ds-accent-foreground: #ffffff;
+  --ds-focus: #1f6ae2;
+  --ds-settings-field-bg: #ffffff;
+  --ds-settings-nav-active: #c7deff;
+  --ds-field-inset-bg: color-mix(in oklab, #000000 7%, transparent);
+  --ds-field-inset-focus-bg: #ffffff;
+  --ds-switch-track-off: color-mix(in oklab, #000000 12%, transparent);
+  --ds-switch-track-off-hover: color-mix(in oklab, #000000 20%, transparent);
+  --ds-switch-ring-off: color-mix(in oklab, #000000 24%, transparent);
+  --ds-switch-knob-off: #ffffff;
+  --ds-switch-knob-on: #ffffff;
+  --ds-thinking-code-bg: #ededed;
+  --ds-mermaid-canvas: #ffffff;
+  --ds-code-head-bg: color-mix(in oklab, #000000 5%, transparent);
+  --ds-code-hover-bg: color-mix(in oklab, #000000 8%, transparent);
+  --ds-scrim: color-mix(in oklab, #000000 35%, transparent);
+  --ds-modal-veil: color-mix(in oklab, #000000 40%, transparent);
+  --ds-tool-row-bg: color-mix(in oklab, #000000 4%, transparent);
+  --ds-send-disabled-bg: #7a7a7a;
+  --ds-send-disabled-fg: #ffffff;
+  --ds-success: #036a07;
+  --ds-warning: #957931;
+  --ds-error: #c5060b;
+  --ds-info: #4a4a4a;
+  --ds-purple: #6f42c1;
+  --ds-shadow-dialog: none;
+  --ds-shadow-model-menu: none;
+  --ds-shadow-composer: none;
+  --ds-elevation-stroke: none;
+  --ds-bg: #f2f2f2;
+  --ds-border: #b8b8b8;
+}
+
+:root[data-theme="light"] .composer-shell,
+:root[data-theme="light"] .composer-stack > .asktool-card,
+:root[data-theme="light"] .composer-queued-prompt,
+:root[data-theme="light"] .plan-approval-bar {
+  border: 1px solid var(--ds-border-default);
+}
+
+:root[data-theme="light"] .composer-shell.is-drop-target {
+  border-color: var(--ds-accent);
+}
+
+:root[data-theme="light"] .composer-shell:focus-within {
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .code-block {
+  --code-block-bg: #ffffff;
+  color: #000000;
+}
+
+:root[data-theme="light"] .code-block-lang,
+:root[data-theme="light"] .code-block .code-copy-btn {
+  color: #4a4a4a !important;
+}
+
+:root[data-theme="light"] .code-block .code-copy-btn:hover {
+  color: #000000 !important;
+}
+
+:root[data-theme="light"] .prose-chat .mermaid-source {
+  background: #ffffff;
+  color: #000000;
+}
+
+:root[data-theme="light"] .prose-chat pre {
+  background: #ffffff;
+  color: #000000;
+}
+
+:root[data-theme="light"] ::selection {
+  background: #c7deff;
+  color: #000000;
+}
+
+:root[data-theme="light"] input::selection,
+:root[data-theme="light"] textarea::selection,
+:root[data-theme="light"] [contenteditable]::selection {
+  background: #b0cffd;
+  color: #000000;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #c8c8c8aa;
+  background-clip: content-box;
+}
+
+:root[data-theme="light"] :hover::-webkit-scrollbar-thumb,
+:root[data-theme="light"] :focus-within::-webkit-scrollbar-thumb,
+:root[data-theme="light"] [data-scrolling]::-webkit-scrollbar-thumb {
+  background: #c8c8c8aa;
+  background-clip: content-box;
+}
+
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:hover,
+:root[data-theme="light"] ::-webkit-scrollbar-thumb:active {
+  background: #c8c8c8;
+  background-clip: content-box;
+}
+
+:root[data-theme="light"] .composer-model-menu,
+:root[data-theme="light"] .composer-model-thinking-menu,
+:root[data-theme="light"] .scope-popover,
+:root[data-theme="light"] .scope-compact-menu,
+:root[data-theme="light"] .projects-menu,
+:root[data-theme="light"] .plugins-menu,
+:root[data-theme="light"] .agent-capability-menu,
+:root[data-theme="light"] .sidebar-submenu,
+:root[data-theme="light"] .jump-latest-btn,
+:root[data-theme="light"] .generated-image-actions a {
+  box-shadow: 0 0 0 .5px var(--ds-border-default);
+}
+
+:root[data-theme="light"] .provider-model-menu,
+:root[data-theme="light"] .generated-image-viewer-viewport > img,
+:root[data-theme="light"] .plugins-card:hover,
+:root[data-theme="light"] .plugin-scenic-theme-card,
+:root[data-theme="light"] .plugin-scenic-blur-control {
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .plugins-sheet,
+:root[data-theme="light"] .plugins-reviews,
+:root[data-theme="light"] .plugins-modal {
+  box-shadow: 0 0 0 .5px var(--ds-border-default);
+}
+
+:root[data-theme="light"] .subagent-topology-node.open {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ds-accent) 22%, transparent);
+}
+
+:root[data-theme="light"] .computer-cursor-label {
+  color: var(--ds-text-primary) !important;
+  background: var(--ds-bg-elevated-opaque) !important;
+  border-color: var(--ds-border-strong) !important;
+}
+
+:root[data-theme="light"] .computer-cursor-ripple {
+  border-color: var(--ds-accent) !important;
+}
+
+:root[data-theme="light"] .computer-cursor-ripple-type {
+  border-color: var(--ds-accent-soft) !important;
+}
+
+:root[data-theme="light"] .plugin-scenic-theme-card-shade {
+  background: linear-gradient(180deg, transparent 18%, color-mix(in srgb, var(--ds-bg-primary) 82%, var(--ds-text-primary)) 100%) !important;
+}
+
+:root[data-theme="light"] .plugin-scenic-theme-card-title,
+:root[data-theme="light"] .plugin-scenic-theme-card-description {
+  color: var(--ds-text-primary) !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="light"] .agent-capability-menu {
+  background: #fafafa !important;
+}
+
+:root[data-theme="light"] .generated-image-thumb[aria-current="true"],
+:root[data-theme="light"] .generated-image-viewer-thumb[aria-current="true"] {
+  box-shadow: 0 0 0 1px var(--ds-accent) !important;
+}

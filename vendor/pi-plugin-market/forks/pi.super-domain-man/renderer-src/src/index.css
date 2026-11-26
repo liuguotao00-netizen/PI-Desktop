@@ -1,0 +1,213 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   直角利落风格 · 配色参考 scratch-calc（F:\插件测试）
+   - 直角（border-radius 一律 0）
+   - 白天：暖白底 + 蓝灰文字；黑夜：深灰底 + 浅色文字
+   - 强调色：橙色 #ff9f0b（激活项 / 主按钮）
+   ============================================================ */
+
+:root,
+:root[data-theme="dark"] {
+  --bg: #303133;
+  --bg-2: #2b2c2e;
+  --panel: #3a3c3f;
+  --panel-2: #44464a;
+  --line: #46484c;
+  --line-2: #57595d;
+  --text: #eeeeee;
+  --muted: #9a9a9a;
+  --faint: #6f7175;
+  --accent: #ff9f0b;
+  --accent-text: #303133;
+  --hover: #404246;
+  --danger-text: #ef6a6a;
+  --danger-bg: #453234;
+  color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+  --bg: #fafaf9;
+  --bg-2: #f2f2ef;
+  --panel: #ffffff;
+  --panel-2: #efefeb;
+  --line: #e6e6e2;
+  --line-2: #d5d5d0;
+  --text: #27363d;
+  --muted: #8a8a86;
+  --faint: #b8b8b3;
+  --accent: #ff9f0b;
+  --accent-text: #ffffff;
+  --hover: #f2f2ef;
+  --danger-text: #d95050;
+  --danger-bg: #fbecec;
+  color-scheme: light;
+}
+
+* {
+  border-radius: 0 !important;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  line-height: 1.55;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--faint);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ---------- 通用组件类（与视图 JSX 配合） ---------- */
+
+.view-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.view-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.view-sub {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.tbl-row-hover tbody tr:hover {
+  background: var(--hover);
+}
+
+.tbl-row-hover tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.mono {
+  font-family: Consolas, "Courier New", monospace;
+}
+
+.wizard-steps {
+  display: flex;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+}
+
+.wizard-step {
+  flex: 1;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--faint);
+  border-right: 1px solid var(--line);
+  background: var(--panel);
+}
+.wizard-step:last-child {
+  border-right: none;
+}
+.wizard-step.on {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.wizard-step.done {
+  color: var(--text);
+}
+
+.log-box {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11.5px;
+  line-height: 1.6;
+  max-height: 260px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+pre.pem {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+  user-select: text;
+}
+
+.kv {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 6px 12px;
+  font-size: 12.5px;
+}
+.kv dt {
+  color: var(--faint);
+}
+.kv dd {
+  color: var(--text);
+  word-break: break-all;
+}

@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.mumble",
+  "repository": "https://github.com/eskwisit/pi-mumble",
+  "branch": "HEAD",
+  "commit": "046fa49",
+  "version": "0.6.3",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-mumble/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:39.305Z",
+  "mode": "source-snapshot",
+  "sha256": "7b1a816b1590a0f6b486e1074f3e5c9fb595793ee5e3f1500a4f5823c80b8f80"
+}

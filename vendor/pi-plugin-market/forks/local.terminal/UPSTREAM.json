@@ -1,0 +1,11 @@
+{
+  "id": "local.terminal",
+  "repository": "https://github.com/zwwangoo/pi-terminal",
+  "branch": "HEAD",
+  "commit": "33b070c",
+  "version": "0.5.0",
+  "tarball": "https://api.github.com/repos/zwwangoo/pi-terminal/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:05.271Z",
+  "mode": "source-snapshot",
+  "sha256": "53650ed24ea43ac331d27ee8e6a3238e8da990b744347f2a301e1c5c009360c1"
+}

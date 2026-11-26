@@ -1,0 +1,1509 @@
+/*
+ * Git Workbench — work-panel view styling.
+ *
+ * The view docks inside the host work panel (--pi-plugin-titlebar-height is
+ * 0px there and 46px in a detached ui.panel window), so every top offset uses
+ * the host variable instead of a hard-coded number.
+ */
+
+:root {
+  color-scheme: dark;
+  /* Mirrors the host's dark palette (--ds-bg-* / --ds-text-* / --ds-border-*);
+     panel.js overwrites these from a plugin theme's tokens when one is active. */
+  --bg: #181818;
+  --bg-soft: #212121;
+  --surface: #212121;
+  --surface-hover: #282828;
+  --field: #0d0d0d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-soft: rgba(255, 255, 255, 0.05);
+  --fg: #ffffff;
+  --fg-strong: #ffffff;
+  --muted: rgba(255, 255, 255, 0.55);
+  --muted-dim: rgba(255, 255, 255, 0.38);
+  /* The host's own dark accent is plain white; the panel needs a chromatic
+     highlight, and a plugin theme with a real accent overrides this. */
+  --accent: #4a9eff;
+  /* Primary action follows the host: text-primary on bg-primary, so a light,
+     dark or plugin theme all get a readable monochrome commit button. The
+     --theme-* hooks are filled in from app.getAppearance() by panel.js. */
+  --commit: var(--theme-primary, #ffffff);
+  --commit-hover: var(--theme-primary-hover, color-mix(in oklab, var(--commit) 88%, #000));
+  --commit-fg: var(--theme-primary-fg, #1a1c1f);
+  --danger: #e5534b;
+  --add: #40c977;
+  --del: #ff6764;
+  --mod: #ff8549;
+  --untracked: #7bb3ff;
+  --conflict: #ff8549;
+  /* Tints derive from the state colours so a theme's success/error carries
+     through to the row backgrounds as well. */
+  --add-bg: color-mix(in oklab, var(--add) 16%, transparent);
+  --del-bg: color-mix(in oklab, var(--del) 15%, transparent);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --radius-sm: 8px;
+  --radius: 11px;
+  --radius-lg: 16px;
+  --radius-pill: 999px;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+:root[data-base="light"] {
+  color-scheme: light;
+  /* Mirrors the host's light palette (--ds-bg-* / --ds-text-* / --ds-border-*);
+     panel.js overwrites these from a plugin theme's tokens when one is active. */
+  --bg: #ffffff;
+  --bg-soft: #f9f9f9;
+  --surface: #f3f3f3;
+  --surface-hover: #ededed;
+  --field: #ffffff;
+  --border: rgba(26, 28, 31, 0.12);
+  --border-soft: rgba(26, 28, 31, 0.06);
+  --fg: #1a1c1f;
+  --fg-strong: #1a1c1f;
+  --muted: #5d5d5d;
+  --muted-dim: #afafaf;
+  /* Same rule as dark: the host's light accent is ink, so keep the panel's
+     chromatic highlight and only take a theme accent that carries a hue. */
+  --accent: #0a66c2;
+  --commit: var(--theme-primary, #1a1c1f);
+  --commit-hover: var(--theme-primary-hover, color-mix(in oklab, var(--commit) 86%, #fff));
+  --commit-fg: var(--theme-primary-fg, #ffffff);
+  --add: #00a240;
+  --del: #e02e2a;
+  --danger: #e02e2a;
+  --mod: #e25507;
+  --untracked: #0969da;
+  --conflict: #e25507;
+  --add-bg: color-mix(in oklab, var(--add) 15%, transparent);
+  --del-bg: color-mix(in oklab, var(--del) 14%, transparent);
+  --shadow: 0 12px 28px rgba(15, 25, 35, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+button:focus-visible,
+textarea:focus-visible,
+.file:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  outline-offset: 1px;
+}
+
+.ico {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding-top: var(--pi-plugin-titlebar-height, 0px);
+  min-height: 0;
+  position: relative;
+}
+
+/* ------------------------------------------------------------ split panes */
+
+/*
+ * The work panel and the selected diff sit side by side. The diff pane stays
+ * hidden until a file is picked; #splitter then drags its width, which panel.js
+ * stores as --diff-width on #split.
+ */
+
+.split {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pane-main {
+  flex: 1 1 auto;
+}
+
+.pane-diff {
+  flex: 0 0 var(--diff-width, 50%);
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.pane-diff[hidden],
+.splitter[hidden] {
+  display: none;
+}
+
+.splitter {
+  position: relative;
+  z-index: 2;
+  flex: none;
+  width: 7px;
+  margin: 0 -3px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitter:focus-visible {
+  outline: none;
+}
+
+/* Thin grab bar that lights up on hover, on focus and while dragging. */
+.splitter::after {
+  content: "";
+  position: absolute;
+  inset: 0 3px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+}
+
+.splitter:hover::after,
+.splitter:focus-visible::after {
+  background: color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+.splitter[data-dragging="true"]::after {
+  background: var(--accent);
+}
+
+/* Keep the resize cursor while the pointer is outside both panes. */
+body.is-resizing {
+  cursor: col-resize;
+  user-select: none;
+}
+
+body.is-resizing * {
+  cursor: col-resize !important;
+}
+
+/* ---------------------------------------------------------------- diff pane */
+
+.diff-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+}
+
+/* Single line, like the group heads on the left: name, then a muted suffix. */
+.diff-titles {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.diff-title,
+.diff-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.diff-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+
+.diff-sub {
+  flex: none;
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+
+.diff-sub[hidden],
+.diff-stat[hidden] {
+  display: none;
+}
+
+.diff-stat {
+  flex: none;
+  display: flex;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dstat-add {
+  color: var(--add);
+}
+
+.dstat-del {
+  color: var(--del);
+}
+
+.diff-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* ---------------------------------------------------------------- top bar */
+
+.topbar {
+  flex: none;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+}
+
+.repo-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.branch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 58%;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--fg) 8%, transparent);
+  font-size: 12px;
+  font-weight: 560;
+  letter-spacing: -0.01em;
+  color: var(--fg-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.branch-chip .ico {
+  width: 12px;
+  height: 12px;
+  color: var(--muted);
+}
+
+.repo-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 11.5px;
+  color: var(--muted-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  transition: background 120ms ease, color 120ms ease;
+}
+
+/* The top-bar trio reads as a control cluster, so the glyphs scale with it. */
+.icon-btn .ico {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--fg-strong);
+}
+
+/* Sync state lives in the top bar, next to pull/push/refresh. */
+.sync-count {
+  flex: none;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.icon-btn[data-busy="true"] .ico {
+  animation: spin 1s linear infinite;
+}
+
+/* --------------------------------------------------------------- composer */
+
+.composer {
+  position: relative;
+  flex: none;
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.editor {
+  position: relative;
+}
+
+textarea#message {
+  display: block;
+  width: 100%;
+  /* Height is set by autosizeMessage() (3 rows → MESSAGE_MAX_ROWS). */
+  min-height: 54px;
+  max-height: 220px;
+  padding: 8px 42px 8px 9px;
+  resize: none;
+  overflow-y: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--field);
+  color: var(--fg-strong);
+  font: inherit;
+  line-height: 1.4;
+}
+
+textarea#message::placeholder {
+  color: var(--muted-dim);
+}
+
+textarea#message:focus {
+  border-color: color-mix(in oklab, var(--accent) 62%, transparent);
+  outline: none;
+}
+
+.gen-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid color-mix(in oklab, var(--accent) 45%, transparent);
+  border-radius: 9px;
+  /* Always visible, not only on hover: this is the AI affordance. */
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.gen-btn .ico {
+  width: 16px;
+  height: 16px;
+}
+
+.gen-btn:hover:not(:disabled) {
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 65%, transparent);
+  color: var(--fg-strong);
+}
+
+.gen-btn:disabled {
+  opacity: 0.55;
+}
+
+.gen-btn[data-busy="true"] .ico {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.commit-row {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.commit-btn,
+.commit-split {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  border-radius: var(--radius);
+  background: var(--commit);
+  color: var(--commit-fg);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: background 120ms ease, opacity 120ms ease;
+}
+
+.commit-btn {
+  flex: 1 1 auto;
+}
+
+.commit-btn .ico {
+  width: 15px;
+  height: 15px;
+}
+
+.commit-split {
+  flex: none;
+  width: 32px;
+}
+
+.commit-btn:hover:not(:disabled),
+.commit-split:hover:not(:disabled) {
+  background: var(--commit-hover);
+}
+
+.commit-btn:disabled,
+.commit-split:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.menu {
+  position: absolute;
+  z-index: 20;
+  right: 10px;
+  left: 10px;
+  margin-top: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 12.5px;
+}
+
+.menu-item:hover {
+  background: var(--surface-hover);
+}
+
+.menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border-soft);
+}
+
+.menu-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.menu-check:hover {
+  background: var(--surface-hover);
+}
+
+.menu-check input {
+  accent-color: var(--accent);
+  margin: 0;
+}
+
+.banner {
+  flex: none;
+  margin: 8px 10px 0;
+  padding: 7px 9px;
+  border: 1px solid color-mix(in oklab, var(--danger) 45%, transparent);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  color: var(--fg);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.banner[data-kind="info"] {
+  border-color: color-mix(in oklab, var(--accent) 42%, transparent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+/* ------------------------------------------------------------------ lists */
+
+.lists {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 8px;
+}
+
+/* Sections are full-bleed bands separated by a 1px rule, matching the diff
+ * pane on the right: a --bg surface with a --bg-soft header band. */
+.group + .group {
+  border-top: 1px solid var(--border-soft);
+}
+
+.group-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px 0 6px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-soft);
+  /* The whole header is the collapse target, not just the chevron. */
+  cursor: pointer;
+  user-select: none;
+}
+
+
+.collapse {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  color: var(--muted);
+  transition: transform 140ms ease;
+}
+
+.collapse[data-collapsed="true"] {
+  transform: rotate(-90deg);
+}
+
+.collapse:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+.group-head h2 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-strong);
+}
+
+.count {
+  min-width: 17px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in oklab, var(--fg) 12%, transparent);
+  color: var(--fg);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stays visible: hiding these until hover made them undiscoverable. The
+ * history header opts back into hover-only behaviour further down. */
+.group-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  margin-left: auto;
+}
+
+.mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.mini:hover {
+  background: var(--surface-hover);
+  color: var(--fg-strong);
+}
+
+.mini[data-act="discard"]:hover {
+  color: var(--danger);
+}
+
+/* The group actions are always on screen and larger than a row button: the row
+ * buttons live inside a 23px file row and keep the 20px size. */
+.group-head .mini {
+  width: 26px;
+  height: 26px;
+  font-size: 17px;
+}
+
+.group-head .mini .ico {
+  width: 17px;
+  height: 17px;
+}
+
+/* Nothing to act on: the icon keeps its place but reads as unavailable. */
+.mini:disabled {
+  color: var(--muted-dim);
+  background: none;
+  opacity: 0.85;
+  cursor: default;
+}
+
+.mini:disabled:hover {
+  background: none;
+  color: var(--muted-dim);
+}
+
+.files {
+  margin: 0;
+  padding: 0 4px 4px;
+  list-style: none;
+}
+
+.file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 23px;
+  padding: 0 6px 0 5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.file:hover {
+  background: var(--surface-hover);
+}
+
+.ftype {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 15px;
+  border-radius: 5px;
+  background: color-mix(in oklab, var(--ft, var(--muted)) 82%, transparent);
+  color: #0b0b0b;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+:root[data-base="light"] .ftype {
+  color: #ffffff;
+}
+
+.ftext {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.fname {
+  flex: none;
+  max-width: 62%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-strong);
+}
+
+.fdir {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  color: var(--muted-dim);
+}
+
+.factions {
+  display: none;
+  align-items: center;
+  gap: 1px;
+  flex: none;
+}
+
+.file:hover .factions,
+.file:focus-within .factions {
+  display: inline-flex;
+}
+
+.file:hover .fstat,
+.file:focus-within .fstat {
+  display: none;
+}
+
+.fstat {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-M { color: var(--mod); }
+.stat-A { color: var(--add); }
+.stat-D { color: var(--del); }
+.stat-R,
+.stat-C { color: var(--untracked); }
+.stat-U { color: var(--conflict); }
+
+.empty {
+  padding: 18px 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.empty strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--fg);
+  font-weight: 560;
+}
+
+/* ---------------------------------------------------------------- history */
+
+/*
+ * The history sits under the file lists: it takes at most 42% of the panel so
+ * a long working tree still gets the room, and scrolls on its own.
+ */
+
+.history {
+  /* Half the panel by default; it may shrink when the lists need the room. */
+  flex: 0 1 50%;
+  display: flex;
+  flex-direction: column;
+  min-height: 96px;
+  overflow: hidden;
+  /* Full-bleed like the diff pane: one 1px rule, one header band, no card. */
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg);
+}
+
+.history[data-collapsed="true"] {
+  flex: none;
+  min-height: 0;
+}
+
+.history[hidden] {
+  display: none;
+}
+
+.history-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 8px 0 6px;
+  background: var(--bg-soft);
+  cursor: pointer;
+  user-select: none;
+}
+
+.history-head h2 {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-strong);
+}
+
+.history-head .group-actions {
+  opacity: 0;
+}
+
+.history-head:hover .group-actions,
+.history-head:focus-within .group-actions {
+  opacity: 1;
+}
+
+.history-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 0 4px;
+}
+
+.history-body[hidden] {
+  display: none;
+}
+
+.commits {
+  margin: 0;
+  padding: 0 4px;
+  list-style: none;
+}
+
+.commit-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.commit-line:hover {
+  background: var(--surface-hover);
+}
+
+.commit[data-expanded="1"] > .commit-line {
+  background: var(--surface);
+}
+
+.commit-line:focus-visible,
+.commit-file:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 70%, transparent);
+  outline-offset: -1px;
+}
+
+.csha {
+  flex: none;
+  font: 11.5px/1.4 var(--mono);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.csub {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-strong);
+}
+
+/* Author is a first-class column: it never collapses, only ellipsizes at 40%. */
+.cauthor {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ctime {
+  flex: none;
+  margin-left: -3px;
+  font-size: 11px;
+  color: var(--muted-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.commit-detail {
+  margin: 2px 0 6px 10px;
+  padding: 2px 0 2px 10px;
+  border-left: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+}
+
+/* Two-column property table: label, then the value it describes. */
+.props {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 3px 8px;
+  margin: 0;
+  padding: 3px 6px 6px 0;
+  font-size: 11.5px;
+}
+
+.props dt {
+  color: var(--muted-dim);
+  line-height: 1.5;
+}
+
+.props dd {
+  margin: 0;
+  min-width: 0;
+  color: var(--fg);
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.props dd .mono {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-strong);
+}
+
+.props-rel {
+  margin-left: 6px;
+  color: var(--muted-dim);
+}
+
+.props-body {
+  display: block;
+  white-space: pre-wrap;
+  color: var(--muted);
+}
+
+.commit-files {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.commit-file {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 23px;
+  padding: 0 6px 0 5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  user-select: none;
+}
+
+.commit-file:hover {
+  background: var(--surface-hover);
+}
+
+.corig {
+  flex: none;
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+
+.commit-files-note,
+.history-empty {
+  padding: 8px 12px 10px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
+/* The auto-load hint sits at the very end of the list, so it only appears while
+ * the next page is on its way. */
+.history-foot {
+  /* Pinned to the bottom edge, so the hint stays visible when the reader is
+   * already at the end of the list and the next page is on its way. */
+  position: sticky;
+  bottom: 0;
+  padding: 6px 12px 8px;
+  background: var(--bg);
+  color: var(--muted-dim);
+  font-size: 11.5px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.history-foot[hidden] {
+  display: none;
+}
+
+/* --------------------------------------------------------------- statusbar */
+
+.statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  padding: 0 10px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+  font-size: 11px;
+  color: var(--muted-dim);
+}
+
+.status-repo {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-last {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+}
+
+/* ---------------------------------------------------------- diff / dialog */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--pi-plugin-titlebar-height, 0px);
+  background: var(--bg);
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* A confirmation is a compact centered card, not a full-page sheet. */
+.overlay[data-mode="confirm"] {
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--pi-plugin-titlebar-height, 0px) + 16px) 16px 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.overlay[data-mode="confirm"] .sheet {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 420px;
+  max-height: 80%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.overlay[data-mode="confirm"] .sheet-head {
+  background: transparent;
+}
+
+.overlay[data-mode="confirm"] #sheetBack {
+  display: none;
+}
+
+.overlay[data-mode="confirm"] .sheet-body {
+  flex: 0 1 auto;
+}
+
+.overlay[data-mode="confirm"] .sheet-foot {
+  background: transparent;
+}
+
+/* The push sheet is a small form: same card as a confirmation, a bit wider. */
+.overlay[data-mode="push"] {
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--pi-plugin-titlebar-height, 0px) + 16px) 16px 16px;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.overlay[data-mode="push"] .sheet {
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 500px;
+  max-height: 86%;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.overlay[data-mode="push"] .sheet-head,
+.overlay[data-mode="push"] .sheet-foot {
+  background: transparent;
+}
+
+.overlay[data-mode="push"] #sheetBack {
+  display: none;
+}
+
+.overlay[data-mode="push"] .sheet-body {
+  flex: 0 1 auto;
+}
+
+.sheet-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+}
+
+.sheet-titles {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sheet-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-sub {
+  font-size: 11px;
+  color: var(--muted-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 0;
+}
+
+.sheet-foot {
+  flex: none;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 9px 10px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--bg-soft);
+}
+
+.sheet-foot[hidden] {
+  display: none;
+}
+
+.btn {
+  height: 27px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.btn:hover {
+  background: var(--surface-hover);
+}
+
+.btn-primary {
+  border-color: transparent;
+  background: var(--commit);
+  color: var(--commit-fg);
+  font-weight: 600;
+}
+
+.btn-primary:hover {
+  background: var(--commit-hover);
+}
+
+.btn-danger {
+  border-color: transparent;
+  background: var(--danger);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.confirm-body {
+  padding: 16px 14px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fg);
+}
+
+.confirm-body code {
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+/* ------------------------------------------------------------------ push form */
+
+.push-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.push-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.push-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.push-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted-dim);
+}
+
+.push-field .field {
+  height: 28px;
+  min-width: 0;
+  padding: 0 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--field);
+  color: var(--fg-strong);
+  font: 12px var(--mono);
+}
+
+.push-field select.field {
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.push-field .field:focus {
+  border-color: color-mix(in oklab, var(--accent) 62%, transparent);
+  outline: none;
+}
+
+.push-target {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--muted-dim);
+}
+
+.push-target code {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--field);
+  color: var(--fg-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.push-arrow {
+  flex: none;
+  color: var(--muted-dim);
+}
+
+.push-note {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted-dim);
+  overflow-wrap: anywhere;
+}
+
+.push-note.warn {
+  color: var(--danger);
+}
+
+.push-note.ok {
+  color: color-mix(in oklab, var(--add) 85%, var(--fg));
+}
+
+.push-host {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in oklab, var(--danger) 32%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--danger) 7%, transparent);
+}
+
+/* The host name stays as typed: it is part of what the user verifies. */
+.push-host-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-strong);
+}
+
+.push-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.push-key {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 4px 7px;
+  cursor: pointer;
+}
+
+.push-key input {
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+}
+
+.push-key-type {
+  font: 11px var(--mono);
+  color: var(--muted-dim);
+}
+
+/* A fingerprint is compared character by character, so it never truncates. */
+.push-key-fp {
+  grid-column: 2;
+  font-size: 11.5px;
+  color: var(--fg-strong);
+  overflow-wrap: anywhere;
+}
+
+.sheet-foot .btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.patch {
+  margin: 0;
+  padding: 2px 0 14px;
+  font: 11.5px/1.5 var(--mono);
+  tab-size: 4;
+}
+
+.patch .line {
+  display: block;
+  padding: 0 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.patch .line.add {
+  background: var(--add-bg);
+  color: var(--add);
+}
+
+.patch .line.del {
+  background: var(--del-bg);
+  color: var(--del);
+}
+
+.patch .line.hunk {
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.patch .line.meta {
+  color: var(--muted-dim);
+}
+
+.patch .line.ctx {
+  color: var(--fg);
+}
+
+.patch-note {
+  padding: 10px 12px;
+  color: var(--muted);
+  font: 12px/1.6 -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ---------------------------------------------------------------- toasts */
+
+.toasts {
+  position: fixed;
+  left: 8px;
+  right: 8px;
+  bottom: 30px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.5;
+  word-break: break-word;
+  animation: toast-in 140ms ease-out;
+}
+
+.toast[data-kind="error"] {
+  border-color: color-mix(in oklab, var(--danger) 50%, transparent);
+}
+
+.toast[data-kind="success"] {
+  border-color: color-mix(in oklab, var(--add) 55%, transparent);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v3" />
+    <title>PiOpt</title>
+    <link rel="stylesheet" href="./tokens.css" />
+    <link rel="stylesheet" href="./base.css" />
+    <link rel="stylesheet" href="./components.css" />
+    <link rel="stylesheet" href="./market.css" />
+    <link rel="stylesheet" href="./appearance.css" />
+    <link rel="stylesheet" href="./behavior.css" />
+    <link rel="stylesheet" href="./remote.css" />
+  </head>
+  <body>
+    <header class="opt-dragbar">
+      <span class="opt-brand"><span class="opt-mark" aria-hidden="true"><i></i><i></i><i></i></span>PiOpt</span>
+    </header>
+
+    <nav class="opt-rail" id="optRail" aria-label="PiOpt 导航" data-expanded="false">
+      <button type="button" class="rail-toggle" id="railToggle" aria-expanded="false" aria-controls="optRail" title="展开菜单" aria-label="展开菜单">
+        <svg class="rail-glyph" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6.2 3.8 10.4 8l-4.2 4.2" />
+        </svg>
+        <span class="rail-label">展开菜单</span>
+      </button>
+      <div class="rail-tabs" role="tablist" aria-label="PiOpt 功能">
+        <button type="button" role="tab" id="tab-appearance" data-feature="appearance" aria-selected="false" aria-controls="view-appearance" title="外观" aria-label="外观">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="8" cy="8" r="5.6" />
+            <path d="M8 2.4a5.6 5.6 0 0 1 0 11.2z" fill="currentColor" fill-opacity=".22" stroke="none" />
+          </svg>
+          <span class="rail-label">外观</span>
+        </button>
+        <button type="button" role="tab" id="tab-behavior" data-feature="behavior" aria-selected="false" aria-controls="view-behavior" title="行为" aria-label="行为">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.6 5.4h10.8" />
+            <circle cx="10.2" cy="5.4" r="1.7" fill="currentColor" fill-opacity=".22" />
+            <path d="M2.6 10.6h10.8" />
+            <circle cx="5.8" cy="10.6" r="1.7" fill="currentColor" fill-opacity=".22" />
+          </svg>
+          <span class="rail-label">行为</span>
+        </button>
+        <button type="button" role="tab" id="tab-market" data-feature="market" aria-selected="true" aria-controls="view-market" title="插件市场" aria-label="插件市场">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2.6 5.6h10.8l-.75 7.6a1 1 0 0 1-1 .9H4.35a1 1 0 0 1-1-.9z" />
+            <path d="M5.9 5.6V4.1a2.1 2.1 0 0 1 4.2 0v1.5" />
+          </svg>
+          <span class="rail-label">插件市场</span>
+        </button>
+        <button type="button" role="tab" id="tab-remote" data-feature="remote" aria-selected="false" aria-controls="view-remote" title="远程" aria-label="远程">
+          <svg viewBox="0 0 16 16" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4.4" y="1.6" width="7.2" height="12.8" rx="1.9" />
+            <path d="M7.2 12.1h1.6" />
+          </svg>
+          <span class="rail-label">远程</span>
+        </button>
+      </div>
+    </nav>
+
+    <section id="view-market" class="opt-view" role="tabpanel" aria-labelledby="tab-market">
+      <header class="mkt-head">
+        <h1 class="mkt-title">插件市场<span id="hostVersion"></span></h1>
+        <span class="mkt-status" id="catalogChip"></span>
+        <span class="mkt-status" id="updateChip"></span>
+        <label class="mkt-search">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+            <circle cx="7" cy="7" r="4.6" /><path d="M10.5 10.5 14 14" stroke-linecap="round" />
+          </svg>
+          <input id="q" type="search" autocomplete="off" spellcheck="false" />
+        </label>
+        <button type="button" class="ui-btn ui-btn-quiet" id="btnRefresh"></button>
+        <button type="button" class="ui-btn ui-btn-primary" id="btnPrepareAll"></button>
+      </header>
+
+      <div class="mkt-bar">
+        <nav class="mkt-filters" id="rail" role="tablist" aria-label="插件市场分类"></nav>
+        <div class="mkt-meta" id="marketMeta"></div>
+      </div>
+
+      <div class="notice" id="notice"></div>
+      <div class="scroll" id="scroll"><div class="skeleton"><i></i><i></i><i></i><i></i></div></div>
+
+      <div class="veil" id="veil" hidden>
+        <div class="modal" role="dialog" aria-modal="true" id="modalBox"></div>
+      </div>
+    </section>
+
+    <section id="view-appearance" class="opt-view" role="tabpanel" aria-labelledby="tab-appearance" hidden>
+      <main class="workspace">
+        <section class="appearance-section" id="section-motion" aria-labelledby="appearance-motion-title">
+          <header class="appearance-heading">
+            <div>
+              <h1 id="appearance-motion-title">界面动效</h1>
+              <p>PI-Desktop 界面的过渡与动画。</p>
+            </div>
+            <button type="button" class="ui-btn ui-btn-sm" data-reset="motion">重置</button>
+          </header>
+
+          <div class="settings-group" id="motion-group">
+            <label class="settings-row switch-row" for="motion-disabled">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">完全禁用动画</span>
+                <span class="settings-row-detail">所有过渡与动画压到最短</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="motion-disabled" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+
+            <label class="settings-row switch-row" for="motion-override">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">动画优化</span>
+                <span class="settings-row-detail">关闭后完全使用 PI-Desktop 自带的动效</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="motion-override" type="checkbox" checked aria-controls="motion-override-sub" aria-expanded="true" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+
+            <!-- 二级内容：三项都只改这一层写出去的动效，父项关掉就没有意义。 -->
+            <div class="settings-sub" id="motion-override-sub" data-trigger="motion-override" data-collapsed="false">
+              <div class="settings-sub-body">
+
+                <label class="settings-row" for="intensity">
+                  <span class="settings-row-copy">
+                    <span class="settings-row-title">运动强度</span>
+                    <span class="settings-row-detail">元素进入与反馈的幅度</span>
+                  </span>
+                  <span class="settings-row-control range-inline">
+                    <input id="intensity" type="range" min="50" max="150" step="5" value="100" />
+                    <output id="intensity-value">100%</output>
+                  </span>
+                </label>
+
+                <label class="settings-row" for="speed">
+                  <span class="settings-row-copy">
+                    <span class="settings-row-title">响应速度</span>
+                    <span class="settings-row-detail">过渡与动画的播放倍率</span>
+                  </span>
+                  <span class="settings-row-control range-inline">
+                    <input id="speed" type="range" min="40" max="200" step="5" value="100" />
+                    <output id="speed-value">1.00×</output>
+                  </span>
+                </label>
+
+                <label class="settings-row switch-row" for="follow-reduced">
+                  <span class="settings-row-copy">
+                    <span class="settings-row-title">跟随系统减弱动态</span>
+                    <span class="settings-row-detail">系统开启减少动态时自动收敛</span>
+                  </span>
+                  <span class="settings-row-control">
+                    <input id="follow-reduced" type="checkbox" checked />
+                    <span class="switch" aria-hidden="true"><span></span></span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <div class="settings-row">
+              <div class="settings-row-copy">
+                <div class="settings-row-title">外观基底</div>
+                <div class="settings-row-detail">跟随系统或固定深浅色</div>
+              </div>
+              <div class="settings-row-control">
+                <div class="segmented" role="group" aria-label="外观基底">
+                  <button type="button" data-mode="auto">自动</button>
+                  <button type="button" data-mode="light">浅色</button>
+                  <button type="button" data-mode="dark">深色</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="appearance-section" id="section-glass" aria-labelledby="appearance-glass-title">
+          <header class="appearance-heading">
+            <div>
+              <h1 id="appearance-glass-title">窗口材质</h1>
+              <p>磨砂玻璃与窗口背景图。</p>
+            </div>
+            <button type="button" class="ui-btn ui-btn-sm" data-reset="glass">重置</button>
+          </header>
+
+          <div class="settings-group" id="glass-view">
+            <label class="settings-row switch-row" for="glass-toggle">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">启用磨砂玻璃</span>
+                <span class="settings-row-detail">侧栏、标题栏、弹窗与聊天输入框都使用半透明模糊材质</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="glass-toggle" type="checkbox" aria-controls="glass-enabled-sub" aria-expanded="false" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+
+            <!-- 二级内容：模糊强度只调磨砂本身的模糊半径。 -->
+            <div class="settings-sub" id="glass-enabled-sub" data-trigger="glass-toggle" data-collapsed="true" inert>
+              <div class="settings-sub-body">
+                <label class="settings-row" for="glass-intensity">
+                  <span class="settings-row-copy">
+                    <span class="settings-row-title">模糊强度</span>
+                    <span class="settings-row-detail">调整模糊半径与底色厚度</span>
+                  </span>
+                  <span class="settings-row-control range-inline">
+                    <input id="glass-intensity" type="range" min="60" max="160" step="5" value="100" />
+                    <output id="glass-intensity-value">100%</output>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 背景：图片与 Wallpaper Engine 壁纸是同一个选项的两个来源，用 tab 切换。
+                 列表常开——没有背景时也要能点「不使用」、换来源、看最近使用。 -->
+            <div class="settings-row" id="glass-backdrop">
+              <div class="settings-row-copy">
+                <div class="settings-row-title">背景</div>
+                <div class="settings-row-detail glass-wallpaper-name" id="glass-backdrop-name">未选择背景</div>
+              </div>
+              <div class="settings-row-control">
+                <div class="segmented" role="tablist" aria-label="背景来源">
+                  <button type="button" role="tab" id="glass-tab-image" data-backdrop-tab="image"
+                    aria-selected="true" aria-controls="glass-panel-image">图片</button>
+                  <button type="button" role="tab" id="glass-tab-engine" data-backdrop-tab="engine"
+                    aria-selected="false" aria-controls="glass-panel-engine">Wallpaper Engine</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-sub" id="glass-backdrop-sub" data-collapsed="false">
+              <div class="settings-sub-body">
+                <!-- 填充方式两个来源共用：图片是 background-size，视频是 object-fit。 -->
+                <div class="settings-row" id="glass-fit-row">
+                  <div class="settings-row-copy">
+                    <div class="settings-row-title">填充方式</div>
+                    <div class="settings-row-detail glass-fit-hint" id="glass-fit-hint">拉伸铺满整个窗口</div>
+                  </div>
+                  <div class="settings-row-control">
+                    <div class="segmented" role="group" aria-label="背景填充">
+                      <button type="button" data-glass-fit="fill">拉伸</button>
+                      <button type="button" data-glass-fit="contain">适应</button>
+                      <button type="button" data-glass-fit="cover">铺满</button>
+                      <button type="button" data-glass-fit="none">原始</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="backdrop-panel" id="glass-panel-image" role="tabpanel" aria-labelledby="glass-tab-image">
+                  <div class="settings-row" id="glass-wallpaper">
+                    <div class="settings-row-copy">
+                      <div class="settings-row-title">图片</div>
+                      <div class="settings-row-detail glass-wallpaper-name" id="glass-wallpaper-name">未选择图片</div>
+                    </div>
+                    <div class="settings-row-control">
+                      <button type="button" class="ui-btn ui-btn-sm" id="glass-wallpaper-pick">选择图片…</button>
+                    </div>
+                    <input type="file" id="glass-wallpaper-file" accept=".png,.jpg,.jpeg,.webp,.avif,.svg,image/*" hidden />
+                  </div>
+
+                  <!-- 最近使用是背景图的历史，跟着这张图走，不另起一块。 -->
+                  <div class="wallpaper-recent" id="glass-recent">
+                    <div class="wallpaper-recent-head">最近使用</div>
+                    <div class="wallpaper-grid" id="glass-recent-list"></div>
+                  </div>
+                </div>
+
+                <div class="backdrop-panel" id="glass-panel-engine" role="tabpanel" aria-labelledby="glass-tab-engine" hidden>
+                  <!-- 降开销不靠停播放：解码照跑，只按目标帧率重绘上屏。 -->
+                  <label class="settings-row switch-row" for="glass-performance">
+                    <span class="settings-row-copy">
+                      <span class="settings-row-title">性能模式</span>
+                      <span class="settings-row-detail">聚焦时按 30 FPS 重绘，失焦时降至 10 FPS</span>
+                    </span>
+                    <span class="settings-row-control">
+                      <input id="glass-performance" type="checkbox" />
+                      <span class="switch" aria-hidden="true"><span></span></span>
+                    </span>
+                  </label>
+
+                  <!-- 场景壁纸是一块持续出帧的 WebGL2 画布：这个开关只停渲染，不丢选择。 -->
+                  <label class="settings-row switch-row" for="glass-scene">
+                    <span class="settings-row-copy">
+                      <span class="settings-row-title">渲染场景壁纸</span>
+                      <span class="settings-row-detail">关掉后保留这张壁纸，只是不再出帧</span>
+                    </span>
+                    <span class="settings-row-control">
+                      <input id="glass-scene" type="checkbox" />
+                      <span class="switch" aria-hidden="true"><span></span></span>
+                    </span>
+                  </label>
+
+                  <div class="wallpaper-recent" id="glass-engine-list">
+                    <div class="wallpaper-recent-head">
+                      <span id="glass-engine-head">本机壁纸</span>
+                      <button type="button" class="wallpaper-more" id="glass-engine-more" hidden>显示全部</button>
+                    </div>
+                    <div class="wallpaper-grid" id="glass-engine-grid"></div>
+                    <!-- 场景壁纸由内置引擎画，壁纸自带的脚本在宿主的 CSP 下跑不起来。 -->
+                    <p class="wallpaper-engine-note" id="glass-engine-note" hidden></p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+      <div class="confirm" id="confirm" hidden>
+        <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+          <h2 id="confirm-title">重置</h2>
+          <p id="confirm-text"></p>
+          <div class="confirm-actions">
+            <button type="button" class="ui-btn" id="confirm-cancel">取消</button>
+            <button type="button" class="ui-btn ui-btn-danger" id="confirm-ok">重置</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="view-behavior" class="opt-view" role="tabpanel" aria-labelledby="tab-behavior" hidden>
+      <main class="workspace">
+        <section class="behavior-section" aria-labelledby="behavior-composer-title">
+          <header class="behavior-heading">
+            <h1 id="behavior-composer-title">聊天框</h1>
+            <p>调整模型选择、推理强度和指令入口。</p>
+          </header>
+
+          <div class="settings-group">
+            <div class="settings-row">
+              <div class="settings-row-copy">
+                <div class="settings-row-title">模型排列方式</div>
+                <div class="settings-row-detail">选择模型列表的排列顺序</div>
+              </div>
+              <div class="settings-row-control">
+                <!-- 四选一，点哪个是哪个：与浮窗里那条切换是同一个值。 -->
+                <div class="segmented" role="group" aria-label="排列方式" id="behavior-grouping">
+                  <button type="button" data-grouping="default">默认</button>
+                  <button type="button" data-grouping="provider">供应商</button>
+                  <button type="button" data-grouping="vendor">厂商</button>
+                  <button type="button" data-grouping="name">名称</button>
+                </div>
+              </div>
+            </div>
+
+            <label class="settings-row switch-row" for="behavior-frame">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">圆角框替代对勾</span>
+                <span class="settings-row-detail">用圆角框标记选中的模型</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="behavior-frame" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+            <label class="settings-row switch-row" for="behavior-thinking-zh">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">中文推理强度</span>
+                <span class="settings-row-detail">将推理强度滑杆和聊天框按钮的档位名称显示为中文</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="behavior-thinking-zh" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+            <label class="settings-row switch-row" for="behavior-command-button">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">指令按钮</span>
+                <span class="settings-row-detail">在全自动旁添加按钮，直接打开指令列表</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="behavior-command-button" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+            <label class="settings-row switch-row" for="behavior-open-output">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">文件右键打开</span>
+                <span class="settings-row-detail">在当前会话文件链接菜单中添加系统默认程序打开选项</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="behavior-open-output" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+          </div>
+
+          <p class="behavior-status" id="behavior-status" role="status" aria-live="polite" hidden></p>
+        </section>
+
+        <section class="behavior-section" aria-labelledby="behavior-entry-title">
+          <header class="behavior-heading">
+            <h1 id="behavior-entry-title">窗口入口</h1>
+            <p>调整窗口中的功能入口位置。</p>
+          </header>
+
+          <div class="settings-group">
+            <label class="settings-row switch-row" for="behavior-entry-actions">
+              <span class="settings-row-copy">
+                <span class="settings-row-title">调整功能入口</span>
+                <span class="settings-row-detail">将新建任务和搜索移至侧边栏，并对齐右侧面板开关图标</span>
+              </span>
+              <span class="settings-row-control">
+                <input id="behavior-entry-actions" type="checkbox" />
+                <span class="switch" aria-hidden="true"><span></span></span>
+              </span>
+            </label>
+          </div>
+        </section>
+      </main>
+    </section>
+
+
+    <section id="view-remote" class="opt-view" role="tabpanel" aria-labelledby="tab-remote" hidden></section>
+
+    <script src="./market.js"></script>
+    <script src="./appearance.js"></script>
+    <script src="./behavior.js"></script>
+    <script src="./qr.js"></script>
+    <script src="./remote.js"></script>
+    <script src="./shell.js"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "id": "io.github.caopengfei.opencode-quota",
+  "repository": "https://github.com/caopengfei/pi-desktop-opencode-quota",
+  "branch": "HEAD",
+  "commit": "305e44fa99055370",
+  "version": "0.3.1",
+  "tarball": "https://api.github.com/repos/caopengfei/pi-desktop-opencode-quota/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:28:43.476Z",
+  "mode": "source-snapshot",
+  "sha256": "305e44fa9905537047fd65e4ef950bdcdd57fe56b39a3c7d0c633037fa1312fa"
+}

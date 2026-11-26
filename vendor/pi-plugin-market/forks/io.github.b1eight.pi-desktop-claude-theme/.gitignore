@@ -1,0 +1,28 @@
+/dist/
+/release/
+/artifacts/
+/test-results/
+/coverage/
+/node_modules/
+*.piplug
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 本机工具、备份与外部基准联接，不入公开仓库
+/.local/
+/backups/
+/design-baselines/
+
+# 本机维护规格与底线门禁脚本（公开仓库仅保留插件主体与构建链）
+/docs/
+/scripts/host-styles.mjs
+/scripts/css-parse.mjs
+/scripts/check-vars.mjs
+/scripts/check-dead-selectors.mjs
+/scripts/check-guardrails.mjs

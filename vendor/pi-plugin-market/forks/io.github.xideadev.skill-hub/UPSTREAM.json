@@ -1,0 +1,11 @@
+{
+  "id": "io.github.xideadev.skill-hub",
+  "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub",
+  "branch": "HEAD",
+  "commit": "119774958157d9e2",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/XideaDev/PI-Desktop-Plugin-SkillHub/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:28:43.395Z",
+  "mode": "source-snapshot",
+  "sha256": "119774958157d9e24e0c81bfbd0379cbf78673fc96160537fe87c8bb7452f178"
+}

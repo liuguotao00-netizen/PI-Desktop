@@ -1,0 +1,11 @@
+{
+  "id": "pi.scratch-calc",
+  "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc",
+  "branch": "HEAD",
+  "commit": "cd837139e850f645",
+  "version": "0.3.4",
+  "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-scratch-calc/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:15:57.059Z",
+  "mode": "source-snapshot",
+  "sha256": "cd837139e850f6456426779077906e49252dd12151ff1d74ed5a02a9075b827c"
+}

@@ -1,0 +1,44 @@
+name: Set up Node
+description: Work out whether this job has anything to do, then install the pinned Node and the locked dependencies.
+inputs:
+  need:
+    description: The scope output that decides whether the job runs (runtime or bench).
+    default: runtime
+outputs:
+  run:
+    description: "'true' when the job should run its checks."
+    value: ${{ steps.scope.outputs[inputs.need] }}
+runs:
+  using: composite
+  steps:
+    # Prose-only changes skip the checks. The job still starts and passes,
+    # so the final validate check stays satisfied.
+    - id: scope
+      run: node scripts/ci-scope.mjs
+      shell: bash
+    # The runner image already has a recent Node. Downloading another one costs
+    # about five seconds, so only do it when the image is older than we need.
+    - id: node
+      if: steps.scope.outputs[inputs.need] == 'true'
+      run: |
+        node -v
+        if node -e 'const [a,b]=process.versions.node.split(".").map(Number);process.exit(a>22||(a===22&&b>=19)?0:1)'; then
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+        fi
+      shell: bash
+    - if: steps.scope.outputs[inputs.need] == 'true' && steps.node.outputs.installed != 'true'
+      uses: actions/setup-node@v5
+      with:
+        node-version: 22.19.0
+        # node_modules is cached below; setup-node's own npm cache only adds time.
+        package-manager-cache: false
+    # Restoring node_modules is quicker than npm ci. Only a lockfile change misses.
+    - id: modules
+      if: steps.scope.outputs[inputs.need] == 'true'
+      uses: actions/cache@v4
+      with:
+        path: node_modules
+        key: node-modules-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+    - if: steps.scope.outputs[inputs.need] == 'true' && steps.modules.outputs.cache-hit != 'true'
+      run: npm ci --no-audit --no-fund
+      shell: bash

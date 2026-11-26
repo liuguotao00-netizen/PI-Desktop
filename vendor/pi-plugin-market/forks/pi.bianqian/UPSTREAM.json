@@ -1,0 +1,12 @@
+{
+  "id": "pi.bianqian",
+  "repository": "https://github.com/niansi1/pi-desktop-plugins",
+  "branch": "HEAD",
+  "commit": "37caf38416e6c6cd",
+  "version": "0.1.5",
+  "tarball": "https://api.github.com/repos/niansi1/pi-desktop-plugins/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:08:48.257Z",
+  "mode": "source-snapshot",
+  "sourceRoot": "plugins/pi.bianqian",
+  "sha256": "37caf38416e6c6cd117cf13fddb496522c9fe51fcfa99eb0da3d10b62f26d41a"
+}

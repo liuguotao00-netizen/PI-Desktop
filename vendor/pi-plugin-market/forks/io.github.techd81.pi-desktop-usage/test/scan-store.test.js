@@ -1,0 +1,516 @@
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const test = require("node:test");
+
+const { RecordStore } = require("../src/lib/store.js");
+const { scanRoot, scanFile, readFrom, listSessionFiles } = require("../src/lib/scan.js");
+const cliAdapter = require("../src/adapters/cli.js");
+const desktopAdapter = require("../src/adapters/desktop.js");
+const { makeTempDir, copyFixture } = require("./helpers.js");
+
+const CLI_FILE = path.join("sessions", "--D--demo--", "2026-10-01T10-00-00-000Z_11111111-1111-4111-8111-111111111111.jsonl");
+const DESKTOP_FILE = path.join("sessions", "22222222-2222-4222-8222-222222222222.jsonl");
+
+/**
+ * @param {string} root
+ */
+async function setup(root) {
+  const tmp = await makeTempDir();
+  const cliRoot = path.join(tmp, "cli");
+  const desktopRoot = path.join(tmp, "desktop");
+  await copyFixture("cli", cliRoot);
+  await copyFixture("desktop", desktopRoot);
+  const store = new RecordStore({ dir: path.join(tmp, "cache") });
+  await store.load();
+  return { tmp, cliRoot, desktopRoot, store };
+}
+
+test("a cold scan reads both roots and a warm scan skips everything", async () => {
+  const { cliRoot, desktopRoot, store } = await setup();
+
+  const cold = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(cold.totalFiles, 1);
+  assert.equal(cold.scannedFiles, 1);
+  assert.equal(cold.appendedRecords, 4);
+  assert.equal(cold.errors.length, 1, "the broken line is reported, not fatal");
+
+  const first = await scanRoot({ root: desktopRoot, source: "desktop", adapter: desktopAdapter, store });
+  assert.equal(first.appendedRecords, 3);
+  assert.equal(store.size, 7);
+
+  const warmCli = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  const warmDesktop = await scanRoot({ root: desktopRoot, source: "desktop", adapter: desktopAdapter, store });
+  assert.equal(warmCli.skippedFiles, 1);
+  assert.equal(warmDesktop.skippedFiles, 1);
+  assert.equal(warmCli.appendedRecords + warmDesktop.appendedRecords, 0);
+  assert.equal(store.size, 7);
+});
+
+test("an appended line is read incrementally, without reparsing the file", async () => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  const target = path.join(cliRoot, CLI_FILE);
+  const extra = {
+    type: "message",
+    id: "a6",
+    message: {
+      role: "assistant",
+      provider: "acme",
+      model: "m4",
+      usage: { input: 11, output: 1, cacheRead: 0, cacheWrite: 0, cost: { total: 0.0002 } },
+      timestamp: 1790849280000,
+    },
+  };
+  await fs.appendFile(target, `${JSON.stringify(extra)}\n`, "utf8");
+
+  const incremental = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(incremental.appendedRecords, 1);
+  assert.equal(store.size, 5);
+  assert.ok(store.all().some((record) => record.entryId === "a6" && record.totalTokens === 12));
+  assert.equal(store.invalidLines, 0);
+});
+
+test("a truncated file drops its stale records instead of double counting", async () => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  const target = path.join(cliRoot, CLI_FILE);
+  const header = '{"type":"session","version":3,"id":"11111111-1111-4111-8111-111111111111","cwd":"D:\\\\demo"}';
+  const single =
+    '{"type":"message","id":"only","message":{"role":"assistant","provider":"acme","model":"m1","usage":{"input":9,"output":1,"cost":{"total":0.0001}},"timestamp":1790848806000}}';
+  await fs.writeFile(target, `${header}\n${single}\n`, "utf8");
+
+  const rescanned = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 1);
+  assert.equal(rescanned.appendedRecords, 1);
+  const [record] = store.all();
+  assert.equal(record.totalTokens, 10);
+});
+
+test("a deleted session file retires its records on the next complete pass", async () => {
+  const { desktopRoot, store } = await setup();
+  await scanRoot({ root: desktopRoot, source: "desktop", adapter: desktopAdapter, store });
+  assert.equal(store.size, 3);
+
+  await fs.rm(path.join(desktopRoot, DESKTOP_FILE));
+  const after = await scanRoot({ root: desktopRoot, source: "desktop", adapter: desktopAdapter, store });
+  assert.equal(after.partial, false);
+  assert.equal(store.size, 0);
+});
+
+test("the scan budget stops the pass early without marking the data partial", async () => {
+  const { cliRoot, desktopRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  await scanRoot({ root: desktopRoot, source: "desktop", adapter: desktopAdapter, store });
+
+  const outOfTime = await scanRoot({
+    root: cliRoot,
+    source: "cli",
+    adapter: cliAdapter,
+    store,
+    budgetMs: 0,
+    startedAt: Date.now(),
+  });
+  assert.equal(outOfTime.budgetExhausted, true);
+  // A budget stop is retryable, so it must not be confused with "unreadable":
+  // only the second flag may keep the view retrying.
+  assert.equal(outOfTime.partial, false);
+  assert.equal(outOfTime.scannedFiles, 0);
+});
+
+test("the cache survives a reload from disk", async () => {
+  const { cliRoot, store, tmp } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  await store.flush({ scannedAt: 123 });
+
+  const reloaded = new RecordStore({ dir: path.join(tmp, "cache") });
+  await reloaded.load();
+  assert.equal(reloaded.size, store.size);
+  assert.equal(reloaded.scannedAt, 123);
+  const stateKey = [...reloaded.files.keys()].find((key) => key.startsWith("cli|"));
+  assert.ok(stateKey);
+  assert.equal(reloaded.fileState(stateKey).sessionId, "11111111-1111-4111-8111-111111111111");
+});
+
+test("listSessionFiles ignores non-jsonl files and hidden entries", async () => {
+  const { cliRoot } = await setup();
+  await fs.writeFile(path.join(cliRoot, "sessions", "notes.txt"), "ignored", "utf8");
+  await fs.writeFile(path.join(cliRoot, "sessions", ".hidden.jsonl"), "{}\n", "utf8");
+  const files = await listSessionFiles(cliRoot);
+  assert.equal(files.length, 1);
+  assert.ok(files[0].path.endsWith(".jsonl"));
+});
+
+test("a larger replacement file drops the records of the content it replaced", async () => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  // Same path, different session, and deliberately bigger than the original so
+  // "the file grew" cannot be mistaken for "the file was appended to".
+  const padding = "x".repeat(200);
+  const header = JSON.stringify({
+    type: "session",
+    version: 3,
+    id: "33333333-3333-4333-8333-333333333333",
+    timestamp: "2026-10-05T10:00:00.000Z",
+    cwd: "D:\\demo",
+  });
+  const line = (index) =>
+    JSON.stringify({
+      type: "message",
+      id: `b${index}`,
+      timestamp: "2026-10-05T10:00:00.000Z",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: padding }],
+        provider: "acme",
+        model: "m9",
+        usage: { input: index, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: index },
+      },
+    });
+  const body = `${header}\n${Array.from({ length: 10 }, (_unused, index) => line(index + 1)).join("\n")}\n`;
+  const target = path.join(cliRoot, CLI_FILE);
+  await fs.writeFile(target, body, "utf8");
+  assert.ok(Buffer.byteLength(body) > 1000, "the replacement must be larger than the fixture");
+
+  const rescanned = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(rescanned.scannedFiles, 1);
+  assert.equal(store.size, 10, "the replaced content is gone, not added to");
+  const tokens = store.all().reduce((sum, record) => sum + record.totalTokens, 0);
+  assert.equal(tokens, 55);
+  assert.deepEqual(
+    [...new Set(store.all().map((record) => record.sessionId))],
+    ["33333333-3333-4333-8333-333333333333"],
+  );
+});
+
+test("a torn trailing line is read exactly once, after it is completed", async () => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  const target = path.join(cliRoot, CLI_FILE);
+  const whole =
+    '{"type":"message","id":"a6","timestamp":"2026-10-01T10:08:00.000Z","message":{"role":"assistant","provider":"acme","model":"m1","usage":{"input":11,"output":0,"cacheRead":0,"cacheWrite":0,"totalTokens":11}}}\n';
+  const split = Math.floor(whole.length / 2);
+  await fs.appendFile(target, whole.slice(0, split), "utf8");
+
+  const torn = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(torn.appendedRecords, 0, "half a line is never parsed");
+  assert.equal(store.size, 4);
+
+  const again = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(again.appendedRecords, 0, "the same torn line must not be reparsed as new");
+  assert.equal(store.size, 4);
+
+  await fs.appendFile(target, whole.slice(split), "utf8");
+  const completed = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(completed.appendedRecords, 1);
+  assert.equal(store.size, 5);
+
+  const settled = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(settled.appendedRecords, 0);
+  assert.equal(store.size, 5);
+});
+
+test("a junction inside the root keeps the pass partial instead of retiring it", async (t) => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  const sessions = path.join(cliRoot, "sessions");
+  const realDir = path.join(sessions, "--D--demo--");
+  const movedDir = path.join(cliRoot, "moved-away");
+  await fs.rename(realDir, movedDir);
+  try {
+    await fs.symlink(movedDir, realDir, "junction");
+  } catch {
+    await fs.rename(movedDir, realDir);
+    t.skip("this platform cannot create a junction");
+    return;
+  }
+
+  const linked = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(linked.partial, true, "something the pass could not list must be reported");
+  assert.equal(store.size, 4, "records behind the link are kept, never retired");
+});
+
+/**
+ * A CLI session file with one header line and 1200 usage lines, big enough for
+ * the in-file budget check to fire more than once.
+ * @param {string} filePath
+ */
+async function writeLargeSession(filePath) {
+  const header = JSON.stringify({
+    type: "session",
+    version: 3,
+    id: "aaaaaaaa-1111-4111-8111-111111111111",
+    timestamp: "2026-10-01T10:00:00.000Z",
+    cwd: "D:\\demo",
+  });
+  const line = (index) =>
+    JSON.stringify({
+      type: "message",
+      id: `m${index}`,
+      timestamp: "2026-10-01T10:00:00.000Z",
+      message: {
+        role: "assistant",
+        provider: "acme",
+        model: "m1",
+        usage: { input: 1, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 1 },
+      },
+    });
+  const lines = [header, ...Array.from({ length: 1200 }, (_unused, index) => line(index))];
+  await fs.writeFile(filePath, `${lines.join("\n")}\n`, "utf8");
+}
+
+test("readFrom stops between lines and reports an exact resumable cursor", async () => {
+  const tmp = await makeTempDir();
+  const filePath = path.join(tmp, "big.jsonl");
+  await writeLargeSession(filePath);
+
+  let seen = 0;
+  let asked = 0;
+  const first = await readFrom(
+    filePath,
+    0,
+    () => {
+      seen += 1;
+    },
+    () => {},
+    () => {
+      asked += 1;
+      return true;
+    },
+  );
+  assert.equal(asked, 1, "the budget is polled once per batch of lines");
+  assert.equal(first.stopped, true);
+  assert.equal(seen, 512);
+
+  // The cursor must land on a line boundary, so resuming repeats nothing.
+  const bytes = await fs.readFile(filePath);
+  assert.equal(bytes[first.offset - 1], 0x0a);
+  const resumed = [];
+  const second = await readFrom(filePath, first.offset, (line) => resumed.push(line));
+  assert.equal(second.stopped, false);
+  assert.equal(resumed.length, 1201 - 512);
+  assert.ok(resumed[0].includes('"m511"'));
+});
+
+test("a stopped file keeps its cursor and finishes on the next pass", async () => {
+  const tmp = await makeTempDir();
+  const filePath = path.join(tmp, "big.jsonl");
+  await writeLargeSession(filePath);
+  const store = new RecordStore({ dir: path.join(tmp, "cache") });
+  await store.load();
+  const stat = await fs.stat(filePath);
+  const file = { path: filePath, size: stat.size, mtimeMs: stat.mtimeMs };
+
+  let asked = 0;
+  const first = await scanFile({
+    file,
+    source: "cli",
+    adapter: cliAdapter,
+    store,
+    shouldStop: () => {
+      asked += 1;
+      return asked >= 1;
+    },
+  });
+  assert.equal(first.stopped, true);
+  const state = store.fileState(`cli|${filePath}`);
+  assert.equal(state.incomplete, true, "an unfinished file must be revisited");
+  assert.ok(state.offset > 0, "the cursor advanced past the lines it did read");
+  assert.ok(store.size > 0 && store.size < 1200);
+
+  // Same size and mtime: only the `incomplete` flag can force the second pass.
+  const second = await scanFile({ file, source: "cli", adapter: cliAdapter, store, shouldStop: () => false });
+  assert.equal(second.stopped, false);
+  assert.equal(store.fileState(`cli|${filePath}`).incomplete, false);
+  assert.equal(store.size, 1200, "every usage line is counted exactly once");
+});
+
+test("a directory this pass could not list does not freeze retirement elsewhere", async (t) => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.size, 4);
+
+  const sessions = path.join(cliRoot, "sessions");
+  const realDir = path.join(sessions, "--D--demo--");
+  const movedDir = path.join(cliRoot, "moved-away");
+  await fs.rename(realDir, movedDir);
+  try {
+    await fs.symlink(movedDir, realDir, "junction");
+  } catch {
+    await fs.rename(movedDir, realDir);
+    t.skip("this platform cannot create a junction");
+    return;
+  }
+
+  // A brand-new session root sibling that disappears: its records must still be
+  // retired even though the junction keeps `partial` true.
+  const extraDir = path.join(cliRoot, "extra");
+  await fs.mkdir(extraDir, { recursive: true });
+  const extraFile = path.join(extraDir, "extra.jsonl");
+  await writeLargeSession(extraFile);
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  const withExtra = store.size;
+  assert.ok(withExtra > 4, "the extra session was picked up");
+
+  await fs.rm(extraDir, { recursive: true, force: true });
+  const after = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(after.partial, true, "the junction still blocks a full listing");
+  assert.equal(store.size, 4, "records of the removed extra session are retired");
+});
+
+test("a summary row is attributed to the model its session was running", async () => {
+  const { cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+
+  const summary = store.all().find((record) => record.entryId === "c1");
+  assert.ok(summary);
+  assert.equal(summary.kind, "summary");
+  assert.equal(summary.model, "m1", "the compaction ran on the session model");
+  assert.equal(summary.provider, "acme");
+  assert.equal(summary.totalTokens, 35, "attribution never rewrites the tokens");
+});
+
+test("the session model survives an incremental resume on a summary row", async () => {
+  const { tmp, cliRoot, store } = await setup();
+  await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store });
+  assert.equal(store.fileState(`cli|${path.join(cliRoot, CLI_FILE)}`).lastModel, "m2");
+
+  // The tail of the file holds no assistant message: only the cursor can name
+  // the model behind this compaction.
+  const extra = {
+    type: "compaction",
+    id: "c2",
+    timestamp: "2026-10-01T10:08:00.000Z",
+    usage: { input: 40, output: 4, totalTokens: 44, cost: { total: 0 } },
+  };
+  await fs.appendFile(path.join(cliRoot, CLI_FILE), `${JSON.stringify(extra)}\n`, "utf8");
+
+  const reopened = new RecordStore({ dir: path.join(tmp, "cache") });
+  await reopened.load();
+  const pass = await scanRoot({ root: cliRoot, source: "cli", adapter: cliAdapter, store: reopened });
+  assert.equal(pass.appendedRecords, 1);
+  const appended = reopened.all().find((record) => record.entryId === "c2");
+  assert.ok(appended);
+  assert.equal(appended.model, "m2", "the persisted cursor carried the model");
+  assert.equal(appended.provider, "acme");
+});
+
+test("a call right after a user or tool message measures the first-token gap", async () => {
+  const tmp = await makeTempDir();
+  const root = path.join(tmp, "desktop");
+  await fs.mkdir(root, { recursive: true });
+  const sessionId = "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa";
+  const file = path.join(root, `${sessionId}.jsonl`);
+
+  const user = (id, at) => ({ type: "message", role: "user", id, createdAt: at, blocks: [] });
+  const tool = (id, at) => ({ type: "message", role: "tool", id, toolName: "read", createdAt: at, blocks: [] });
+  const assistant = (id, at) => ({
+    type: "message",
+    role: "assistant",
+    id,
+    createdAt: at,
+    meta: {
+      modelId: "m",
+      providerId: "p",
+      responseDurationMs: 5000,
+      status: "complete",
+      usage: { inputTokens: 10, outputTokens: 20, cost: { total: 0.001 } },
+    },
+  });
+
+  const lines = [
+    JSON.stringify({ type: "session", sessionId, schema: 1 }),
+    JSON.stringify(user("u1", "2026-11-17T06:15:00.000Z")),
+    JSON.stringify(assistant("a1", "2026-11-17T06:15:03.000Z")),
+    JSON.stringify(tool("t1", "2026-11-17T06:15:10.000Z")),
+    JSON.stringify(assistant("a2", "2026-11-17T06:15:12.000Z")),
+    JSON.stringify(assistant("a3", "2026-11-17T06:15:20.000Z")),
+  ];
+  await fs.writeFile(file, `${lines.join("\n")}\n`, "utf8");
+
+  const store = new RecordStore({ dir: path.join(tmp, "cache") });
+  await store.load();
+  await scanRoot({ root, source: "desktop", adapter: desktopAdapter, store });
+
+  const first = new Map(store.all().map((record) => [record.entryId, record]));
+  assert.equal(first.get("a1").ttftMs, 3000, "3 s from the user's message to the first stream event");
+  assert.equal(first.get("a2").ttftMs, 2000, "the tool result is the clock of the call it triggers");
+  assert.equal(first.get("a3").ttftMs, null, "an assistant message is not a request boundary");
+  assert.equal(first.get("a1").durationMs, 5000, "the stream length is untouched");
+
+  // A resumed pass lands mid-file: the persisted clock still prices the call.
+  await fs.appendFile(
+    file,
+    `${JSON.stringify(user("u2", "2026-11-17T06:20:00.000Z"))}\n${JSON.stringify(
+      assistant("a4", "2026-11-17T06:20:02.000Z"),
+    )}\n`,
+    "utf8",
+  );
+  await scanRoot({ root, source: "desktop", adapter: desktopAdapter, store });
+  const after = new Map(store.all().map((record) => [record.entryId, record]));
+  assert.equal(after.size, 4, "no duplicate records from the append");
+  assert.equal(after.get("a4").ttftMs, 2000, "the appended turn measures its own gap");
+});
+
+test("a record log without cursors is dropped instead of kept as orphans", async () => {
+  const dir = await makeTempDir();
+  const cache = path.join(dir, "cache");
+  await fs.mkdir(cache, { recursive: true });
+  // No state.json, or one rejected by a schema bump: nothing can prove a cached
+  // record is still wanted, so keeping them would freeze deleted sessions into
+  // the totals for good.
+  await fs.writeFile(
+    path.join(cache, "records.jsonl"),
+    `${JSON.stringify({ id: "cli|gone", source: "cli", sessionId: "gone", totalTokens: 10 })}\n`,
+    "utf8",
+  );
+  const store = new RecordStore({ dir: cache });
+  await store.load();
+  assert.equal(store.size, 0, "a cursor-less cache is not trusted");
+  assert.equal(store.needsRewrite, true, "the stale log is rewritten on the next flush");
+});
+
+test("a failed append keeps the batch so the next flush can retry", async () => {
+  const dir = await makeTempDir();
+  const cache = path.join(dir, "cache");
+  const store = new RecordStore({ dir: cache });
+  await store.load();
+  store.addRecords([{ id: "cli|retry", source: "cli", sessionId: "s", totalTokens: 5 }]);
+  store.setFileState("cli|/x.jsonl", {
+    source: "cli",
+    size: 1,
+    mtimeMs: 1,
+    offset: 1,
+    sessionId: "s",
+    projectPath: null,
+  });
+
+  // A locked or unwritable log fails the append the way a full disk would.
+  const logPath = path.join(cache, "records.jsonl");
+  await fs.rm(logPath, { force: true });
+  await fs.mkdir(logPath);
+  await assert.rejects(() => store.flush());
+  assert.equal(store.pendingAppends.length, 1, "the batch survives a failed append");
+
+  await fs.rm(logPath, { recursive: true, force: true });
+  await store.flush();
+  const reloaded = new RecordStore({ dir: cache });
+  await reloaded.load();
+  assert.equal(
+    reloaded.all().some((record) => record.id === "cli|retry"),
+    true,
+    "the retried batch reaches disk",
+  );
+});

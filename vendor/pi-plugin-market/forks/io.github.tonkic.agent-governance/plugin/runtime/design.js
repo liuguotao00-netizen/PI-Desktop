@@ -1,0 +1,398 @@
+'use strict';
+Object.defineProperty(exports, "__esModule", { value: true });
+const { createHash, randomUUID } = require('node:crypto');
+const designFile = '.governance/architecture-design.json';
+const digest = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const record = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const id = (value) => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,63}$/.test(value);
+function designText(value, name, max = 4000) {
+    if (typeof value !== 'string' || !value.trim() || value.length > max)
+        throw Error(`Invalid design ${name} (max ${max})`);
+    return value.trim();
+}
+function timestamp(value) {
+    if (typeof value !== 'string' || !Number.isFinite(Date.parse(value)))
+        throw Error('Invalid design timestamp');
+    return value;
+}
+const asciiStart = '<!-- governance:architecture-ascii:start -->';
+const asciiEnd = '<!-- governance:architecture-ascii:end -->';
+// Single-line literal labels cannot break the Markdown fence or ASCII box layout.
+const asciiLabel = (value, legacy = false) => value.replace(legacy ? /[\u0000-\u001f\u007f`<>]/g : /[\\\u0000-\u001f\u007f`<>]/g, (c) => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+function cellWidth(value) {
+    return [...value].reduce((width, c) => {
+        if (/\p{Mark}/u.test(c))
+            return width;
+        const n = c.codePointAt(0);
+        return (width +
+            (n >= 0x1100 &&
+                (n <= 0x115f ||
+                    (n >= 0x2e80 && n <= 0xa4cf) ||
+                    (n >= 0xac00 && n <= 0xd7a3) ||
+                    (n >= 0xf900 && n <= 0xfaff) ||
+                    (n >= 0xfe10 && n <= 0xfe6f) ||
+                    (n >= 0xff01 && n <= 0xff60) ||
+                    n >= 0x1f300)
+                ? 2
+                : 1));
+    }, 0);
+}
+function architectureAscii(proposal, legacy = false) {
+    const boxes = proposal.nodes.map((n) => {
+        const lines = [`[${n.id}]`, asciiLabel(n.title, legacy)];
+        const width = Math.max(...lines.map(cellWidth));
+        const border = '+' + '-'.repeat(width + 2) + '+';
+        return [
+            border,
+            ...lines.map((line) => '| ' + line + ' '.repeat(width - cellWidth(line)) + ' |'),
+            border
+        ].join('\n');
+    });
+    const arrows = proposal.edges.map((e) => `[${e.from}] -- ${asciiLabel(e.label, legacy)} --> [${e.to}]`);
+    return ((legacy ? 'Nodes' : 'Nodes v2') + '\n\n' + boxes.join('\n\n') + '\n\nRelationships\n\n' + (arrows.join('\n') || '(none)'));
+}
+function asciiDocument(document) {
+    const start = document.indexOf(asciiStart), end = document.indexOf(asciiEnd);
+    if (start === -1 && end === -1)
+        return { body: document, block: null };
+    if (start === -1 ||
+        end < start ||
+        document.indexOf(asciiStart, start + 1) !== -1 ||
+        document.indexOf(asciiEnd, end + 1) !== -1)
+        throw Error('Invalid managed ASCII block; keep one complete block');
+    return {
+        body: (document.slice(0, start).trimEnd() +
+            '\n\n' +
+            document.slice(end + asciiEnd.length).trimStart()).trim(),
+        block: document.slice(start, end + asciiEnd.length).replace(/\r\n/g, '\n')
+    };
+}
+const asciiBlock = (diagram) => `${asciiStart}\n\`\`\`text\n${diagram}\n\`\`\`\n${asciiEnd}`;
+function managedDiagram(block) {
+    const prefix = `${asciiStart}\n\`\`\`text\n`, suffix = `\n\`\`\`\n${asciiEnd}`;
+    if (!block.startsWith(prefix) || !block.endsWith(suffix))
+        throw Error('Invalid ASCII text fence');
+    return block.slice(prefix.length, -suffix.length);
+}
+// Deliberately parse a bounded grammar, never infer edges from arbitrary prose or pixels.
+function parseArchitectureAscii(diagram, metadata = { nodes: [], edges: [] }, derivedLegacy = false) {
+    // Only validated pre-ASCII records need the larger derived-text bound; new documents stay at 20000.
+    if (typeof diagram !== 'string' || diagram.length > (derivedLegacy ? 200000 : 20000))
+        throw Error('Invalid ASCII budget');
+    const lines = diagram.replace(/\r\n/g, '\n').split('\n');
+    const legacy = lines[0] === 'Nodes';
+    if (!legacy && lines[0] !== 'Nodes v2')
+        throw Error('Invalid ASCII Nodes heading');
+    let cursor = 1;
+    const skip = () => { while (lines[cursor] === '')
+        cursor++; };
+    const decode = (value, previous) => {
+        if (legacy && typeof previous === 'string' && asciiLabel(previous, true) === value)
+            return previous;
+        if (/[\u0000-\u001f\u007f`<>]/.test(value) || /\\(?!u[0-9a-fA-F]{4})/.test(value))
+            throw Error('Invalid ASCII label escape');
+        return value.replace(/\\u([0-9a-fA-F]{4})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    };
+    const nodes = [], edges = [], ids = new Set(), pairs = new Set();
+    skip();
+    while (cursor < lines.length && lines[cursor] !== 'Relationships') {
+        const border = lines[cursor++], key = lines[cursor++]?.match(/^\| \[([a-z0-9][a-z0-9-]{0,63})\] +\|$/);
+        const title = lines[cursor++]?.match(/^\| (.*?) +\|$/), bottom = lines[cursor++];
+        if (!/^\+-+\+$/.test(border) || bottom !== border || !key || !title || ids.has(key[1]) || nodes.length >= 40)
+            throw Error('Invalid ASCII node box or duplicate ID');
+        const old = metadata.nodes.find(n => n?.id === key[1]);
+        nodes.push({ id: key[1], title: designText(decode(title[1], old?.title), 'ASCII node title', 100) });
+        ids.add(key[1]);
+        skip();
+    }
+    if (!nodes.length || lines[cursor++] !== 'Relationships')
+        throw Error('Invalid ASCII Relationships heading');
+    skip();
+    if (cursor >= lines.length)
+        throw Error('Invalid ASCII relationships; use (none) for no edges');
+    if (lines[cursor] === '(none)')
+        cursor++;
+    else
+        while (cursor < lines.length && lines[cursor] !== '') {
+            const match = lines[cursor++]?.match(/^\[([a-z0-9-]+)\] -- (.+) --> \[([a-z0-9-]+)\]$/);
+            if (!match || !ids.has(match[1]) || !ids.has(match[3]) || match[1] === match[3] || pairs.has(`${match[1]}:${match[3]}`) || edges.length >= 100)
+                throw Error('Invalid ASCII relationship or endpoint');
+            const old = metadata.edges.find(e => e?.from === match[1] && e?.to === match[3]);
+            edges.push({ from: match[1], to: match[3], label: designText(decode(match[2], old?.label), 'ASCII edge label', 100) });
+            pairs.add(`${match[1]}:${match[3]}`);
+        }
+    skip();
+    if (cursor !== lines.length)
+        throw Error('Invalid trailing ASCII content');
+    return { nodes, edges };
+}
+function asciiGraph(proposal) {
+    const parts = asciiDocument(proposal.document);
+    const ascii = parts.block === null ? architectureAscii(proposal, true) : managedDiagram(parts.block);
+    const parsed = parseArchitectureAscii(ascii, proposal, parts.block === null);
+    const nodes = parsed.nodes.map(n => ({ ...proposal.nodes.find(old => old.id === n.id), ...n }));
+    return { ascii, graph: { title: proposal.title, nodes, edges: parsed.edges }, documentBody: parts.body };
+}
+const designView = (entry) => entry ? { ...entry, ...(entry.proposal ? asciiGraph(entry.proposal) : { ascii: '', graph: null, documentBody: '' }) } : null;
+function designDiff(before, after) {
+    const oldNodes = new Map((before?.nodes || []).map((n) => [n.id, n]));
+    const nextNodes = new Map((after?.nodes || []).map((n) => [n.id, n]));
+    const oldEdges = new Map((before?.edges || []).map((e) => [`${e.from}:${e.to}`, e]));
+    const nextEdges = new Map((after?.edges || []).map((e) => [`${e.from}:${e.to}`, e]));
+    const compare = (a, b) => ({
+        added: [...b.keys()].filter((k) => !a.has(k)),
+        removed: [...a.keys()].filter((k) => !b.has(k)),
+        changed: [...b.keys()].filter((k) => a.has(k) && digest(a.get(k)) !== digest(b.get(k)))
+    });
+    const nodes = compare(oldNodes, nextNodes), edges = compare(oldEdges, nextEdges);
+    return {
+        addedNodes: nodes.added,
+        removedNodes: nodes.removed,
+        changedNodes: nodes.changed,
+        addedEdges: edges.added,
+        removedEdges: edges.removed,
+        changedEdges: edges.changed,
+        titleChanged: before?.title !== after?.title,
+        documentChanged: asciiDocument(before?.document || '').body !== asciiDocument(after?.document || '').body,
+        asciiChanged: before ? architectureAscii(before) !== architectureAscii(after) : true
+    };
+}
+class ArchitectureDesign {
+    g;
+    constructor(g) {
+        this.g = g;
+    }
+    async raw() {
+        try {
+            return await this.g.read(designFile);
+        }
+        catch (e) {
+            if (e.code === 'ENOENT')
+                return null;
+            throw e;
+        }
+    }
+    revision(raw) {
+        return digest([this.g.root, this.g.expected ?? null, raw]);
+    }
+    async proposal(value, forSave = false) {
+        if (!record(value) ||
+            !Array.isArray(value.nodes) ||
+            !value.nodes.length ||
+            value.nodes.length > 40 ||
+            !Array.isArray(value.edges) ||
+            value.edges.length > 100)
+            throw Error('Design proposal requires 1–40 nodes and 0–100 edges');
+        const source = asciiDocument(designText(value.document, 'document', 20000));
+        if (forSave && source.block !== null) {
+            const parsed = parseArchitectureAscii(managedDiagram(source.block), value);
+            value = { ...value, nodes: parsed.nodes.map(n => {
+                    const old = value.nodes.find(old => old?.id === n.id);
+                    return { ...n, description: old?.description ?? n.title, files: old?.files ?? [] };
+                }), edges: parsed.edges };
+        }
+        const ids = new Set(), files = new Set();
+        const nodes = [];
+        for (const n of value.nodes) {
+            if (!record(n) ||
+                !id(n.id) ||
+                ids.has(n.id) ||
+                !Array.isArray(n.files) ||
+                n.files.length > 10)
+                throw Error('Invalid design node');
+            ids.add(n.id);
+            for (const f of n.files) {
+                await this.g.safe(f);
+                if (/^(\.governance|changes)(\/|$)/i.test(f) || /^STATE\.json$/i.test(f))
+                    throw Error('Design paths must reference project files, not governance data');
+                files.add(f);
+            }
+            nodes.push({
+                id: n.id,
+                title: designText(n.title, 'node title', 100),
+                description: designText(n.description, 'node description'),
+                files: [...new Set(n.files)]
+            });
+        }
+        if (files.size > 60)
+            throw Error('Design references at most 60 files');
+        const pairs = new Set();
+        const edges = value.edges.map((e) => {
+            if (!record(e) ||
+                !ids.has(e.from) ||
+                !ids.has(e.to) ||
+                e.from === e.to ||
+                pairs.has(`${e.from}:${e.to}`))
+                throw Error('Invalid design edge');
+            pairs.add(`${e.from}:${e.to}`);
+            return { from: e.from, to: e.to, label: designText(e.label, 'edge label', 100) };
+        });
+        const document = designText(value.document, 'document', 20000);
+        const parts = asciiDocument(document), diagram = architectureAscii({ nodes, edges });
+        if (!forSave && parts.block !== null) {
+            const parsed = parseArchitectureAscii(managedDiagram(parts.block), { nodes, edges });
+            if (digest(parsed) !== digest({ nodes: nodes.map(({ id, title }) => ({ id, title })), edges }))
+                throw Error('ASCII block differs from design nodes or relationships');
+        }
+        return {
+            title: designText(value.title, 'title', 160),
+            document: forSave
+                ? designText(parts.body + '\n\n' + asciiBlock(diagram), 'document including ASCII', 20000)
+                : document,
+            nodes,
+            edges
+        };
+    }
+    async data(raw) {
+        if (raw === null)
+            return { version: 1, history: [], draft: null, updatedAt: null };
+        const d = JSON.parse(raw);
+        if (!record(d) ||
+            d.version !== 1 ||
+            !Array.isArray(d.history) ||
+            d.history.length > 20 ||
+            (d.draft !== null && !record(d.draft)))
+            throw Error('Invalid architecture design record');
+        timestamp(d.updatedAt);
+        for (const [i, b] of d.history.entries()) {
+            if (!record(b) ||
+                b.number !== i + 1 ||
+                !id(b.taskId) ||
+                b.baseVersion !== i ||
+                b.method !== 'human')
+                throw Error('Invalid design baseline');
+            const p = await this.proposal(b.proposal);
+            if (b.proposalFingerprint !== digest(p))
+                throw Error('Design baseline content changed');
+            designText(b.reason, 'reason', 2000);
+            designText(b.reviewer, 'reviewer', 160);
+            designText(b.conclusion, 'conclusion', 2000);
+            timestamp(b.confirmedAt);
+        }
+        if (d.draft) {
+            if (typeof d.draft.draftId !== 'string' ||
+                !/^[a-f0-9-]{36}$/.test(d.draft.draftId) ||
+                !id(d.draft.taskId) ||
+                d.draft.baseVersion !== d.history.length)
+                throw Error('Invalid design draft');
+            designText(d.draft.reason, 'reason', 2000);
+            timestamp(d.draft.updatedAt);
+            if (d.draft.proposal !== null) {
+                const p = await this.proposal(d.draft.proposal);
+                if (d.draft.proposalFingerprint !== digest(p))
+                    throw Error('Design proposal content changed');
+            }
+            else if (d.draft.proposalFingerprint !== null)
+                throw Error('Invalid empty design proposal');
+        }
+        return d;
+    }
+    async snapshot() {
+        const raw = await this.raw();
+        let d, error = null;
+        try {
+            d = await this.data(raw);
+        }
+        catch (e) {
+            error = e.message;
+        }
+        if ((await this.raw()) !== raw || (await this.stateRaw()) !== (this.g.expected ?? null))
+            throw Error('Design changed while reading; refresh');
+        const history = (d?.history || []).map(designView);
+        const baseline = history.at(-1) || null;
+        return {
+            workspace: this.g.root,
+            revision: this.revision(raw),
+            baseline,
+            history,
+            draft: designView(d?.draft),
+            diff: d?.draft?.proposal ? designDiff(baseline?.proposal, d.draft.proposal) : null,
+            error
+        };
+    }
+    async stateRaw() {
+        try {
+            return await this.g.read('STATE.json');
+        }
+        catch (e) {
+            if (e.code === 'ENOENT')
+                return null;
+            throw e;
+        }
+    }
+    // Confirmation/discard are called by the confirmed panel whitelist, never registered Agent actions.
+    async run(a) {
+        return this.g.locked(async () => {
+            if (a.action === 'architecture_design_snapshot')
+                return this.snapshot();
+            const raw = await this.raw();
+            if (typeof a.expectedRevision !== 'string' || a.expectedRevision !== this.revision(raw))
+                throw Error('Design stale or workspace switched; refresh');
+            const state = await this.g.state();
+            if (!state.task)
+                throw Error('Start an approved project task first');
+            const d = await this.data(raw), now = new Date().toISOString();
+            if (a.action === 'architecture_design_begin') {
+                if (d.draft)
+                    throw Error('A design draft already exists; resume or explicitly discard it');
+                if (d.history.length >= 20)
+                    throw Error('Design history full (20 baselines); preserve and archive manually before continuing');
+                d.draft = {
+                    draftId: randomUUID(),
+                    baseVersion: d.history.length,
+                    taskId: state.task,
+                    reason: designText(a.reason, 'reason', 2000),
+                    proposal: null,
+                    proposalFingerprint: null,
+                    updatedAt: now
+                };
+            }
+            else if (a.action === 'architecture_design_discard') {
+                if (!d.draft)
+                    throw Error('No design draft');
+                d.draft = null; // Explicit panel action can discard an old task's draft, but never its baseline.
+            }
+            else {
+                if (!d.draft)
+                    throw Error('Begin an explicit design draft first');
+                if (d.draft.taskId !== state.task)
+                    throw Error('Design draft belongs to another task; discard explicitly before redesign');
+                if (a.action === 'architecture_design_save') {
+                    if (a.expectedDraft !== d.draft.draftId)
+                        throw Error('Design draft replaced; stop the old design session');
+                    d.draft.proposal = await this.proposal(a.proposal, true);
+                    d.draft.proposalFingerprint = digest(d.draft.proposal);
+                    d.draft.updatedAt = now;
+                }
+                else if (a.action === 'architecture_design_confirm') {
+                    if (!d.draft.proposal)
+                        throw Error('Save a design proposal before confirming');
+                    if (a.expectedProposal !== d.draft.proposalFingerprint)
+                        throw Error('Design proposal changed; review before confirming');
+                    if (d.history.length >= 20)
+                        throw Error('Design history full');
+                    d.history.push({
+                        ...d.draft,
+                        number: d.history.length + 1,
+                        method: 'human',
+                        reviewer: designText(a.reviewer, 'reviewer', 160),
+                        conclusion: designText(a.conclusion, 'conclusion', 2000),
+                        confirmedAt: now
+                    });
+                    d.draft = null;
+                }
+                else
+                    throw Error('Unknown design action');
+            }
+            d.updatedAt = now;
+            if ((await this.raw()) !== raw || (await this.stateRaw()) !== this.g.expected)
+                throw Error('Design or task changed externally; refresh');
+            const serialized = JSON.stringify(d, null, 2) + '\n';
+            if (Buffer.byteLength(serialized, 'utf8') > 1024 * 1024)
+                throw Error('Design data exceeds 1 MiB; shorten content without deleting history');
+            await this.g.write(designFile, serialized);
+            return { saved: true };
+        });
+    }
+}
+module.exports = { ArchitectureDesign, designFile, designDiff, architectureAscii, parseArchitectureAscii };

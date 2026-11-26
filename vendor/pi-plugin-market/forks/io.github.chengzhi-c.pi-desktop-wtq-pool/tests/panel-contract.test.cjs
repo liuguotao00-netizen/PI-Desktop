@@ -1,0 +1,518 @@
+'use strict'
+
+/**
+ * The contract between the panel page and this plugin's main process.
+ *
+ * A channel the page calls and the entry does not answer is a dead control: the
+ * click does nothing and the panel says nothing, which is the hardest class of
+ * bug to report. The bridge names belong here; feature tests exercise each
+ * action with its own payload.
+ *
+ * The page is also checked for the reverse: a `case` no page reaches is a
+ * feature nobody can use.
+ */
+
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
+const vm = require('node:vm')
+const ts = require('typescript')
+const { createRequire } = require('node:module')
+
+const root = path.join(__dirname, '..')
+
+/**
+ * Every channel the panel page asks the host for.
+ *
+ * The plain form is `invoke("xd.name", …)`. Two calls pick the channel with a
+ * ternary (`xd.distribution` for WorkBuddy, `xd.sourceDistribution` for the other
+ * two sources), so each `invoke(` call is scanned through its first argument
+ * rather than only the literal that follows the bracket.
+ */
+function pageChannels() {
+  const source = fs.readFileSync(path.join(root, 'renderer', 'panel.js'), 'utf8')
+  const out = new Set()
+  for (const match of source.matchAll(/\binvoke\(/g)) {
+    const head = source.slice(match.index, Math.min(source.length, match.index + 240))
+    for (const name of head.matchAll(/["']((?:xd\.[A-Za-z]+)|(?:app\.[A-Za-z]+)|(?:shell\.[A-Za-z]+))["']/g)) {
+      out.add(name[1])
+    }
+  }
+  return out
+}
+
+/** Every `case "…"` the entry answers. */
+function entryCases() {
+  const source = fs.readFileSync(path.join(root, 'main.js'), 'utf8')
+  const out = new Set()
+  for (const match of source.matchAll(/case\s+["']([^"']+)["']\s*:/g)) out.add(match[1])
+  return out
+}
+
+/** The composer extension's channels, which go through the renderer relay. */
+function composerChannels() {
+  const source = fs.readFileSync(path.join(root, 'renderer', 'composer.mjs'), 'utf8')
+  const out = new Set()
+  for (const match of source.matchAll(/["'](xd\.[A-Za-z]+)["']/g)) out.add(match[1])
+  return out
+}
+
+/** A host just real enough for the entry to load and answer. */
+function loadEntry(t, settings) {
+  const temporary = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'wtq-contract-'))
+  t.after(() => fs.rmSync(temporary, { recursive: true, force: true }))
+  const dataPath = path.join(temporary, 'data')
+  fs.mkdirSync(dataPath, { recursive: true })
+  // No providers declared, and no auth directory to walk: this case is about the
+  // switch, not about discovery.
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'))
+  if (manifest.contributes) manifest.contributes.providers = []
+  fs.writeFileSync(path.join(temporary, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n')
+
+  let service = null
+  const handlers = new Map()
+  const ownRequire = createRequire(path.join(root, 'main.js'))
+  const login = {
+    startDeviceLogin: async () => ({ state: 'fixture-login', authUrl: 'https://copilot.tencent.com/login' }),
+    pollDeviceLogin: async () => ({ status: 'pending' }),
+  }
+  const context = vm.createContext({
+    require: name => name === './lib/login' ? login : ownRequire(name),
+    module: { exports: {} },
+    __dirname: temporary,
+    console: { log() {}, warn() {}, error() {} },
+    AbortController, AbortSignal, fetch,
+    setTimeout, clearTimeout, setInterval, clearInterval,
+    process,
+    pi: {
+      plugin: {
+        getSettings: async () => ({ ...settings }),
+        setSettings: async (patch) => { Object.assign(settings, patch) },
+        getDataPath: async () => dataPath,
+        getManifest: async () => ({ contributes: { providers: [] } }),
+      },
+      commands: { register: async () => {}, unregister: async () => {} },
+      services: { register: (entry) => { service = entry } },
+      events: { on: (name, fn) => handlers.set(name, fn), off: (name) => handlers.delete(name) },
+      ui: { showToast: async () => {} },
+      clipboard: { writeText: async () => {} },
+      shell: { openExternal: async () => {} },
+    },
+  })
+  vm.runInContext(fs.readFileSync(path.join(root, 'main.js'), 'utf8'), context)
+  return { plugin: context.module.exports, service: () => service, temporary, context }
+}
+
+/** Channels the host answers itself, so the entry's switch never sees them. */
+const HOST_CHANNELS = new Set(['app.getAppearance', 'shell.openExternal'])
+
+test('every channel the panel calls is answered by the entry', () => {
+  const called = [...pageChannels()].sort()
+  assert.ok(called.length > 0, 'the scan must find the panel\'s channels, or it proves nothing')
+  const answered = entryCases()
+  const missing = called.filter((channel) => !answered.has(channel) && !HOST_CHANNELS.has(channel))
+  assert.deepEqual(missing, [],
+    'a channel the page calls and the entry does not answer is a control that does nothing when clicked')
+})
+
+test('the composer extension only asks for channels the entry declares and answers', () => {
+  const asked = [...composerChannels()].sort()
+  assert.ok(asked.length > 0, 'the scan must find the composer\'s channels')
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'))
+  const declared = new Set(manifest.rendererCallMethods ?? [])
+  assert.deepEqual(asked.filter((channel) => !declared.has(channel)), [],
+    'a method the renderer calls but the manifest does not declare is refused with PLUGIN_ACTION_UNDECLARED')
+  // The relay reaches `onRendererCall`, not `onPanelInvoke`, so the entry's own
+  // switch does not have to name them.
+  const source = fs.readFileSync(path.join(root, 'main.js'), 'utf8')
+  for (const channel of asked) {
+    assert.ok(source.includes(`"${channel}"`) || source.includes(`'${channel}'`),
+      `${channel} is declared to the host but nothing in the entry handles it`)
+  }
+})
+
+test('the panel\'s check-in goes through the one pass, not a second copy of it', async (t) => {
+  // The per-source "check in all" button used to run its own fan-out: no pause
+  // between the check-in burst and the growth burst, and no record in
+  // `autoCheckin.last`, so the panel's "last run" stayed on the previous pass
+  // while the upstream saw two request clusters back to back.
+  const host = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: false, sourceTrae: false, sourceQoder: false,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: false,
+  })
+  await host.plugin.onLoad()
+  try {
+    const before = await host.plugin.onPanelInvoke('xd.state', {})
+    assert.equal(before.autoCheckin.last, undefined, 'no pass has run yet')
+    const answer = await host.plugin.onPanelInvoke('xd.checkinAll', { source: 'workbuddy' })
+    assert.equal(typeof answer.claimed, 'number', 'the answer still carries the counts the panel reads')
+    assert.equal(answer.state.autoCheckin.last.manual, true,
+      'a check-in started from the panel has to record itself, or "last run" names an older pass')
+    assert.equal(typeof answer.state.autoCheckin.last.at, 'string', 'and it has to carry the time it ran')
+    const after = await host.plugin.onPanelInvoke('xd.state', {})
+    assert.equal(after.autoCheckin.last.manual, true, 'the record has to survive the next document read too')
+  } finally {
+    await host.plugin.onUnload()
+  }
+})
+
+test('a single claim records today on the cached source row', async (t) => {
+  const host = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: false, sourceTrae: false, sourceQoder: false,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: false,
+  })
+  await host.plugin.onLoad()
+  try {
+    vm.runInContext("qoderAccountRows = [{ label: 'A', region: 'cn', checkin: { active: true, todayCheckedIn: false } }]", host.context)
+    vm.runInContext("markSourceCheckinRow('qoder', 'A', 'cn', { outcome: 'claimed' })", host.context)
+    assert.equal(vm.runInContext("qoderAccountRows[0].checkin.todayCheckedIn", host.context), true,
+      'the document the panel reads back has to say the claim happened')
+    vm.runInContext("traeAccountRows = [{ label: 'B', region: 'cn', checkin: { active: true, todayCheckedIn: false } }]", host.context)
+    vm.runInContext("markSourceCheckinRow('trae', 'B', 'cn', { outcome: 'skipped', deviceCheckedIn: true })", host.context)
+    assert.equal(vm.runInContext("traeAccountRows[0].checkin.deviceCheckedIn", host.context), true,
+      'a device-level refusal has to reach the card too')
+    vm.runInContext("qoderAccountRows = [{ label: 'C', region: 'cn', checkin: { active: true, todayCheckedIn: false } }]", host.context)
+    vm.runInContext("markSourceCheckinRow('qoder', 'C', 'cn', { outcome: 'skipped', todayCheckedIn: true })", host.context)
+    assert.equal(vm.runInContext("qoderAccountRows[0].checkin.todayCheckedIn", host.context), true,
+      'a round already collected in the app has to reach the card as collected')
+  } finally {
+    await host.plugin.onUnload()
+  }
+})
+
+test('the single claim answer carries the claimed row', async (t) => {
+  const host = loadEntry(t, {
+    enabled: true, sourceWorkbuddy: false, sourceTrae: false, sourceQoder: true,
+    distribution: 'priority', cooldownSeconds: 60, authFile: '', showComposerPoints: false,
+  })
+  await host.plugin.onLoad()
+  try {
+    vm.runInContext("qoderAccountRows = [{ label: 'A', region: 'cn', checkin: { active: true, todayCheckedIn: false } }]", host.context)
+    vm.runInContext("qoderClaimOne = async () => ({ outcome: 'claimed' })", host.context)
+    const answer = await host.plugin.onPanelInvoke('xd.sourceCheckin', { source: 'qoder', label: 'A', region: 'cn' })
+    assert.equal(answer.result.outcome, 'claimed')
+    assert.equal(answer.state.qoder.accounts.find((row) => row.label === 'A').checkin.todayCheckedIn, true,
+      'the document answering the click must not still say the account is claimable')
+  } finally {
+    await host.plugin.onUnload()
+  }
+})
+
+test('no channel is answered that the panel never calls', () => {
+  const called = new Set([...pageChannels(), ...composerChannels()])
+  // These are reached by the composer relay and by the host, not by the panel's
+  // own invoke path.
+  const fromHost = new Set(['xd.composerPoints', 'xd.composerPrefer', 'xd.composerRefresh'])
+  const orphans = [...entryCases()]
+    .filter((channel) => channel.startsWith('xd.') && !called.has(channel) && !fromHost.has(channel))
+    .sort()
+  assert.deepEqual(orphans, [],
+    'a channel nothing calls is a feature with no way to reach it, or a rename that missed one side')
+})
+
+/**
+ * Every string the panel asks for is in both languages, and every string it
+ * defines is asked for.
+ *
+ * A missing entry is not a visible error: `t()` falls back to the key, so the
+ * user reads `pool.noAccounts` in the middle of a Chinese sentence. The reverse
+ * is just as invisible: an entry nothing asks for is dead weight that no case can
+ * fail on, so it survives every release.
+ *
+ * A key counts as asked for when it appears in the panel outside the two tables,
+ * or when something outside the panel drives it: the four view tabs and the four
+ * footer links come from `data-` attributes in the page, and the two pack names
+ * come from the host. Those three sources are read here rather than exempted by
+ * hand, so the link itself is what the check verifies.
+ */
+test('every string the panel asks for exists in both languages', () => {
+  const source = fs.readFileSync(path.join(root, 'renderer', 'panel.js'), 'utf8')
+  const page = fs.readFileSync(path.join(root, 'renderer', 'index.html'), 'utf8')
+  const tables = ['EN', 'ZH'].map((dictionary) => {
+    const from = source.indexOf(`var ${dictionary} = {`)
+    assert.notEqual(from, -1, `the ${dictionary} table has to be in the panel`)
+    return { dictionary, body: source.slice(from, source.indexOf('\n}', from)) }
+  })
+  const definedIn = (body) => [...body.matchAll(/^\s*"([a-zA-Z]+\.[a-zA-Z0-9]+)":/gm)].map((match) => match[1])
+  const defined = [...new Set(tables.flatMap((table) => definedIn(table.body)))]
+  assert.ok(defined.length > 0, `the panel has its tables (found ${defined.length} keys)`)
+
+  // The keys the page drives, and the two the host names.
+  const fromPage = [
+    ...[...page.matchAll(/data-tab="([\w-]+)"/g)].map((match) => 'tab.' + match[1]),
+    ...[...page.matchAll(/data-foot-label="([\w-]+)"/g)].map((match) => 'foot.' + match[1]),
+  ]
+  const fromHost = ['credits.planQuota', 'credits.addOnQuota']
+
+  const outside = source.replace(tables[0].body, '').replace(tables[1].body, '')
+  const asked = new Set([
+    ...defined.filter((key) => outside.includes('"' + key + '"')),
+    ...fromPage,
+    ...fromHost,
+  ])
+  assert.ok(asked.size > 0, `the panel asks for its strings (found ${asked.size})`)
+
+  for (const { dictionary, body } of tables) {
+    const missing = [...asked].filter((key) => !body.includes('"' + key + '"'))
+    assert.deepEqual(missing, [], `${dictionary} is missing ${missing.join(', ')}`)
+    const orphaned = definedIn(body).filter((key) => !asked.has(key))
+    assert.deepEqual(orphaned, [], `${dictionary} defines ${orphaned.join(', ')}, which nothing asks for`)
+  }
+})
+
+/**
+ * The four view tabs and the four panels they switch between are wired to each
+ * other, in both directions.
+ *
+ * A tab that names nothing, or a panel nothing names, is not visible as a break:
+ * the panel still switches on click, because the switching is done in JavaScript
+ * by `data-tab`. What breaks is the accessibility tree, where the four views read
+ * as four unrelated regions and a screen reader cannot say which tab is showing.
+ */
+test('every view tab names the panel it controls, and that panel names it back', () => {
+  const page = fs.readFileSync(path.join(root, 'renderer', 'index.html'), 'utf8')
+  // The source tabs carry data-source; the four view tabs carry data-tab and
+  // switch between the sections below them.
+  const tabs = [...page.matchAll(/<button[^>]*>/g)]
+    .map((match) => match[0])
+    .filter((tag) => tag.includes('role="tab"') && tag.includes('data-tab='))
+  assert.equal(tabs.length, 4, 'the page has four view tabs')
+  for (const tab of tabs) {
+    const id = /id="([^"]+)"/.exec(tab)?.[1]
+    const controls = /aria-controls="([^"]+)"/.exec(tab)?.[1]
+    assert.ok(id !== undefined, `a view tab needs an id so its panel can name it: ${tab}`)
+    assert.ok(controls !== undefined, `a view tab has to name the panel it switches to: ${tab}`)
+    const panel = new RegExp(`<section[^>]*id="${controls}"[^>]*>`).exec(page)?.[0]
+    assert.ok(panel !== undefined, `aria-controls="${controls}" names no section`)
+    assert.ok(panel.includes('role="tabpanel"'), `${controls} has to be a tabpanel`)
+    assert.ok(panel.includes(`aria-labelledby="${id}"`), `${controls} has to name ${id} back`)
+  }
+})
+
+test('source and region selectors expose pressed buttons instead of unrelated tabs', () => {
+  const page = fs.readFileSync(path.join(root, 'renderer', 'index.html'), 'utf8')
+  const panel = fs.readFileSync(path.join(root, 'renderer', 'panel.js'), 'utf8')
+  const sourceGroup = /<(?:div|nav)[^>]*id="sourceTabs"[^>]*>/.exec(page)?.[0]
+  assert.ok(sourceGroup?.includes('role="group"'), 'source selectors do not control a tabpanel')
+  assert.match(sourceGroup, /aria-label=/, 'the source button group has a name')
+  for (const source of ['workbuddy', 'trae', 'qoder']) {
+    const button = [...page.matchAll(/<button[^>]*>/g)].map(match => match[0])
+      .find(tag => tag.includes(`data-source="${source}"`))
+    assert.ok(button?.includes('aria-pressed='), `${source} exposes its selected state`)
+    assert.ok(!button.includes('role="tab"'), `${source} does not claim an unrelated tab panel`)
+  }
+  assert.match(page, /id="regionTabs" role="group" aria-label=/)
+  assert.match(page, /id="modelRegionTabs" role="group" aria-label=/)
+
+  const regionStart = panel.indexOf('function fillRegionNav(')
+  let depth = 0
+  let regionEnd = panel.indexOf('{', regionStart)
+  for (; regionEnd < panel.length; regionEnd += 1) {
+    if (panel[regionEnd] === '{') depth += 1
+    else if (panel[regionEnd] === '}' && --depth === 0) break
+  }
+  const context = vm.createContext({
+    busy: null,
+    clear: node => { node.children = [] },
+    el: (_tag, className, text) => ({
+      className,
+      textContent: text || '',
+      attributes: {},
+      children: [],
+      setAttribute(name, value) { this.attributes[name] = value },
+      appendChild(child) { this.children.push(child) },
+      addEventListener() {},
+    }),
+    regionParked: () => false,
+    render() {},
+    setActiveRegion() {},
+    sourceRegionLabel: region => region === 'cn' ? 'China' : 'Global',
+    t: key => key === 'tabs.regions' ? 'Account region' : key,
+  })
+  vm.runInContext(panel.slice(regionStart, regionEnd + 1), context)
+  const nav = { children: [], setAttribute(name, value) { this[name] = value }, appendChild(child) { this.children.push(child) } }
+  context.nav = nav
+  vm.runInContext('fillRegionNav(nav, "qoder", ["cn", "global"], [{region:"cn"}], "cn")', context)
+  assert.equal(nav.role, 'group', 'generated region controls are exposed as a group')
+  assert.equal(nav['aria-label'], 'Account region')
+  assert.deepEqual(nav.children.map(button => button.attributes['aria-pressed']), ['true', 'false'])
+})
+
+test('view tabs move focus with arrow and edge keys without activating another view', () => {
+  const panel = fs.readFileSync(path.join(root, 'renderer', 'panel.js'), 'utf8')
+  const start = panel.indexOf('function moveTabFocus(')
+  assert.notEqual(start, -1, 'the panel has a view-tab keyboard handler')
+  let depth = 0
+  let end = panel.indexOf('{', start)
+  for (; end < panel.length; end += 1) {
+    if (panel[end] === '{') depth += 1
+    else if (panel[end] === '}' && --depth === 0) break
+  }
+  const context = vm.createContext({})
+  vm.runInContext(panel.slice(start, end + 1), context)
+  const focused = []
+  const tab = (hidden, disabled, selected) => ({
+    hidden,
+    disabled,
+    tabIndex: selected ? 0 : -1,
+    attributes: { 'aria-selected': selected ? 'true' : 'false' },
+    getAttribute(name) { return this.attributes[name] },
+    setAttribute(name, value) { this.attributes[name] = value },
+    focus() { focused.push(this) },
+  })
+  const tabs = [tab(false, false, true), tab(true, false, false), tab(false, true, false), tab(false, false, false)]
+  context.list = { querySelectorAll: () => tabs }
+  context.tabs = tabs
+
+  assert.equal(vm.runInContext('moveTabFocus(list, tabs[0], "ArrowRight")', context), true)
+  assert.equal(focused.at(-1), tabs[3], 'right arrow skips hidden and disabled tabs')
+  assert.deepEqual(tabs.map(item => item.tabIndex), [-1, -1, -1, 0])
+  assert.deepEqual(tabs.map(item => item.getAttribute('aria-selected')), ['true', 'false', 'false', 'false'])
+  assert.equal(vm.runInContext('moveTabFocus(list, tabs[3], "ArrowRight")', context), true)
+  assert.equal(focused.at(-1), tabs[0], 'right arrow wraps to the first tab')
+  assert.equal(vm.runInContext('moveTabFocus(list, tabs[0], "ArrowLeft")', context), true)
+  assert.equal(focused.at(-1), tabs[3], 'left arrow wraps to the last tab')
+  assert.equal(vm.runInContext('moveTabFocus(list, tabs[3], "Home")', context), true)
+  assert.equal(focused.at(-1), tabs[0])
+  assert.equal(vm.runInContext('moveTabFocus(list, tabs[0], "End")', context), true)
+  assert.equal(focused.at(-1), tabs[3])
+})
+
+/**
+ * The connection report counts the accounts without naming them.
+ *
+ * `doctor.txt` is the file a user pastes into a bug report, and the panel's check
+ * view shows the same text. It listed every sign-in by its display name, which is
+ * a nickname and can be an email address, so the one artifact meant to leave the
+ * machine carried the user's identities.
+ *
+ * The claim under test: the accounts row reports how many sign-ins the pool holds,
+ * and neither the finding nor the report text carries a display name.
+ */
+test('the connection report counts visible and available accounts without naming them', async (t) => {
+  const accountName = 'fixture.user@example.com'
+  const auth = path.join(fs.mkdtempSync(path.join(process.env.PI_SCRATCH_DIR || require('node:os').tmpdir(), 'wtq-doctor-')), 'auth')
+  fs.mkdirSync(auth, { recursive: true })
+  fs.writeFileSync(path.join(auth, 'login.info'), JSON.stringify({
+    auth: { accessToken: 'test', refreshToken: '', expiresAt: Date.now() + 3600000 },
+    account: { uin: 'test-user', nickname: accountName },
+  }))
+  const host = loadEntry(t, {
+    enabled: true,
+    sourceWorkbuddy: true,
+    sourceTrae: false,
+    sourceQoder: false,
+    disabledRegions: ['workbuddy:global'],
+    authFile: path.join(auth, 'login.info'),
+    autoCheckin: { enabled: false, hours: [9] },
+  })
+  const { WorkBuddyUpstreamClient } = require('../lib/upstream')
+  const original = {
+    models: WorkBuddyUpstreamClient.prototype.fetchModels,
+    credits: WorkBuddyUpstreamClient.prototype.fetchCredits,
+    checkin: WorkBuddyUpstreamClient.prototype.fetchCheckinStatus,
+  }
+  WorkBuddyUpstreamClient.prototype.fetchModels = async () => []
+  WorkBuddyUpstreamClient.prototype.fetchCredits = async () => ({ total: 0, packages: [] })
+  WorkBuddyUpstreamClient.prototype.fetchCheckinStatus = async () => ({ active: false })
+  try {
+    await host.plugin.onLoad()
+    const report = await host.plugin.onPanelInvoke('xd.doctor')
+    const accounts = report.findings.find((finding) => finding.id === 'accounts')
+    assert.equal(accounts.detail, 'Accounts found: 1', 'the row reports the count')
+    assert.equal(report.report.includes(accountName), false,
+      'and the report text, which is what doctor.txt holds, carries no display name')
+    await host.plugin.onPanelInvoke('xd.setAccountState', {
+      region: 'cn', accountId: report.status.accounts[0].id, state: 'disabled',
+    })
+    const restricted = await host.plugin.onPanelInvoke('xd.doctor')
+    const rotation = restricted.findings.find((finding) => finding.id === 'rotation')
+    assert.equal(rotation.ok, false)
+    assert.equal(rotation.detail, 'Ready accounts: 0/1')
+  } finally {
+    Object.assign(WorkBuddyUpstreamClient.prototype, {
+      fetchModels: original.models, fetchCredits: original.credits, fetchCheckinStatus: original.checkin,
+    })
+    await host.plugin.onUnload()
+    fs.rmSync(path.dirname(auth), { recursive: true, force: true })
+  }
+})
+
+/**
+ * The check-in button stays out of the way while a pass is already running.
+ *
+ * A finished pass leaves the host with `autoCheckin.last.pending` set, and the
+ * growth flag stays up until the pass returns. A button painted as ready in
+ * that window accepts a click, asks for a second pass, and is repainted by the
+ * host's "already running" answer — it flashes and does nothing. The button has
+ * to report the pass instead, and come back when the state says it ended.
+ */
+test('the check-in button waits for a running pass', () => {
+  const source = fs.readFileSync(path.join(root, 'renderer', 'panel.js'), 'utf8')
+  const tree = ts.createSourceFile('panel.js', source, ts.ScriptTarget.Latest, true)
+  const functions = tree.statements.filter(node => ts.isFunctionDeclaration(node) && ['renderAutoCheckin', 'iconLabel', 'el'].includes(node.name.text))
+    .map(node => node.getText(tree)).join('\n')
+
+  const nodes = {}
+  const node = () => ({
+    childElementCount: 0,
+    children: [],
+    textContent: '', className: '',
+    title: '',
+    disabled: false,
+    value: '',
+    placeholder: '',
+    attrs: {},
+    setAttribute(name, value) { this.attrs[name] = String(value) },
+    getAttribute(name) { return this.attrs[name] ?? null },
+    addEventListener() {},
+    appendChild(child) { this.children.push(child); this.childElementCount = this.children.length },
+  })
+  const get = (id) => nodes[id] || (nodes[id] = node())
+  const control = get('autoControl')
+  control.childElementCount = 2
+  control.children = ['true', 'false'].map((value) => {
+    const button = node()
+    button.setAttribute('data-auto', value)
+    return button
+  })
+
+  const paint = (state) => {
+    const context = vm.createContext({
+      state,
+      busy: null,
+      checkinBusy: null,
+      autoHoursDraft: null,
+      $: get,
+      t: (key) => key,
+      document: { activeElement: null, createElement: node },
+      paintAutoNote() {},
+      paintKeepAliveNote() {},
+    })
+    vm.runInContext(functions, context)
+    vm.runInContext('renderAutoCheckin()', context)
+    return get('autoRunNow')
+  }
+
+  const idle = paint({
+    autoCheckin: { enabled: true, hours: [9], last: { pending: false } },
+    growth: { running: false },
+  })
+  assert.equal(idle.disabled, false, 'an idle panel leaves the button ready')
+  assert.equal(idle.textContent, 'auto.runNow')
+
+  const pending = paint({
+    autoCheckin: { enabled: true, hours: [9], last: { pending: true } },
+    growth: { running: false },
+  })
+  assert.equal(pending.disabled, true, 'a pass answered as pending owns the button')
+  assert.equal(pending.textContent, 'auto.running')
+
+  const inPass = paint({
+    autoCheckin: { enabled: true, hours: [9], last: { pending: false } },
+    growth: { running: true },
+  })
+  assert.equal(inPass.disabled, true, 'the same pass still shows in the growth flag')
+  assert.equal(inPass.textContent, 'auto.running')
+})

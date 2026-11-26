@@ -1,0 +1,1077 @@
+"use strict";
+
+/**
+ * Neural Radar — PI-Desktop plugin main process.
+ *
+ * Watches the agents (sessions) and their subagents (Task delegations), turns them into a
+ * radar model for the work-panel view, opens the view automatically according to the
+ * `autoOpen` setting, and carries out the actions the user picks in the view's drawer.
+ *
+ * Data comes from the host's desktop control operations (`desktop.control`):
+ *   session/list, agent/getStatus, session/get, plans/pending,
+ *   agent/pendingInteractive                                     — read
+ *   session/open, agent/prompt, agent/stop, agent/abort          — act on the user's click
+ *   plans/resolve, agent/askTool/resolve, tool/resolvePermission — "dangerous": sent with
+ *                                     confirm; the host asks the user to allow each call
+ * The host has no "turn started" event for plugins, so the radar polls. It polls fast while
+ * something is running and slowly while everything is idle.
+ * When an agent starts needing you, a system notification tells you (`notify`; an in-app notice
+ * when the system does not show it), unless the `notify` setting is off.
+ *
+ * Question cards an agent opens mid-turn (`asktool`) and tool permission prompts (a command
+ * waiting for your approval) come from `agent/pendingInteractive` (PI-Desktop 0.23+), which
+ * carries the request ids the resolve operations need. On an older host that operation does not
+ * exist: the radar then reads open questions from the transcript and can only send you to the
+ * session to answer them, and it cannot see permission prompts at all.
+ * View channel: window.pluginBridge.invoke("radar.*", payload) → onPanelInvoke.
+ */
+
+const VIEW_ID = "radar";
+const FAST_MS = 2000;
+const SLOW_MS = 6000;
+const LIST_MS = 10 * 1000; // the session list is refreshed this often (and on host events)
+const RECENT_MS = 10 * 60 * 1000; // a finished agent stays on the radar this long
+const REPLY_KEEP_MS = 2 * 60 * 60 * 1000; // an agent waiting for your reply stays this long
+const CANDIDATES = 8; // most recently updated sessions considered each poll
+const STALE_MS = 6 * 60 * 60 * 1000; // sessions untouched for this long are not polled
+const REOPEN_COOLDOWN_MS = 30 * 1000;
+
+let autoOpen = "working";
+let notifyOn = true;
+let me = { image: "", key: "" }; // your picture in the centre of the radar (see loadAvatar)
+let timer = null;
+let stopped = false;
+let model = { agents: [], error: null };
+const memory = new Map(); // sessionId → { running, subCount, attention, lastActive, updatedAt, agent }
+let sessionList = [];
+let listAt = 0;
+let lastReveal = 0;
+let firstPoll = true;
+let inFlight = false;
+let rerun = false;
+const outbox = new Map(); // sessionId → [{ id, text, t }]: messages waiting for the turn to end
+let outboxSeq = 0;
+let events = []; // recent deliveries of queued messages, for the view: { id, kind, sessionId, text, t }
+
+// ---------- host helpers ----------
+async function op(operation, args = [], confirm = false) {
+  return pi.desktop.invoke({ operation, args, ...(confirm ? { confirm: true } : {}) });
+}
+const str = (v) => (typeof v === "string" ? v : v == null ? "" : String(v));
+// the version this main.js was shipped with; the view reloads itself when it changes (an update
+// loads a fresh main.js, but the host keeps an open view's old page running)
+const VERSION = (() => {
+  try { return str(JSON.parse(require("node:fs").readFileSync(require("node:path").join(__dirname, "manifest.json"), "utf8")).version); } catch { return ""; }
+})();
+const arr = (v) => (Array.isArray(v) ? v : []);
+const ts = (v) => (typeof v === "number" ? v : v ? Date.parse(v) || 0 : 0);
+const num = (v) => (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0);
+/**
+ * Tokens in one usage record, as PI-Desktop counts them: its total, else input + output +
+ * cache read + cache write.
+ */
+const tokensOf = (u) => !u || typeof u !== "object" ? 0 :
+  num(u.totalTokens ?? u.total_tokens) ||
+  num(u.inputTokens ?? u.input_tokens) + num(u.outputTokens ?? u.output_tokens) +
+  num(u.cacheReadTokens ?? u.cache_read_tokens) + num(u.cacheWriteTokens ?? u.cache_write_tokens);
+/** A transcript message's provider usage (one model operation), if it carries one. */
+const usageOf = (m) => m?.usage ?? m?.meta?.usage;
+/** The Task call a subagent's message belongs to ("" for the agent's own messages). */
+const parentCallOf = (m) => str(m?.parentToolCallId ?? m?.meta?.parentToolCallId);
+
+/** A rough token count: about 4 characters per token, one per CJK character. */
+function estimateTokens(text) {
+  const t = str(text);
+  if (!t) return 0;
+  const cjk = (t.match(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/g) ?? []).length;
+  return Math.ceil(cjk + (t.length - cjk) / 4);
+}
+
+/** What a tool call puts into the model's context: its arguments and the content of its result. */
+function toolPayload(b) {
+  const args = typeof b.args === "string" ? b.args : JSON.stringify(b.args ?? {});
+  const r = b.result;
+  let out = "";
+  if (typeof r === "string") out = r;
+  else if (Array.isArray(r?.content)) out = r.content.map((c) => (typeof c === "string" ? c : str(c?.text))).join("\n");
+  else if (r != null) out = typeof r.content === "string" ? r.content : JSON.stringify(r.content ?? r.output ?? r.text ?? ""); // never the UI-only details
+  return args + out;
+}
+
+/**
+ * Tokens the agent's own tool calls put into its context (arguments + results), estimated from
+ * their size. Subagents' tool calls stay in their own context and are not counted. `seen`
+ * (call id → tokens) persists across polls, so calls that scroll out of the transcript window
+ * keep counting; the total is a lower bound for calls made before the radar started watching.
+ */
+function toolTokens(messages, seen) {
+  messages.forEach((m) => {
+    if (parentCallOf(m)) return;
+    blocksOf(m).forEach((b, k) => {
+      if (!b?.name || b.type === "text") return;
+      const id = str(b.callId) || `${ts(m?.createdAt ?? m?.created_at)}:${b.name}:${k}`;
+      seen.set(id, Math.max(seen.get(id) ?? 0, estimateTokens(toolPayload(b))));
+    });
+  });
+  let total = 0;
+  for (const v of seen.values()) total += v;
+  return total;
+}
+
+// ---------- reading sessions ----------
+function sessionsFrom(listResult) {
+  const raw = arr(listResult?.sessions ?? listResult?.items ?? listResult);
+  return raw
+    .map((s) => ({
+      id: str(s.id ?? s.sessionId),
+      title: str(s.title ?? s.name),
+      updatedAt: ts(s.updatedAt ?? s.updated_at ?? s.lastActivityAt),
+      model: str(s.modelId ?? s.model_id ?? s.model),
+      effort: str(s.thinkingLevel ?? s.thinking_level),
+      permissionMode: str(s.permissionMode ?? s.permission_mode),
+    }))
+    .filter((s) => s.id);
+}
+
+/** Pending Plan / Goal approvals; plans/pending answers `{ plans: [...] }`. */
+function plansFrom(result) {
+  return arr(result?.plans ?? result?.proposals ?? result?.items ?? result).filter((p) => {
+    if (!p || (p.status && p.status !== "pending")) return false;
+    const exp = p.expiresAt ? Date.parse(p.expiresAt) : NaN;
+    return !(Number.isFinite(exp) && exp <= Date.now());
+  });
+}
+
+function planOf(p) {
+  const kind = p.kind === "goal" ? "goal" : "plan";
+  return {
+    proposalId: str(p.id ?? p.proposalId),
+    turnId: str(p.turnId),
+    toolCallId: str(p.toolCallId),
+    version: typeof p.version === "number" ? p.version : undefined,
+    kind,
+    title: str(p.title), // empty: the view shows its own "Plan / Goal ready for approval"
+    question: str(p.question),
+  };
+}
+
+// words that carry no topic: a prompt made only of these ("ok", "sounds great, build it") is a go-ahead
+const FILLER = new Set(("yes yep yeah y no nope ok okay k sure go ahead on do it this that please pls and then now " +
+  "lets let's continue proceed thanks thank you thx great perfect nice cool good fine lgtm sounds looks " +
+  "build ship approve approved agreed done next again retry try works right exactly 好 好的 是 是的 继续 可以 行 对 谢谢").split(" "));
+const cleanLine = (text) => (str(text).split("\n").map((l) => l.trim()).find(Boolean) ?? "")
+  .replace(/[*_#>`]+/g, "").replace(/\s+/g, " ").trim();
+function isTopical(line) {
+  const words = line.toLowerCase().replace(/[^\p{L}\p{N}'\s]+/gu, " ").split(/\s+/).filter(Boolean);
+  if (/[\u3400-\u9fff]/.test(line)) return line.replace(/[\s\p{P}]/gu, "").length >= 4 && !words.every((w) => FILLER.has(w));
+  return words.length >= 3 && !words.every((w) => FILLER.has(w));
+}
+
+/**
+ * What the agent works on now: the first line of your latest request that names a topic, so it
+ * follows the session as it digresses but skips go-aheads like "ok" or "build it".
+ */
+function describeTask(messages, title) {
+  let latest = "";
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i]?.role !== "user") continue;
+    const line = cleanLine(textOf(messages[i]));
+    if (!line) continue;
+    latest = latest || line;
+    if (isTopical(line)) return clipText(line, 48);
+  }
+  return clipText(title || latest, 48);
+}
+const clipText = (text, n) => (text.length > n ? text.slice(0, n - 1) + "…" : text);
+
+/** A short target for a tool call: a file name, the gist of a command, a pattern or a host. */
+function toolTarget(args) {
+  let a = args;
+  if (typeof a === "string") { try { a = JSON.parse(a); } catch { a = {}; } }
+  if (!a || typeof a !== "object") return "";
+  const file = str(a.path ?? a.file_path ?? a.filePath ?? a.notebook_path);
+  if (file) return clipText(file.split(/[\\/]/).filter(Boolean).pop() || file, 28);
+  const cmd = str(a.command ?? a.cmd);
+  if (cmd) {
+    // skip set-up steps like "cd dir &&" or "export X=1;" and keep the command that does the work
+    const parts = cmd.split(/&&|\|\||;|\n/).map((x) => x.trim()).filter(Boolean);
+    const main = parts.find((x) => !/^(cd|export|set|source|\.)\s/.test(x)) || parts[0] || "";
+    return clipText(main.split(/\s+/).slice(0, 2).join(" "), 28);
+  }
+  const pat = str(a.pattern ?? a.query);
+  if (pat) return clipText(pat, 28);
+  const url = str(a.url);
+  if (url) { try { return new URL(url).hostname; } catch { return clipText(url, 28); } }
+  return "";
+}
+
+function messagesFrom(getResult) {
+  return arr(getResult?.messages ?? getResult?.session?.messages ?? getResult?.transcript);
+}
+
+/**
+ * session/get returns flat messages: a tool call is its own `tool` message carrying
+ * toolName / toolArgs / toolResult / toolStatus / toolCompletedAt. Older transcripts use
+ * `blocks`. Both are read as a list of uniform pseudo-blocks.
+ */
+function blocksOf(message) {
+  if (message?.toolName) {
+    return [{
+      name: message.toolName,
+      args: message.toolArgs ?? {},
+      callId: message.toolCallId,
+      result: message.toolResult,
+      completedAt: message.toolCompletedAt,
+      status: message.toolStatus,
+    }];
+  }
+  return arr(message?.blocks);
+}
+
+function textOf(message) {
+  if (typeof message?.content === "string" && !message.toolName) return message.content.trim();
+  return arr(message?.blocks)
+    .filter((b) => b?.type === "text" && typeof b.text === "string")
+    .map((b) => b.text)
+    .join(" ")
+    .trim();
+}
+
+/**
+ * The session's main agents: each turn (your message and all the agent did after it, its notes
+ * between tool calls included) is one "Main agent" with the tasks it delegated. Returns, per
+ * message, the group it belongs to (null for a subagent's messages), and each group's key (the id
+ * of the message that opened it, stable while the transcript scrolls) and what was said in it.
+ * Only your message opens a group: an agent writes a short note before most tool calls, and
+ * splitting there gave every subagent a cluster of its own.
+ */
+function groupsOf(messages) {
+  const at = [];
+  let cur = null;
+  messages.forEach((m, i) => {
+    if (parentCallOf(m)) { at.push(null); return; }
+    if (m?.role === "user" || !cur) cur = { key: str(m?.id) || `${ts(m?.createdAt ?? m?.created_at)}:${i}`, text: textOf(m), start: i };
+    at.push(cur);
+  });
+  return at;
+}
+
+/**
+ * Subagents of the session's latest turn, with their latest known status, the tokens their
+ * transcript messages report (a lower bound: not every model call of a subagent is recorded) and
+ * the main agent (group) that launched them.
+ */
+function delegationsFrom(messages) {
+  const groupAt = groupsOf(messages);
+  const subs = new Map();
+  const callOf = new Map(); // delegationId → the Task call that launched it
+  const usedBy = new Map(); // Task call id → tokens its subagent's messages report
+  for (const m of messages) {
+    const call = parentCallOf(m);
+    if (call) usedBy.set(call, (usedBy.get(call) ?? 0) + tokensOf(usageOf(m)));
+  }
+  const note = (d, fallback = {}) => {
+    if (typeof d === "string") d = { delegationId: d };
+    const id = str(d?.delegationId);
+    if (!id) return;
+    const prev = subs.get(id) ?? { id, role: "", description: "", status: "running", model: "", effort: "" };
+    subs.set(id, {
+      ...prev,
+      role: str(d.agent) || prev.role,
+      description: str(fallback.description) || prev.description,
+      status: str(d.status) || prev.status,
+      toolCalls: d.toolCalls ?? prev.toolCalls,
+      lastTool: str(d.lastToolName) || prev.lastTool,
+      model: str(d.modelId) || prev.model,
+      effort: str(d.thinkingLevel) || prev.effort,
+    });
+  };
+  // a subagent launched in an earlier turn still counts while it runs; finished ones only count
+  // for the current turn (everything after the last user message)
+  let lastUser = -1;
+  messages.forEach((m, i) => { if (m?.role === "user") lastUser = i; });
+  const seenAt = new Map();
+  messages.forEach((m, i) => {
+    for (const b of blocksOf(m)) {
+      const name = b?.name;
+      const details = b?.result?.details;
+      if (name === "Task") {
+        const g = groupAt[i];
+        const launchedBy = g ? { group: g.key, groupText: g.text.slice(0, 220) } : {};
+        if (details?.delegationId) {
+          note(details, { description: b.args?.description });
+          Object.assign(subs.get(str(details.delegationId)), launchedBy);
+          if (b.callId) callOf.set(str(details.delegationId), str(b.callId));
+        }
+        else if (b.callId && !b.result && !b.completedAt) {
+          // still launching: keep a provisional entry keyed by the call id
+          subs.set(str(b.callId), { id: str(b.callId), role: str(b.args?.agent), description: str(b.args?.description), status: "running", ...launchedBy });
+        }
+        // a launch that came back without a delegation failed: nothing is running
+      } else if (name === "TaskWait") {
+        for (const d of arr(details?.delegations)) note(d);
+      } else if (name === "TaskStop") {
+        for (const d of arr(details?.stopped)) note(d);
+      }
+      for (const id of [str(details?.delegationId), ...arr(details?.delegations).map((d) => str(d?.delegationId)), ...arr(details?.stopped).map((d) => str(typeof d === "string" ? d : d?.delegationId)), str(b?.callId)]) {
+        if (id && subs.has(id)) seenAt.set(id, i);
+      }
+    }
+  });
+  return [...subs.values()].filter((s) => s.status === "running" || (seenAt.get(s.id) ?? -1) > lastUser).map((s) => ({
+    ...s,
+    // only an explicit "running" counts as running; anything unknown is treated as finished
+    status: s.status === "running" ? "run" : s.status === "completed" ? "done" : "stopped",
+    tokens: usedBy.get(callOf.get(s.id) ?? s.id) ?? 0,
+    call: callOf.get(s.id) ?? s.id, // the Task call its messages point back to
+    earlier: (seenAt.get(s.id) ?? -1) <= lastUser, // last mentioned before your latest message
+  }));
+}
+
+/**
+ * One main agent of a session (a group of groupsOf: an earlier turn) with the subagents it
+ * delegated to that still run: it gets its own cluster, wired to its session. Actions on it go to
+ * that session (`session`).
+ */
+function mainAgent(sessionId, key, subs, messages, model, effort, active) {
+  const groupAt = groupsOf(messages);
+  const own = messages.filter((m, i) => groupAt[i]?.key === key);
+  const said = str(subs.find((x) => x.groupText)?.groupText);
+  return {
+    id: `${sessionId}::main:${key}`,
+    session: sessionId,
+    parent: sessionId,
+    child: true,
+    title: "", // the view names it "Main agent" in the user's language
+    desc: clipText(cleanLine(said), 48),
+    task: said,
+    status: subs.some((x) => x.status === "run") ? "run" : "done",
+    model,
+    effort,
+    toolTokens: 0,
+    tokens: subs.reduce((n, x) => n + (x.tokens || 0), 0),
+    active,
+    question: null,
+    reply: null,
+    replyContext: "",
+    plan: null,
+    subs,
+    log: activityLog(own),
+    lastCall: lastToolCall(own),
+  };
+}
+
+/** An asktool call that has not been answered yet, with what the agent said leading up to it. */
+function pendingQuestionFrom(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    for (const b of blocksOf(messages[i])) {
+      if (b?.name !== "asktool") continue;
+      const answered = b.completedAt || b.result?.details?.answers || b.status === "success" || b.status === "error";
+      if (answered) return null;
+      const qs = arr(b.args?.questions);
+      if (!qs.length) return null;
+      return {
+        q: str(qs[0].question),
+        more: qs.length - 1,
+        opts: arr(qs[0].options).map((o) => str(o?.label ?? o)).filter(Boolean).slice(0, 6),
+        ctx: turnContext(messages, i + 1),
+      };
+    }
+  }
+  return null;
+}
+
+// ---------- question cards and permission prompts (agent/pendingInteractive) ----------
+const MAX_OPTIONS = 8;
+const optionOf = (o) => (typeof o === "string" ? { label: o } : { label: str(o?.label), ...(str(o?.description) ? { description: str(o.description) } : {}) });
+
+/**
+ * An open question card from the host, answerable from the drawer: every question with its
+ * options (`questions`), the first one flattened for the tooltip and notification (`q`, `opts`,
+ * `more`), and what the agent said leading up to it (`ctx`).
+ */
+function askOf(ask, messages) {
+  const questions = arr(ask?.questions).map((x) => ({
+    q: str(x?.question),
+    opts: arr(x?.options).map(optionOf).filter((o) => o.label).slice(0, MAX_OPTIONS),
+    multi: x?.multiSelect === true,
+  })).filter((x) => x.q);
+  const requestId = str(ask?.requestId);
+  if (!requestId || !questions.length) return null;
+  const callId = str(ask?.toolCallId);
+  let at = callId ? messages.findIndex((m) => blocksOf(m).some((b) => str(b?.callId) === callId)) : -1;
+  if (at < 0) at = messages.length - 1;
+  return {
+    requestId,
+    q: questions[0].q,
+    more: questions.length - 1,
+    opts: questions[0].opts.map((o) => o.label),
+    questions,
+    agentName: str(ask?.agentName),
+    ctx: turnContext(messages, at + 1),
+  };
+}
+
+/** A tool waiting for your permission: what it wants to run and why. */
+function permissionOf(p) {
+  const requestId = str(p?.requestId);
+  if (!requestId) return null;
+  const raw = p?.argsPreview ?? p?.args;
+  let args = typeof raw === "string" ? raw : raw == null ? "" : JSON.stringify(raw, null, 1);
+  args = clipText(args.trim(), 600);
+  return {
+    requestId,
+    tool: str(p?.toolName) || "tool",
+    target: toolTarget(raw),
+    reason: clipText(str(p?.reason), 300),
+    risk: ["low", "medium", "high"].includes(p?.risk) ? p.risk : "high",
+    agentName: str(p?.agentName),
+    args,
+  };
+}
+
+// false once the host turned out not to have agent/pendingInteractive (before 0.23)
+let interactiveOn = true;
+// (the host answers NOT_FOUND "operation is not exposed: …" for an operation it does not have)
+const isUnsupportedOp = (e) => /operation is not exposed|unknown (desktop )?operation/i.test(str(e?.message));
+
+/** The session's open question cards and permission prompts, or null when the host cannot tell. */
+async function pendingInteractive(sessionId) {
+  if (!interactiveOn) return null;
+  try {
+    const r = await op("agent/pendingInteractive", [{ sessionId }]);
+    return { asks: arr(r?.asks), permissions: arr(r?.permissions) };
+  } catch (error) {
+    if (isUnsupportedOp(error)) interactiveOn = false;
+    return null;
+  }
+}
+
+/**
+ * "Your turn": the agent's turn is over, its last message is its own (you have not replied)
+ * and that message asks you something. Returns `{ ask, context }` — the part that asks and a
+ * short summary of what it is about — or null.
+ */
+function awaitingReply(messages) {
+  let at = -1;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const r = messages[i]?.role;
+    if (r === "user" || r === "assistant" || r === "tool") { at = i; break; }
+  }
+  const last = messages[at];
+  if (!last || last.role !== "assistant") return null; // you replied, or the turn ended mid-tool
+  const text = textOf(last);
+  const ask = text ? askingPart(text) : null;
+  if (!ask) return null;
+  // what the question is about: the text before it in the same message, else earlier in the turn
+  const context = contextBefore(text, ask) || turnContext(messages, at);
+  return { ask, context: context && !ask.includes(context) ? context : "" };
+}
+
+const ASK_PHRASES = /\b(should i|shall i|do you want|would you like|want me to|which (one|option|do you|would you)|let me know|tell me (which|what|if|how|whether)|please (confirm|choose|decide|reply|advise|review)|can you (confirm|check|share|provide)|could you (confirm|check|share|provide)|your call|up to you|waiting for (you|your)|i need (you|your)|need your (input|decision|approval|go-ahead|ok)|ok to (proceed|go ahead)|go ahead\?)/i;
+
+// code blocks never count; inline code keeps its text (file names carry the context) minus any "?"
+const proseOf = (text) => text.replace(/```[\s\S]*?```/g, " ").replace(/`([^`\n]*)`/g, (_, c) => c.replace(/\?/g, ""));
+const plain = (s) => s.replace(/\*\*|__|[*#]|^\s*>/gm, "").replace(/\s+/g, " ").trim();
+
+/** Prose lines without tables or rules, markdown stripped, list items marked with "• ". */
+function proseLines(text) {
+  return proseOf(text).split("\n")
+    .filter((l) => !/^\s*\|/.test(l) && !/^\s*[-=*_]{3,}\s*$/.test(l))
+    .map((l) => plain(l.replace(/^\s*(?:[-*+]|\d+[.)])\s+/, "• ")))
+    .filter(Boolean);
+}
+
+/** The closing sentences / list items of `lines`, about two sentences long. */
+function tailSummary(lines, max = 280) {
+  const pieces = [];
+  for (const l of lines) {
+    if (l.startsWith("• ")) pieces.push(l);
+    else pieces.push(...l.split(/(?<=[.!?:;])\s+/).filter(Boolean));
+  }
+  const out = [];
+  let len = 0;
+  for (let i = pieces.length - 1; i >= 0 && len < 160; i--) {
+    const p = pieces[i];
+    if (len + p.length + 1 > max) {
+      if (!out.length) out.unshift("…" + p.slice(-(max - 1)));
+      break;
+    }
+    out.unshift(p);
+    len += p.length + 1;
+  }
+  return out.join(" ").trim();
+}
+
+/** A summary of the text in `text` that comes before the asking excerpt `ask`. */
+function contextBefore(text, ask) {
+  const lines = proseLines(text);
+  const probe = ask.replace(/^…/, "").slice(0, 30);
+  if (!probe) return "";
+  for (let k = lines.length - 1; k >= 0; k--) {
+    const pos = (lines[k] + " " + (lines[k + 1] ?? "")).indexOf(probe);
+    if (pos < 0) continue;
+    const before = lines.slice(0, k);
+    const head = lines[k].slice(0, pos).trim();
+    if (head) before.push(head);
+    return tailSummary(before);
+  }
+  return "";
+}
+
+/** A summary of what the agent wrote in the current turn before message `end`. */
+function turnContext(messages, end) {
+  const texts = [];
+  for (let i = end - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m?.role === "user") break;
+    if (m?.role === "assistant" && !m.toolName) {
+      const t = textOf(m);
+      if (t) texts.unshift(t);
+      if (texts.join(" ").length > 600) break;
+    }
+  }
+  return texts.length ? tailSummary(proseLines(texts.join("\n"))) : "";
+}
+
+function askingPart(text) {
+  const prose = proseOf(text).trim();
+  if (!prose) return null;
+  const tail = prose.slice(-700);
+  const paragraphs = tail.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  const lastPara = paragraphs[paragraphs.length - 1] ?? "";
+  const lines = tail.split("\n").map((l) => l.trim()).filter(Boolean);
+  // only the closing paragraph counts: a "?" or a phrase further up is part of the report,
+  // not a question to you; table rows and headings are never questions
+  const closing = lastPara.split("\n").filter((l) => !/^\s*(\||#)/.test(l)).join(" ").trim();
+  const endsWithQuestion = /\?[\s*_)\]"'”’]*$/.test(closing);
+  const asks = endsWithQuestion || ASK_PHRASES.test(closing);
+  if (!asks) return null;
+  // show the sentence(s) that ask: the last line holding a "?" or the last paragraph
+  const withQ = [...lines].reverse().find((l) => l.includes("?"));
+  const excerpt = plain((withQ && lines.slice(-4).includes(withQ) ? withQ : lastPara).replace(/^\s*(?:[-*+]|\d+[.)])\s+/gm, ""));
+  return excerpt.length > 320 ? "…" + excerpt.slice(-319) : excerpt;
+}
+
+function lastUserText(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) if (messages[i]?.role === "user") return textOf(messages[i]);
+  return "";
+}
+
+/**
+ * The Activity list: the text of the chat session, newest first, worded by the view:
+ *   { t, kind: "you", text }  your message
+ *   { t, kind: "say", text }  the agent's message
+ *   { t, kind: "ask", text }  a question the agent asked you (asktool)
+ * Subagents' own messages, tool calls and commands are left out; `lastToolCall` gives the newest
+ * tool call to the tooltip.
+ */
+function activityLog(messages) {
+  const out = [];
+  const line = (m) => textOf(m).replace(/\s+/g, " ").slice(0, 140);
+  for (const m of messages) {
+    if (parentCallOf(m)) continue; // a subagent's own messages are not part of the chat
+    const at = ts(m?.createdAt ?? m?.created_at);
+    if (m?.role === "user" && textOf(m)) out.push({ t: at, kind: "you", text: line(m) });
+    else if (m?.role === "assistant" && !m.toolName && textOf(m)) out.push({ t: at, kind: "say", text: line(m) });
+    for (const b of blocksOf(m)) {
+      if (b?.name === "asktool") out.push({ t: at, kind: "ask", text: str(arr(b.args?.questions)[0]?.question).replace(/\s+/g, " ").slice(0, 140) });
+    }
+  }
+  return out.slice(-12).reverse();
+}
+
+/** The newest tool call in the transcript, for the tooltip: { t, tool, target, running } or null. */
+function lastToolCall(messages) {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    const b = blocksOf(m).filter((x) => x?.name && x?.type !== "text" && x.name !== "Task" && x.name !== "asktool").pop();
+    if (b) return { t: ts(m?.createdAt ?? m?.created_at), tool: str(b.name), target: toolTarget(b.args ?? b.input), running: !b.completedAt };
+  }
+  return null;
+}
+
+/**
+ * Subagents are remembered across polls: a long turn can push a Task call out of the
+ * transcript window while the subagent keeps running. Once the agent stops, whatever was
+ * still marked running is shown as done.
+ */
+function mergeSubs(previous, fresh, running) {
+  const byId = new Map(arr(previous).map((x) => [x.id, x]));
+  // a subagent's messages can scroll out of the transcript window: its tokens never go down
+  for (const x of fresh) {
+    const prev = byId.get(x.id);
+    byId.set(x.id, { ...prev, ...x, tokens: Math.max(prev?.tokens ?? 0, x.tokens ?? 0) });
+  }
+  const freshIds = new Set(fresh.map((x) => x.id));
+  const out = [];
+  for (const x of byId.values()) {
+    if (freshIds.has(x.id)) out.push(x);
+    else if (x.status === "run") out.push(running ? x : { ...x, status: "done" });
+  }
+  // when the agent itself is idle nothing under it can still be running
+  return running ? out : out.map((x) => (x.status === "run" ? { ...x, status: "done" } : x));
+}
+
+// ---------- the radar model ----------
+async function poll() {
+  const active = await pi.session.getActive().catch(() => null);
+  const activeSessionId = str(active?.sessionId) || null;
+  if (Date.now() - listAt > LIST_MS || !sessionList.length) {
+    sessionList = sessionsFrom(await op("session/list"));
+    sessionList.sort((a, b) => b.updatedAt - a.updatedAt);
+    listAt = Date.now();
+  }
+  const list = sessionList.filter((s) => Date.now() - s.updatedAt < STALE_MS || s.id === activeSessionId);
+  const candidates = list.slice(0, CANDIDATES);
+  // every pending Plan / Goal approval, in one read: a session waiting for approval is always
+  // watched, even when its runtime was disposed and agent/getStatus no longer reports it
+  const pendingPlans = new Map();
+  for (const p of plansFrom(await op("plans/pending", [{}]).catch(() => null))) {
+    const sid = str(p.sessionId);
+    if (sid && !pendingPlans.has(sid)) pendingPlans.set(sid, p);
+  }
+  for (const s of sessionList) {
+    const m = memory.get(s.id);
+    const keep = s.id === activeSessionId || m?.running || m?.attention || pendingPlans.has(s.id) || outbox.has(s.id);
+    if (keep && !candidates.some((c) => c.id === s.id)) candidates.push(s);
+  }
+
+  const now = Date.now();
+  const agents = [];
+  for (const s of candidates) {
+    const status = (await op("agent/getStatus", [s.id]).catch(() => null))?.status ?? {};
+    let running = status.isRunning === true;
+    // the turn is over: the next queued message goes out now and starts the next one
+    if (!running && outbox.get(s.id)?.length) running = await deliverQueued(s.id);
+    const isActive = s.id === activeSessionId;
+    const mem = memory.get(s.id) ?? { running: false, subCount: 0, attention: "", lastActive: 0 };
+    if (running) mem.lastActive = now;
+    const pendingPlan = pendingPlans.get(s.id);
+    const planKey = str(pendingPlan?.id) || str(status.pendingPlanId) || (status.planningState === "awaiting_approval" ? "awaiting" : "");
+    const lastSeen = Math.max(mem.lastActive || 0, s.updatedAt || 0);
+    const recent = now - lastSeen < RECENT_MS;
+    if (!running && !planKey) {
+      // idle: the transcript only needs reading once after it changed (and once the second idle
+      // poll has settled the subagents, or they would stay "running" in the cached picture)
+      const cached = mem.agent && mem.updatedAt === s.updatedAt && !mem.running && (mem.idleStreak || 0) >= 2 && mem.planKey === planKey && mem.wasActive === isActive;
+      const keepFor = mem.attention === "need" ? REPLY_KEEP_MS : RECENT_MS;
+      if (cached) {
+        if (now - lastSeen < keepFor) agents.push(...[mem.agent, ...arr(mem.mains)].map((x) => ({ ...x, active: isActive })));
+        continue;
+      }
+      if (now - (s.updatedAt || 0) > REPLY_KEEP_MS) { memory.set(s.id, { ...mem, running: false, attention: "" }); continue; }
+    }
+    const detail = await op("session/get", [{ id: s.id, messageLimit: 60 }]).catch(() => null);
+    const messages = messagesFrom(detail);
+    // a new, empty session (host title "New task") has nothing to show: keep it off the radar
+    // (a failed read is not an empty session; one with queued messages stays)
+    if (detail && !messages.length && !running && !planKey && !outbox.get(s.id)?.length) continue;
+
+    // open question cards and permission prompts, answerable from the drawer; without the host
+    // read (older PI-Desktop, or a native-pi session it does not track) the transcript still
+    // shows an open question, which can then only be answered in the session
+    const interactive = running ? await pendingInteractive(s.id) : null;
+    const hostKnows = interactive && !s.id.startsWith("native-pi:");
+    const question = !running ? null
+      : hostKnows ? arr(interactive.asks).map((x) => askOf(x, messages)).find(Boolean) ?? null
+      : pendingQuestionFrom(messages);
+    const permission = hostKnows ? arr(interactive.permissions).map(permissionOf).find(Boolean) ?? null : null;
+    let plan = pendingPlan ? planOf(pendingPlan) : null;
+    if (!plan && planKey) {
+      // the runtime reports a pending plan the global read did not carry: ask for this session
+      const pending = await op("plans/pending", [{ sessionId: s.id }]).catch(() => null);
+      const p = plansFrom(pending).find((x) => !x?.sessionId || x.sessionId === s.id);
+      if (p) plan = planOf(p);
+    }
+    // a turn boundary can read as idle for one poll while background subagents keep running:
+    // only after two idle polls in a row are the remaining subagents treated as finished
+    mem.idleStreak = running ? 0 : (mem.idleStreak || 0) + 1;
+    // a subagent from an earlier turn only stays while it was seen running in this watch: a
+    // transcript that never recorded its end must not bring it back turn after turn
+    const prevRun = new Set(arr(mem.subs).filter((x) => x.status === "run").map((x) => x.id));
+    const fresh = delegationsFrom(messages).filter((x) => !x.earlier || prevRun.has(x.id)).map(({ earlier, ...x }) => x);
+    const subs = mergeSubs(mem.subs, fresh, running || mem.idleStreak < 2);
+    mem.subs = subs;
+    mem.toolSeen = mem.toolSeen ?? new Map();
+    const toolTok = toolTokens(messages, mem.toolSeen);
+    const awaiting = !running && !question && !plan ? awaitingReply(messages) : null;
+    const asked = awaiting?.ask ?? null;
+    // once you have opened the session and seen the question, leaving it means "not now":
+    // the agent drops back to finished and fades out like any other
+    if (asked && isActive) mem.seenReply = asked;
+    const reply = asked && !(mem.seenReply === asked && !isActive) ? asked : null;
+    if (!asked) mem.seenReply = "";
+    // a question card waits for your answer ("answer"); a permission prompt or a question in the
+    // agent's last message needs you ("need"); a plan or goal waits for approval ("approve")
+    const statusKey = question ? "answer" : permission || reply ? "need" : plan ? "approve" : running ? "run" : "done";
+    const title = s.title; // empty: the view shows "Untitled session" in the user's language
+    const agent = {
+      id: s.id,
+      // the view names the neuron after the session title, with what it works on below
+      desc: describeTask(messages, title),
+      title,
+      task: lastUserText(messages).slice(0, 220) || title,
+      status: statusKey,
+      model: str(status.modelId) || s.model,
+      effort: s.effort, // the session's thinking level ("effort"), from session/list
+      toolTokens: toolTok,
+      active: s.id === activeSessionId,
+      question,
+      permission,
+      reply,
+      replyContext: reply ? awaiting.context : "",
+      plan,
+      subs,
+      log: activityLog(messages),
+      lastCall: lastToolCall(messages),
+    };
+    // subagents of an earlier turn that still run get one main-agent cluster per turn (see
+    // groupsOf); the latest turn's subagents stay around the session's own cluster
+    const groups = [...new Set(subs.map((x) => x.group ?? ""))];
+    const startOf = new Map(groupsOf(messages).filter(Boolean).map((g) => [g.key, g.start]));
+    const latest = groups.reduce((a, g) => ((startOf.get(g) ?? -1) > (startOf.get(a) ?? -1) ? g : a), groups[0]);
+    const mains = groups.length > 1
+      ? groups.filter((g) => g !== latest).map((g) => mainAgent(s.id, g, subs.filter((x) => (x.group ?? "") === g), messages, agent.model, agent.effort, isActive))
+      : [];
+    if (mains.length) agent.subs = subs.filter((x) => (x.group ?? "") === latest);
+    // a plainly finished agent only lingers for a while; one waiting for your reply stays
+    if (statusKey !== "done" || recent) agents.push(agent, ...mains);
+
+    // edges that may open the radar
+    const runCount = subs.filter((x) => x.status === "run").length;
+    const becameRunning = running && !mem.running;
+    const newSubagent = runCount > (mem.subCount || 0);
+    // a new question card or permission prompt is news even while the agent already needed you
+    const needId = str(question?.requestId || permission?.requestId);
+    const waiting = WAITING.includes(statusKey);
+    const needsYouNow = waiting && (mem.attention !== statusKey || (needId && mem.needId !== needId));
+    memory.set(s.id, { ...mem, running, subCount: runCount, attention: waiting ? statusKey : "", needId, updatedAt: s.updatedAt, planKey, agent, mains, wasActive: isActive });
+    // the first poll only learns the baseline: agents already running at load do not pop the view
+    if (!firstPoll) maybeReveal({ becameRunning, newSubagent, needsYouNow });
+    if (!firstPoll && needsYouNow) void notifyNeed(agent);
+  }
+
+  firstPoll = false;
+  model = { agents: withQueues(agents), error: null, events };
+  // poll fast only while an agent is actually running (or a message waits for it); one waiting
+  // for you is picked up by the turnEnded / activated events (and the slow poll) as soon as you act
+  return agents.some((a) => a.status === "run") || outbox.size > 0;
+}
+
+// what a notification says, in the user's language
+const NOTE = {
+  en: { question: "{title} has a question for you", permission: "{title} asks permission to run {tool}", reply: "{title} is waiting for your reply", plan: "{title}: plan waiting for approval", goal: "{title}: goal waiting for approval", untitled: "Untitled session" },
+  zh: { question: "{title} 有问题要问你", permission: "{title} 请求允许运行 {tool}", reply: "{title} 正在等待你的回复", plan: "{title}：计划等待批准", goal: "{title}：目标等待批准", untitled: "未命名会话" },
+};
+
+/**
+ * Tell the user an agent needs them: a system notification and an in-app notice.
+ * The in-app notice always goes out: a system notification can report "shown" and still never
+ * appear (notifications off or never allowed for PI-Desktop, Focus mode), and it is easy to miss
+ * while you work in PI-Desktop. Each attempt is logged (plugin.stdio in the plugin log), because
+ * the host does not log notification calls.
+ */
+async function notifyNeed(agent) {
+  if (!notifyOn) return;
+  const lang = await Promise.resolve(pi.app?.getLocale?.()).catch(() => "");
+  const L = str(lang).toLowerCase().startsWith("zh") ? NOTE.zh : NOTE.en;
+  const kind = agent.question ? "question" : agent.permission ? "permission" : agent.reply ? "reply" : agent.plan?.kind === "goal" ? "goal" : "plan";
+  const title = L[kind].replace("{title}", clipText(agent.title || L.untitled, 60)).replace("{tool}", str(agent.permission?.tool));
+  const perm = agent.permission ? [agent.permission.target, agent.permission.reason].filter(Boolean).join(" · ") : "";
+  const body = clipText(str(agent.question?.q || perm || agent.reply || agent.plan?.title || agent.plan?.question || agent.desc).replace(/\s+/g, " ").trim(), 180);
+  let system;
+  try {
+    const r = await pi.ui.showNativeNotification({ title, body });
+    system = r?.shown ? "shown" : `not shown (${str(r?.permission) || "unknown"})`;
+  } catch (error) {
+    system = `failed (${str(error?.code || error?.message) || "error"})`;
+  }
+  let notice;
+  try {
+    await pi.ui.notify({ title, body });
+    notice = "shown";
+  } catch (error) {
+    notice = `failed (${str(error?.code || error?.message) || "error"})`;
+  }
+  try { console.log(`notify ${kind} for session ${agent.id}: system ${system}, in-app ${notice}`); } catch { /* logging is best-effort */ }
+}
+
+function maybeReveal({ becameRunning, newSubagent, needsYouNow }) {
+  const want =
+    (autoOpen === "working" && (becameRunning || newSubagent || needsYouNow)) ||
+    (autoOpen === "subagents" && newSubagent) ||
+    (autoOpen === "attention" && needsYouNow);
+  // something needing you always gets through; the cooldown only damps "started working"
+  if (!want || (!needsYouNow && Date.now() - lastReveal < REOPEN_COOLDOWN_MS)) return;
+  lastReveal = Date.now();
+  pi.ui.revealView({ viewId: VIEW_ID }).catch(() => {});
+}
+
+async function loop() {
+  if (stopped) return;
+  if (inFlight) { rerun = true; return; } // never two polls at once
+  clearTimeout(timer);
+  inFlight = true;
+  let busy = false;
+  try {
+    busy = await poll();
+  } catch (error) {
+    model = { ...model, error: String(error?.message ?? error) };
+  } finally {
+    inFlight = false;
+  }
+  if (stopped) return;
+  if (rerun) { rerun = false; timer = setTimeout(loop, 0); return; }
+  timer = setTimeout(loop, busy ? FAST_MS : SLOW_MS);
+}
+function pollSoon() {
+  if (stopped) return;
+  listAt = 0;
+  if (inFlight) { rerun = true; return; }
+  clearTimeout(timer);
+  timer = setTimeout(loop, 150);
+}
+
+// ---------- actions from the drawer ----------
+async function act({ action, sessionId, text, proposal, decision, requestId, answers }) {
+  const id = str(sessionId);
+  if (!id) return { ok: false, message: "sessionId required" };
+  switch (action) {
+    case "open":
+      await op("session/open", [id]);
+      return { ok: true };
+    case "send": {
+      const t = str(text).trim();
+      if (!t) return { ok: false, message: "empty message" };
+      // a running agent cannot take a new turn (the host answers AGENT_BUSY): the message waits
+      // here and goes out when the turn ends; one already waiting keeps its place in the line
+      if (memory.get(id)?.running || outbox.get(id)?.length) return enqueue(id, t);
+      try {
+        await op("agent/prompt", [{ sessionId: id, content: t }]);
+      } catch (error) {
+        if (isBusyError(error)) return enqueue(id, t);
+        throw error;
+      }
+      // your reply answers the agent's question: it is working again, not waiting for you
+      settle(id, { reply: null, status: "run" });
+      return { ok: true, delivery: "sent" };
+    }
+    case "plan": {
+      const p = proposal ?? {};
+      const approve = decision === "approve";
+      if (!str(p.proposalId) || !str(p.turnId) || !str(p.toolCallId)) return { ok: false, code: "not_pending", message: "This approval is no longer pending" };
+      // approving runs the plan in the permission mode the session already has
+      const mode = sessionList.find((s) => s.id === id)?.permissionMode;
+      await op("plans/resolve", [{
+        proposalId: str(p.proposalId), sessionId: id, turnId: str(p.turnId), toolCallId: str(p.toolCallId),
+        action: approve ? "approve" : "reject",
+        ...(typeof p.version === "number" ? { version: p.version } : {}),
+        ...(approve ? { targetPermissionMode: PERMISSION_MODES.includes(mode) ? mode : "ask" } : {}),
+      }], true);
+      settle(id, { plan: null, status: approve ? "run" : "done" });
+      return { ok: true };
+    }
+    case "answer": {
+      // your answers to a question card: per question the picked labels (and typed text), or
+      // null to skip it; all null declines the card. The host asks you to allow the call.
+      const rid = str(requestId);
+      if (!rid) return { ok: false, code: "not_pending", message: "This question is no longer open" };
+      if (!Array.isArray(answers) || !answers.length || !answers.every(validAnswer)) return { ok: false, message: "answers must list, per question, the chosen options or null" };
+      await op("agent/askTool/resolve", [{ sessionId: id, requestId: rid, answers: answers.map((x) => (x === null ? null : x.map((v) => str(v).trim()).filter(Boolean))) }], true);
+      settle(id, { question: null, status: "run" });
+      return { ok: true };
+    }
+    case "permission": {
+      const rid = str(requestId);
+      if (!rid) return { ok: false, code: "not_pending", message: "This permission request is no longer open" };
+      if (!PERMISSION_DECISIONS.includes(decision)) return { ok: false, message: `unknown decision: ${decision}` };
+      await op("tool/resolvePermission", [{ requestId: rid, decision }], true);
+      settle(id, { permission: null, status: "run" });
+      return { ok: true };
+    }
+    case "stop":
+      await op("agent/stop", [{ sessionId: id }]);
+      return { ok: true };
+    case "abort":
+      await op("agent/abort", [{ sessionId: id }]);
+      return { ok: true };
+    default:
+      return { ok: false, message: `unknown action: ${action}` };
+  }
+}
+
+const PERMISSION_MODES = ["ask", "accept-edits", "auto"];
+const WAITING = ["need", "answer", "approve"]; // states in which an agent waits for you
+const PERMISSION_DECISIONS = ["allow-once", "allow-session", "deny"];
+const validAnswer = (x) => x === null || (Array.isArray(x) && x.length <= 20 && x.every((v) => typeof v === "string" && v.length <= 4000));
+
+// ---------- messages waiting for the agent's turn to end ----------
+const OUTBOX_MAX = 20; // per session
+const EVENTS_MAX = 20;
+/** The host refuses a new turn while one runs: AGENT_BUSY, or its message. */
+const isBusyError = (e) => [e?.code, e?.errorCode, e?.data?.errorCode].includes("AGENT_BUSY") || /AGENT_BUSY|already has an active turn/i.test(str(e?.message));
+
+function enqueue(id, text) {
+  const q = outbox.get(id) ?? [];
+  if (q.length >= OUTBOX_MAX) return { ok: false, code: "queue_full", message: "Too many queued messages" };
+  q.push({ id: `q${++outboxSeq}`, text, t: Date.now() });
+  outbox.set(id, q);
+  publishQueues();
+  return { ok: true, delivery: "queued", position: q.length };
+}
+
+/** Send the oldest queued message of an idle session. True when the agent took it. */
+async function deliverQueued(id) {
+  const q = outbox.get(id);
+  const item = q?.[0];
+  if (!item) return false;
+  let sent = false;
+  try {
+    await op("agent/prompt", [{ sessionId: id, content: item.text }]);
+    q.shift();
+    sent = true;
+    pushEvent({ kind: "delivered", sessionId: id, text: item.text });
+  } catch (error) {
+    if (isBusyError(error)) return false; // the turn is not over after all: try again later
+    q.shift();
+    pushEvent({ kind: "failed", sessionId: id, text: item.text, message: str(error?.message ?? error) });
+  }
+  if (!q.length) outbox.delete(id);
+  return sent;
+}
+
+function pushEvent(e) {
+  events = [...events, { id: `e${++outboxSeq}`, t: Date.now(), ...e }].slice(-EVENTS_MAX);
+  model = { ...model, events };
+}
+
+/** Show each session's queued messages on its agent, at once. */
+function publishQueues() {
+  model = { ...model, agents: withQueues(model.agents), events };
+}
+const withQueues = (agents) => agents.map((a) => (a.child ? a : { ...a, queued: (outbox.get(a.id) ?? []).map((x) => ({ ...x })) }));
+
+/** Reflect an action in the model at once; the next poll confirms it. */
+function settle(id, patch) {
+  model = { ...model, agents: model.agents.map((a) => (a.id === id ? { ...a, ...patch } : a)) };
+  const mem = memory.get(id);
+  if (mem) memory.set(id, { ...mem, attention: "", needId: "", seenReply: "", planKey: "", agent: undefined });
+}
+
+async function onPanelInvoke(channel, payload) {
+  try {
+    // the state only carries the picture's key; the view asks for the picture when the key changes.
+    // `version` lets a view left open across an update see that main.js changed and reload itself.
+    if (channel === "radar.state") return { ok: true, model, me: { key: me.key }, version: VERSION };
+    if (channel === "radar.me") { await avatarJob; return { ok: true, ...me }; }
+    if (channel === "radar.setMe") {
+      const job = avatarJob.then(() => saveAvatar(payload?.image));
+      avatarJob = job.catch(() => {});
+      return await job;
+    }
+    if (channel === "radar.action") {
+      const result = await act(payload ?? {});
+      pollSoon();
+      return result;
+    }
+    return { ok: false, message: `unknown channel: ${channel}` };
+  } catch (error) {
+    return { ok: false, message: String(error?.message ?? error), code: error?.code };
+  }
+}
+
+// ---------- lifecycle ----------
+async function readSettings() {
+  try {
+    const s = await pi.plugin.getSettings();
+    if (["working", "subagents", "attention", "off"].includes(s?.autoOpen)) autoOpen = s.autoOpen;
+    if (typeof s?.notify === "boolean") notifyOn = s.notify;
+  } catch {
+    /* keep the default */
+  }
+}
+
+// ---------- your picture in the centre ----------
+// Chosen by clicking your circle in the radar: the view crops and shrinks the image you pick and
+// sends it as a data URL. It is kept in the plugin's data folder (avatar.json), so it survives
+// restarts; right-clicking your circle removes the picture and its file. No network is used.
+const AVATAR_MAX_CHARS = 2 * 1024 * 1024;
+const AVATAR_DATA = /^data:image\/(png|jpeg|gif|webp);base64,[A-Za-z0-9+/]+=*$/;
+const AVATAR_CACHE = "avatar.json";
+let avatarJob = Promise.resolve();
+
+function setMe(image) {
+  me = { image, key: image ? require("node:crypto").createHash("sha256").update(image).digest("hex").slice(0, 16) : "" };
+}
+
+/** The picture file in the plugin's data folder, or "" when there is no usable folder. */
+async function avatarFile() {
+  const path = require("node:path");
+  try {
+    const dir = str(await pi.plugin.getDataPath());
+    return path.isAbsolute(dir) ? path.join(dir, AVATAR_CACHE) : "";
+  } catch {
+    return "";
+  }
+}
+
+const validAvatar = (image) => AVATAR_DATA.test(image) && image.length <= AVATAR_MAX_CHARS;
+
+/** Load the saved picture at start. A missing or broken file means no picture. */
+async function loadAvatar() {
+  const file = await avatarFile();
+  let image = "";
+  try { image = str(JSON.parse(require("node:fs").readFileSync(file, "utf8"))?.image); } catch { /* none saved */ }
+  setMe(validAvatar(image) ? image : "");
+}
+
+/** Save the picture sent by the view, or remove it (and its file) when `image` is empty. */
+async function saveAvatar(image) {
+  const fs = require("node:fs");
+  image = str(image);
+  if (image && !validAvatar(image)) return { ok: false, message: "use a PNG, JPEG, GIF or WebP image up to 2 MB" };
+  const file = await avatarFile();
+  try {
+    if (file && image) fs.writeFileSync(file, JSON.stringify({ image, savedAt: Date.now() }));
+    else if (file) fs.rmSync(file, { force: true });
+  } catch (error) {
+    return { ok: false, message: `picture not saved: ${error?.message ?? error}` };
+  }
+  setMe(image);
+  return { ok: true, key: me.key };
+}
+
+const onSettings = () => { void readSettings(); };
+
+async function onLoad() {
+  stopped = false;
+  firstPoll = true;
+  timer = setTimeout(loop, 800);
+  avatarJob = loadAvatar();
+  await readSettings();
+  pi.events.on("plugin:settingsChanged", onSettings);
+  pi.events.on("session:turnEnded", pollSoon);
+  pi.events.on("session:activated", pollSoon);
+  try {
+    await pi.commands.register({
+      id: "neural-radar.open",
+      title: "Neural Radar: Open",
+      keywords: ["radar", "agents", "subagents"],
+      run: async () => { await pi.ui.revealView({ viewId: VIEW_ID }); },
+    });
+  } catch {
+    /* the radar still works without the command */
+  }
+}
+
+async function onUnload() {
+  stopped = true;
+  clearTimeout(timer);
+  pi.events.off("plugin:settingsChanged", onSettings);
+  pi.events.off("session:turnEnded", pollSoon);
+  pi.events.off("session:activated", pollSoon);
+  await pi.commands.unregister("neural-radar.open").catch(() => {});
+}
+
+module.exports = { onLoad, onUnload, onPanelInvoke };

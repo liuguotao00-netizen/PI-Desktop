@@ -1,0 +1,349 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title></title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+      body {
+        margin: 0;
+        padding: calc(var(--pi-plugin-titlebar-height, 0px) + 10px) 12px 14px;
+        font: 13px/1.45 system-ui, sans-serif;
+        color: CanvasText;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      h1 {
+        font-size: 13px;
+        font-weight: 650;
+        margin: 0;
+        flex: 1;
+      }
+      .meta {
+        color: GrayText;
+        font-size: 11px;
+        margin-bottom: 8px;
+      }
+      button {
+        font: inherit;
+        font-size: 12px;
+        padding: 3px 9px;
+        border-radius: 6px;
+        border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+      }
+      button:hover {
+        background: color-mix(in srgb, CanvasText 8%, transparent);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        border-top: 1px solid color-mix(in srgb, CanvasText 12%, transparent);
+        padding: 8px 2px;
+        cursor: pointer;
+      }
+      li:hover {
+        background: color-mix(in srgb, CanvasText 5%, transparent);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .name {
+        font-weight: 600;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .status {
+        font-size: 11px;
+        padding: 0 7px;
+        border-radius: 999px;
+        border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+        color: GrayText;
+        white-space: nowrap;
+      }
+      .status.running,
+      .status.queued {
+        color: CanvasText;
+        border-color: color-mix(in srgb, #4c9aff 55%, transparent);
+      }
+      /* Waiting on the user: a real state, not an unknown one. */
+      .status.waiting_permission {
+        color: CanvasText;
+        border-color: color-mix(in srgb, #d29922 65%, transparent);
+      }
+      .status.completed {
+        color: CanvasText;
+        border-color: color-mix(in srgb, #3fb950 55%, transparent);
+      }
+      .status.failed,
+      .status.interrupted {
+        color: CanvasText;
+        border-color: color-mix(in srgb, tomato 60%, transparent);
+      }
+      .sub {
+        color: GrayText;
+        font-size: 11px;
+        margin-top: 2px;
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .id {
+        font-family: ui-monospace, monospace;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+      .result {
+        margin-top: 4px;
+        color: color-mix(in srgb, CanvasText 78%, transparent);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .empty,
+      .err {
+        color: GrayText;
+        padding: 14px 2px;
+      }
+      .err {
+        color: tomato;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1 id="panel-title"></h1>
+      <button id="refresh" type="button"></button>
+    </header>
+    <div class="meta" id="meta"></div>
+    <ul id="list"></ul>
+    <div class="empty" id="empty" hidden></div>
+    <div class="err" id="err" hidden></div>
+    <script>
+      "use strict";
+
+      // Every visible string lives in this table, in both locales, so the panel
+      // follows the app language. Values reach the DOM through textContent only.
+      const COPY = {
+        en: {
+          panelTitle: "Workers",
+          refresh: "Refresh",
+          reading: "Reading…",
+          empty: "No workers yet. Ask the main agent to open a sub-session with SessionTask spawn or spawnIn.",
+          openHint: "Open this session",
+          noActivity: "no activity recorded",
+          countLive: "{count} workers | live status {time}",
+          countCached: "{count} workers | cached, refresh for live status",
+          cardDegraded: " | result card degraded: {list}",
+          openFailed: "Cannot open this session: {message}",
+          readFailed: "Read failed: {message}",
+          refreshFailed: "Refresh failed: {message}",
+          refreshPartial: "Some statuses were not refreshed: {message}",
+          statusRunning: "running",
+          statusQueued: "queued",
+          statusWaitingPermission: "waiting for approval",
+          statusCompleted: "completed",
+          statusFailed: "failed",
+          statusCancelled: "cancelled",
+          statusInterrupted: "interrupted",
+          statusIdle: "idle",
+          statusUnknown: "unknown",
+        },
+        "zh-CN": {
+          panelTitle: "子会话",
+          refresh: "刷新",
+          reading: "正在读取…",
+          empty: "还没有 worker。让主 agent 用 SessionTask 的 spawn 或 spawnIn 开一个子会话。",
+          openHint: "打开这个会话",
+          noActivity: "无活动记录",
+          countLive: "{count} 个 worker｜实时状态 {time}",
+          countCached: "{count} 个 worker｜缓存状态，点刷新读取实时状态",
+          cardDegraded: "｜结果卡降级：{list}",
+          openFailed: "打不开这个会话：{message}",
+          readFailed: "读取失败：{message}",
+          refreshFailed: "刷新失败：{message}",
+          refreshPartial: "部分状态未刷新：{message}",
+          statusRunning: "运行中",
+          statusQueued: "排队中",
+          statusWaitingPermission: "等待授权",
+          statusCompleted: "已完成",
+          statusFailed: "失败",
+          statusCancelled: "已取消",
+          statusInterrupted: "已中断",
+          statusIdle: "空闲",
+          statusUnknown: "未知",
+        },
+      };
+
+      const STATUS_KEYS = {
+        running: "statusRunning",
+        queued: "statusQueued",
+        waiting_permission: "statusWaitingPermission",
+        completed: "statusCompleted",
+        failed: "statusFailed",
+        cancelled: "statusCancelled",
+        interrupted: "statusInterrupted",
+        idle: "statusIdle",
+        unknown: "statusUnknown",
+      };
+
+      // Same rule the plugin center applies to the manifest: a zh tag picks the
+      // Chinese table, everything else falls back to English.
+      function detectLocale() {
+        const tag = String(navigator.language || "en").toLowerCase();
+        return tag.indexOf("zh") === 0 ? "zh-CN" : "en";
+      }
+
+      const LOCALE = detectLocale();
+      const TEXT = COPY[LOCALE] || COPY.en;
+      document.documentElement.lang = LOCALE;
+
+      function t(key, values) {
+        const template = String(TEXT[key] ?? COPY.en[key] ?? key);
+        return template.replace(/\{([A-Za-z0-9_]+)\}/g, (match, name) =>
+          values && name in values ? String(values[name]) : match,
+        );
+      }
+
+      const bridge = window.pluginBridge;
+      const listEl = document.getElementById("list");
+      const metaEl = document.getElementById("meta");
+      const emptyEl = document.getElementById("empty");
+      const errEl = document.getElementById("err");
+      const refreshEl = document.getElementById("refresh");
+      const titleEl = document.getElementById("panel-title");
+
+      document.title = t("panelTitle");
+      titleEl.textContent = t("panelTitle");
+      refreshEl.textContent = t("refresh");
+      metaEl.textContent = t("reading");
+      emptyEl.textContent = t("empty");
+
+      function setError(message) {
+        errEl.textContent = message || "";
+        errEl.hidden = !message;
+      }
+
+      function statusLabel(value) {
+        const key = STATUS_KEYS[value];
+        return key ? t(key) : String(value || t("statusUnknown"));
+      }
+
+      function render(payload) {
+        const workers = Array.isArray(payload?.workers) ? payload.workers : [];
+        listEl.replaceChildren();
+        emptyEl.hidden = workers.length > 0;
+        const degraded = payload?.cardChannels && Object.keys(payload.cardChannels).length
+          ? t("cardDegraded", {
+            list: Object.entries(payload.cardChannels).map(([k, v]) => `${k}=${v}`).join(", "),
+          })
+          : "";
+        const when = payload?.refreshedAt ? new Date(payload.refreshedAt).toLocaleTimeString() : "";
+        metaEl.textContent = workers.length
+          ? `${when ? t("countLive", { count: workers.length, time: when }) : t("countCached", { count: workers.length })}${degraded}`
+          : "";
+        for (const worker of workers) {
+          const li = document.createElement("li");
+          li.title = t("openHint");
+
+          const row = document.createElement("div");
+          row.className = "row";
+          const name = document.createElement("span");
+          name.className = "name";
+          name.textContent = worker.title || worker.sessionId;
+          const status = document.createElement("span");
+          status.className = `status ${worker.status || "unknown"}`;
+          status.textContent = statusLabel(worker.status);
+          row.append(name, status);
+
+          const sub = document.createElement("div");
+          sub.className = "sub";
+          const activity = document.createElement("span");
+          activity.textContent = worker.lastActivity || t("noActivity");
+          const id = document.createElement("span");
+          id.className = "id";
+          id.textContent = worker.sessionId;
+          sub.append(activity, id);
+          if (worker.projectPath) {
+            const project = document.createElement("span");
+            project.className = "id";
+            project.textContent = worker.projectPath;
+            sub.append(project);
+          }
+
+          li.append(row, sub);
+          if (worker.result) {
+            const result = document.createElement("div");
+            result.className = "result";
+            result.textContent = worker.result;
+            li.append(result);
+          }
+          li.addEventListener("click", () => openWorker(worker.sessionId));
+          listEl.append(li);
+        }
+      }
+
+      async function openWorker(sessionId) {
+        setError("");
+        try {
+          await bridge.invoke("workers.open", { sessionId });
+        } catch (error) {
+          setError(t("openFailed", { message: String(error?.message || error) }));
+        }
+      }
+
+      async function load() {
+        setError("");
+        try {
+          render(await bridge.invoke("workers.list", {}));
+        } catch (error) {
+          setError(t("readFailed", { message: String(error?.message || error) }));
+        }
+      }
+
+      async function refresh() {
+        refreshEl.disabled = true;
+        setError("");
+        try {
+          const payload = await bridge.invoke("workers.refresh", {});
+          render(payload);
+          if (payload?.error) setError(t("refreshPartial", { message: payload.error }));
+        } catch (error) {
+          setError(t("refreshFailed", { message: String(error?.message || error) }));
+        } finally {
+          refreshEl.disabled = false;
+        }
+      }
+
+      refreshEl.addEventListener("click", refresh);
+      // A worker's turn end changes a row, and the host broadcasts the event to
+      // this page too; re-reading the cached rows costs no host calls.
+      bridge.on("session:turnEnded", load);
+      void load();
+    </script>
+  </body>
+</html>

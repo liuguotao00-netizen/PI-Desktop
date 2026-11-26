@@ -1,0 +1,11 @@
+{
+  "id": "bone.openpencil",
+  "repository": "https://github.com/taokoplay/bone-openpencil-plugin",
+  "branch": "HEAD",
+  "commit": "4bf1fa7",
+  "version": "0.2.0",
+  "tarball": "https://api.github.com/repos/taokoplay/bone-openpencil-plugin/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:39.494Z",
+  "mode": "source-snapshot",
+  "sha256": "fa34f5fb0124290652cd2d83d94f8b419132f626b04c3a3de86de60212c345fd"
+}

@@ -1,0 +1,3295 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v3" />
+    <!--
+      宿主在 DOMContentLoaded 时「只采样一次」body 的计算颜色，用它给窗口控制胶囊
+      （最小化 / 最大化 / 关闭）上色；而面板主题是异步从 app.getAppearance() 拿到的。
+      如果采样发生在主题落地之前，胶囊就会拿到错误的对比色 —— 在浅色宿主下表现为
+      「白底白图标」，三个按钮看起来完全透明。这里在解析阶段先按窗口的
+      prefers-color-scheme 同步定一次主题，保证宿主采样时 body 已经是正确颜色。
+      之后仍由下面主脚本里的 applyAppearance() 用宿主给的主题值校正。
+    -->
+    <script>
+      (function () {
+        try {
+          var light = window.matchMedia("(prefers-color-scheme: light)").matches;
+          document.documentElement.dataset.base = light ? "light" : "dark";
+        } catch (error) {
+          /* 拿不到媒体查询就保持 CSS 默认（深色） */
+        }
+      })();
+    </script>
+    <title>小米笔记</title>
+    <!--
+      渲染依赖：全部是经典脚本（非 module）——宿主以 file:// 加载面板，
+      `<script type="module">` 会被 Chromium 的 CORS 策略拒绝。
+      顺序不能变：markdown-it → 插件 → highlight.js/KaTeX → 自己的渲染模块。
+      这些都是随包离线加载的，不发任何网络请求。
+    -->
+    <!--
+      代码高亮的配色跟**面板主题**（html[data-base]）而不是操作系统。
+      宿主主题可以跟系统不一致（比如宿主设了深色但系统是浅色），
+      用 media 查询会挑错配色，高亮文字在深色底上会看不见。
+    -->
+    <link rel="stylesheet" href="vendor/hljs-light.css" />
+    <link rel="stylesheet" href="vendor/hljs-dark.css" id="hljsTheme" disabled />
+    <link rel="stylesheet" href="vendor/katex/katex.min.css" />
+    <script src="vendor/markdown-it.min.js"></script>
+    <script src="vendor/markdown-it-task-lists.min.js"></script>
+    <script src="vendor/highlight.min.js"></script>
+    <script src="vendor/katex/katex.min.js"></script>
+    <script src="lib/markdown.js"></script>
+    <script src="lib/editor.js"></script>
+    <script src="lib/outline.js"></script>
+    <script src="lib/assets.js"></script>
+    <script src="lib/export.js"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+        /*
+         * 宿主窗口控制胶囊（最小化/最大化/关闭）固定在窗口右上角，
+         * 宽约 96px、贴着右边 8px。顶栏右侧至少留这么多空间，
+         * 才能保证自己的按钮不与它重叠。
+         */
+        --pi-capsule-space: 116px;
+        /*
+         * 窗口控制胶囊的自适应底衬。正常情况下为 transparent（完全不改变外观）；
+         * 只有当宿主采样到的页面颜色与当前页面底色不一致时（宿主主题被显式设成
+         * 与系统偏好相反，导致胶囊图标颜色与页面撞色），才在胶囊下方垫一层高对比
+         * 底衬，保证最小化/最大化/关闭始终清晰可见。几何与宿主胶囊一一对应：
+         * top:9px right:8px，96×28，圆角 999px（见宿主 preload 的 .capsule 规则）。
+         */
+        --pi-capsule-backdrop: transparent;
+        --bg: #181818;
+        --surface: #1f1f1f;
+        --surface-2: #242424;
+        --hover: color-mix(in oklab, #ffffff 6%, transparent);
+        --active: color-mix(in oklab, #ffffff 11%, transparent);
+        --fg: #ffffff;
+        --secondary: color-mix(in oklab, #ffffff 72%, transparent);
+        --muted: color-mix(in oklab, #ffffff 50%, transparent);
+        --faint: color-mix(in oklab, #ffffff 34%, transparent);
+        --border: color-mix(in oklab, #ffffff 8%, transparent);
+        --border-strong: color-mix(in oklab, #ffffff 16%, transparent);
+        --accent: #ff6a00;
+        --accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
+        --danger: #ff6764;
+        --ok: #4ec97a;
+        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      }
+      :root[data-base="light"] {
+        color-scheme: light;
+        --bg: #ffffff;
+        --surface: #f7f7f7;
+        --surface-2: #f0f0f0;
+        --hover: color-mix(in oklab, #1a1c1f 5%, transparent);
+        --active: color-mix(in oklab, #1a1c1f 9%, transparent);
+        --fg: #1a1c1f;
+        --secondary: color-mix(in oklab, #1a1c1f 76%, transparent);
+        --muted: #5d5d5d;
+        --faint: #9a9a9a;
+        --border: color-mix(in oklab, #1a1c1f 7%, transparent);
+        --border-strong: color-mix(in oklab, #1a1c1f 14%, transparent);
+        --accent: #ff6a00;
+        --danger: #d92b26;
+        --ok: #1f9d4e;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      /*
+       * html 铺满并带上页面底色：宿主在无边框窗口的「内容区」按 -webkit-app-region
+       * 判定可拖拽范围，窗口最外沿因此仍能拖动；html 有实底色也保证无边框窗口不会
+       * 出现透明边。真正的 resize 热区由操作系统的无边框窗口提供。
+       */
+      html { background: var(--bg); }
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+          "Microsoft YaHei", system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #app { height: 100%; display: flex; flex-direction: column; }
+      button, input, textarea, select { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+      button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+        outline: 2px solid color-mix(in oklab, var(--accent) 60%, transparent);
+        outline-offset: 1px;
+      }
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-thumb {
+        border: 3px solid transparent; border-radius: 8px;
+        background-clip: content-box;
+        background-color: color-mix(in oklab, var(--fg) 18%, transparent);
+      }
+      ::-webkit-scrollbar-thumb:hover { background-color: color-mix(in oklab, var(--fg) 30%, transparent); }
+      ::-webkit-scrollbar-track { background: transparent; }
+
+      /* ── 顶栏 ── */
+      /*
+       * 顶栏布局要点（与宿主的窗口控制胶囊共存）：
+       *   - 宿主在窗口顶部保留 46px 高的透明拖拽带，并在其中右上角画一组
+       *     固定的 最小化/最大化/关闭 胶囊（top:9px right:8px，约 96×28）。
+       *   - 我们的按钮绝不能落在那一带里，否则会和胶囊叠在一起、既看不清也点不动。
+       *     所以顶栏整体下移 titlebar-height，并且右侧留出胶囊宽度（--pi-capsule-space）。
+       *   - titlebar-height 在普通面板里由宿主注入为 46px；预览/嵌入场景为 0。
+       */
+      .topbar {
+        position: relative;
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 52px;
+        /* 上：宿主保留带；右：窗口控制胶囊的宽度 + 间距 */
+        padding: var(--pi-plugin-titlebar-height, 46px) var(--pi-capsule-space, 116px) 0 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        -webkit-app-region: drag;
+      }
+      /* 顶栏里的实际控件行：位于窗口控制胶囊下方的安全高度处 */
+      .topbar-row {
+        display: flex; align-items: center; gap: 8px;
+        width: 100%;
+      }
+      .topbar .brand {
+        display: flex; align-items: center; gap: 8px;
+        font-weight: 600; letter-spacing: -0.01em; white-space: nowrap;
+      }
+      .brand-dot {
+        width: 9px; height: 9px; border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-soft);
+      }
+      .topbar > * { -webkit-app-region: no-drag; }
+      /*
+       * 胶囊底衬：默认不绘制（透明）。只有当 JS 判定宿主采样色与当前底色冲突时才
+       * 显示，且严格落在宿主胶囊的几何范围内，不与顶栏按钮重叠。
+       */
+      .topbar::after {
+        content: "";
+        position: absolute;
+        top: 9px; right: 8px;
+        width: 96px; height: 28px;
+        border-radius: 999px;
+        background: var(--pi-capsule-backdrop);
+        pointer-events: none;
+        z-index: 2;
+      }
+      .spacer { flex: 1; min-width: 0; }
+      .status {
+        display: flex; align-items: center; gap: 6px;
+        /* 窄面板时先压缩状态文字，而不是把右侧按钮挤出可视区 */
+        flex: 0 1 auto; min-width: 0;
+        color: var(--muted); font-size: 11.5px; white-space: nowrap;
+      }
+      .status #statusText { overflow: hidden; text-overflow: ellipsis; }
+      .status .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); flex: 0 0 auto; }
+      .status[data-state="ok"] .dot { background: var(--ok); }
+      .status[data-state="busy"] .dot { background: var(--accent); animation: pulse 1.2s ease-in-out infinite; }
+      .status[data-state="warn"] .dot { background: var(--danger); }
+      @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+      /* 版本号：面板右上角，与清单里的 version 同源（由 mn.ping 回填） */
+      .version {
+        color: var(--faint); font-size: 11px; white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      /* 窄面板优先保按钮，版本号是最不重要的一条信息，先让位 */
+      @media (max-width: 700px) { .version { display: none; } }
+
+      .btn {
+        border: 1px solid var(--border-strong);
+        border-radius: 7px;
+        padding: 4px 10px;
+        background: transparent;
+        color: var(--secondary);
+        font-size: 12px;
+        transition: background .14s ease, color .14s ease, border-color .14s ease;
+        white-space: nowrap;
+      }
+      .btn:hover:not(:disabled) { background: var(--hover); color: var(--fg); }
+      .btn:disabled { opacity: .4; cursor: default; }
+      .btn.primary {
+        border-color: transparent; background: var(--accent); color: #fff; font-weight: 600;
+      }
+      .btn.primary:hover:not(:disabled) { background: color-mix(in oklab, var(--accent) 86%, #000); color: #fff; }
+      .btn.danger { color: var(--danger); }
+      .btn.danger:hover:not(:disabled) { background: color-mix(in oklab, var(--danger) 14%, transparent); color: var(--danger); }
+      /* 退出登录：平时低调，悬停时才提示它是破坏性操作 */
+      .btn.logout { color: var(--muted); }
+      .btn.logout:hover:not(:disabled) {
+        color: var(--danger);
+        border-color: color-mix(in oklab, var(--danger) 40%, var(--border-strong));
+        background: color-mix(in oklab, var(--danger) 10%, transparent);
+      }
+      .btn.icon { padding: 4px 7px; }
+
+      /* ── 主体两栏（列表 + 正文，固定比例，不可拖动） ── */
+      /*
+       * 重构说明：此前是「文件夹 + 列表 + 正文」三栏，并靠两条可拖动分隔条 +
+       * JS 动态收敛宽度来调比例。那套方案在无边框 Electron 窗口里反复出问题
+       * （指针捕获失效、拖动死区、窗口缩放把宽度写死），维护成本远超收益。
+       *
+       * 现在改成官网那种固定比例栅格：文件夹收进「列表栏顶部的下拉选择」，
+       * 版面只剩列表栏 + 正文栏，比例由 CSS 栅格决定，随窗口自适应。
+       * 没有任何拖动状态，也就没有任何可被拖坏的中间状态。
+       *
+       * 栅格用 minmax 而不是固定 px，保证窄窗口下两栏都还能用：
+       *   - 列表栏：弹性基准 300px，最少 240px，最多占 42%
+       *   - 正文栏：吃掉剩余全部
+       */
+      .main {
+        flex: 1; display: grid; min-height: 0; overflow: hidden;
+        grid-template-columns: minmax(240px, min(300px, 42%)) minmax(0, 1fr);
+        -webkit-app-region: no-drag;
+      }
+      .pane { display: flex; flex-direction: column; min-height: 0; position: relative; }
+      .list {
+        border-right: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .editor { background: var(--bg); }
+
+      /*
+       * 窄窗口降级：窗口太窄时先保证正文可读，把列表栏压到最小。
+       * 这里只用纯 CSS 断点，不引入任何 JS 计算，避免再次出现状态不一致。
+       */
+      @media (max-width: 560px) {
+        .main { grid-template-columns: minmax(180px, 40%) minmax(0, 1fr); }
+      }
+
+      .search-wrap { flex: 0 0 auto; padding: 0 10px 8px; }
+      .search {
+        width: 100%;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 5px 9px;
+        background: var(--bg);
+        font-size: 12.5px;
+      }
+      .search::placeholder { color: var(--faint); }
+
+      .scroll { flex: 1; min-height: 0; overflow: auto; padding-bottom: 12px; }
+
+      /*
+       * 列表栏顶部：文件夹下拉 + 新建文件夹按钮。
+       * 取代原来的「文件夹独立栏 + 可拖动分隔条」，把纵向空间还给笔记列表。
+       */
+      .list-bar {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: 6px;
+        padding: 8px 10px 4px;
+      }
+      .folder-select {
+        flex: 1; min-width: 0;
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 5px 8px;
+        background: var(--bg);
+        color: var(--fg);
+        font-size: 12.5px;
+        cursor: pointer;
+        text-overflow: ellipsis;
+      }
+      .folder-select:disabled { opacity: .5; cursor: default; }
+
+      .note-item {
+        display: block; width: calc(100% - 12px);
+        margin: 1px 6px;
+        border: 0; border-radius: 8px;
+        padding: 8px 10px;
+        background: transparent;
+        text-align: left;
+        transition: background .14s ease;
+      }
+      .note-item:hover { background: var(--hover); }
+      .note-item[data-selected="true"] { background: var(--accent-soft); box-shadow: inset 2px 0 0 var(--accent); }
+      .note-item .title {
+        display: block; color: var(--fg); font-size: 13px; font-weight: 500;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      }
+      .note-item .meta {
+        display: flex; gap: 6px; margin-top: 2px;
+        color: var(--faint); font-size: 10.5px; font-variant-numeric: tabular-nums;
+      }
+      .note-item .meta .folder { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .note-item .summary {
+        display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+        overflow: hidden; margin-top: 3px; color: var(--muted); font-size: 11.5px; line-height: 1.45;
+      }
+      /* 局部更新时用 hidden 隐藏摘要/文件夹；需显式覆盖上面的 display: -webkit-box */
+      .note-item .summary[hidden] { display: none; }
+      .note-item .meta .folder[hidden] { display: none; }
+
+      .empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 6px; height: 100%; padding: 24px; color: var(--muted); text-align: center;
+      }
+      .empty .big { font-size: 13px; color: var(--secondary); font-weight: 500; }
+      .empty .small { font-size: 11.5px; line-height: 1.6; max-width: 34ch; }
+
+      /* ── 编辑器 ── */
+      .editor-bar {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .editor-bar .title-input {
+        flex: 1; min-width: 0;
+        border: 0; background: transparent;
+        font-size: 15px; font-weight: 600; letter-spacing: -0.01em;
+      }
+      .editor-bar .title-input::placeholder { color: var(--faint); font-weight: 400; }
+      .editor-bar .saved {
+        flex: 0 0 auto; color: var(--faint); font-size: 11px; white-space: nowrap;
+      }
+      .tabs { display: flex; gap: 2px; }
+      .tab {
+        border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+        padding: 3px 9px; background: transparent;
+        color: var(--muted); font-size: 12px;
+      }
+      .tab:hover { color: var(--fg); }
+      .tab[data-active="true"] { border-bottom-color: var(--accent); color: var(--fg); font-weight: 600; }
+
+      /* ── 编辑工具栏 ── */
+      /*
+       * 只作用于 textarea 的选区，不需要选区时插模板。
+       * 图标用文本字符而不是字体图标：面板要离线可用，不想再 vendor 一套字体。
+       */
+      .editor-tools {
+        flex: 0 0 auto;
+        display: flex; align-items: center; gap: 2px;
+        padding: 4px 12px;
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto; scrollbar-width: none;
+      }
+      /*
+       * 必须显式写：`hidden` 属性靠 UA 样式的 display:none 生效，
+       * 而上一条给了 display:flex，优先级更高，会把 hidden 吃掉。
+       */
+      .editor-tools[hidden] { display: none; }
+      .editor-tools::-webkit-scrollbar { display: none; }
+      .editor-tools .tool {
+        flex: 0 0 auto;
+        border: 0; border-radius: 5px;
+        padding: 3px 7px; background: transparent;
+        color: var(--muted); font-size: 12px; line-height: 1.4;
+        white-space: nowrap;
+      }
+      .editor-tools .tool:hover { background: var(--hover); color: var(--fg); }
+      .editor-tools .tool[data-bold] { font-weight: 700; }
+      .editor-tools .tool[data-italic] { font-style: italic; }
+      .editor-tools .sep {
+        flex: 0 0 auto; width: 1px; height: 14px;
+        margin: 0 4px; background: var(--border-strong);
+      }
+
+      .editor-body { flex: 1; min-height: 0; display: flex; }
+
+      /*
+       * 正文区 + 大纲：横向排列。
+       * 大纲放在正文右侧而不是左侧 —— 左侧已经是笔记列表，
+       * 再放一栏会让正文被挤得很窄。
+       */
+      .editor-main { flex: 1; min-height: 0; display: flex; }
+      .outline {
+        flex: 0 0 auto; width: 190px; min-width: 0;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+        overflow: auto; padding: 10px 4px 20px;
+      }
+      .outline[hidden] { display: none; }
+      .outline .outline-title {
+        padding: 0 10px 6px; color: var(--faint);
+        font-size: 11px; letter-spacing: .02em;
+      }
+      .outline .outline-empty {
+        padding: 0 10px; color: var(--faint); font-size: 11.5px; line-height: 1.6;
+      }
+      .outline .outline-item {
+        display: block; width: 100%; text-align: left;
+        border: 0; border-radius: 5px;
+        padding: 3px 10px; background: transparent;
+        color: var(--muted); font-size: 12px; line-height: 1.45;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .outline .outline-item:hover { background: var(--hover); color: var(--fg); }
+      .outline .outline-item[data-active="true"] { color: var(--accent); font-weight: 600; }
+      /* 按层级缩进，让结构一眼能看出来 */
+      .outline .outline-item[data-level="2"] { padding-left: 20px; }
+      .outline .outline-item[data-level="3"] { padding-left: 30px; }
+      .outline .outline-item[data-level="4"] { padding-left: 40px; }
+      .outline .outline-item[data-level="5"] { padding-left: 50px; }
+      /* 窄窗口下大纲会挤掉正文，先让位 */
+      @media (max-width: 860px) { .outline { width: 150px; } }
+      .md-input {
+        flex: 1; min-width: 0;
+        border: 0; padding: 14px 18px 48px;
+        background: transparent; color: var(--fg);
+        font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+        resize: none; outline: none;
+      }
+      .md-view {
+        flex: 1; min-width: 0; overflow: auto; padding: 14px 22px 60px;
+      }
+      .md-body { max-width: 78ch; font-size: 13px; line-height: 1.72; word-wrap: break-word; }
+      .md-body > *:first-child { margin-top: 0; }
+      .md-body h1 { font-size: 1.65em; margin: 1.3em 0 .5em; padding-bottom: .25em; border-bottom: 1px solid var(--border); }
+      .md-body h2 { font-size: 1.35em; margin: 1.3em 0 .5em; padding-bottom: .2em; border-bottom: 1px solid var(--border); }
+      .md-body h3 { font-size: 1.15em; margin: 1.2em 0 .45em; }
+      .md-body h4, .md-body h5, .md-body h6 { font-size: 1em; margin: 1.1em 0 .4em; }
+      .md-body p { margin: .7em 0; }
+      .md-body ul, .md-body ol { margin: .6em 0; padding-left: 1.6em; }
+      .md-body li { margin: .2em 0; }
+      .md-body code {
+        border-radius: 4px; padding: .1em .35em;
+        background: color-mix(in oklab, var(--fg) 9%, transparent);
+        font-family: var(--mono); font-size: .88em;
+      }
+      .md-body pre {
+        margin: .8em 0; overflow: auto;
+        border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+        background: color-mix(in oklab, var(--fg) 4%, transparent);
+      }
+      .md-body pre code { background: transparent; padding: 0; }
+      .md-body blockquote {
+        margin: .8em 0; padding: .1em 0 .1em 1em;
+        border-left: 3px solid color-mix(in oklab, var(--fg) 20%, transparent);
+        color: var(--secondary);
+      }
+      .md-body hr { height: 1px; margin: 1.5em 0; border: 0; background: var(--border-strong); }
+      .md-body a { color: var(--accent); }
+      .md-body img { max-width: 100%; border-radius: 6px; }
+      .md-body table { border-collapse: collapse; margin: .8em 0; font-size: .95em; }
+      .md-body th, .md-body td { border: 1px solid var(--border-strong); padding: 4px 10px; }
+      .md-body th { background: color-mix(in oklab, var(--fg) 5%, transparent); }
+
+      /* 搜索命中高亮：列表项与正文都用同一个标记 */
+      mark.search-hit {
+        border-radius: 3px; padding: 0 1px;
+        background: color-mix(in oklab, var(--accent) 32%, transparent);
+        color: inherit;
+      }
+      mark.search-hit.is-current {
+        background: var(--accent); color: #fff;
+      }
+
+      /* ── 任务列表（markdown-it-task-lists） ── */
+      .md-body .task-list-item { list-style: none; margin-left: -1.35em; }
+      .md-body .task-list-item input[type="checkbox"] {
+        margin-right: .5em; vertical-align: middle; accent-color: var(--accent);
+      }
+
+      /* ── 附件图片：异步填充，未加载时给个骨架位 ── */
+      .md-body img.md-attachment {
+        display: block; max-width: 100%; min-height: 40px;
+        margin: .8em 0; border-radius: 8px;
+        background: color-mix(in oklab, var(--fg) 5%, transparent);
+      }
+      .md-body img.md-attachment.is-loaded { background: transparent; min-height: 0; }
+      .md-body .attachment-failed,
+      .md-body .attachment-link {
+        display: inline-block; margin: .5em 0; padding: 4px 10px;
+        border: 1px dashed var(--border-strong); border-radius: 8px;
+        color: var(--muted); font-size: 12px; text-decoration: none;
+      }
+
+      /* ── 公式：KaTeX 自带样式，这里只调外边距 ── */
+      .md-body .katex-block { margin: 1em 0; overflow-x: auto; overflow-y: hidden; }
+      .md-body .katex-fallback { color: var(--muted); }
+
+      /* ── 代码高亮：hljs 主题只上色，背景仍用面板自己的 ── */
+      .md-body pre code.hljs { background: transparent; padding: 0; }
+
+      /* ── 登录遮罩 ── */
+      .overlay {
+        position: fixed; inset: 0; z-index: 40;
+        display: flex; align-items: center; justify-content: center;
+        padding: calc(var(--pi-plugin-titlebar-height, 0px) + 12px) 16px 16px;
+        background: color-mix(in oklab, var(--bg) 88%, transparent);
+        backdrop-filter: blur(6px);
+      }
+      .overlay[hidden] { display: none; }
+      .login-card {
+        width: 372px; max-width: 100%;
+        border: 1px solid var(--border-strong); border-radius: 14px;
+        padding: 22px; background: var(--surface); text-align: center;
+        box-shadow: 0 24px 60px -20px rgb(0 0 0 / .5);
+      }
+      .login-card h2 { margin: 0 0 4px; font-size: 16px; font-weight: 600; }
+      .login-card .sub { margin: 0 0 16px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+      .qr-box {
+        position: relative;
+        width: 220px; height: 220px; margin: 0 auto 14px;
+        border: 1px solid var(--border); border-radius: 12px;
+        background: #fff; padding: 10px;
+        display: flex; align-items: center; justify-content: center;
+      }
+      .qr-box img { width: 100%; height: 100%; object-fit: contain; display: block; }
+      .qr-box .qr-state {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 8px; border-radius: 12px;
+        background: color-mix(in oklab, #fff 92%, transparent);
+        color: #333; font-size: 12.5px;
+      }
+      .qr-box .qr-state[hidden] { display: none; }
+      .spin {
+        width: 18px; height: 18px; border-radius: 50%;
+        border: 2px solid color-mix(in oklab, var(--accent) 30%, transparent);
+        border-top-color: var(--accent);
+        animation: spin .8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .login-steps { margin: 0 0 14px; padding: 0; list-style: none; text-align: left; }
+      .login-steps li {
+        display: flex; gap: 8px; padding: 4px 0;
+        color: var(--secondary); font-size: 12px; line-height: 1.55;
+      }
+      .login-steps .num {
+        flex: 0 0 auto; width: 17px; height: 17px; border-radius: 50%;
+        background: var(--accent-soft); color: var(--accent);
+        font-size: 10.5px; font-weight: 700; text-align: center; line-height: 17px;
+      }
+      .login-foot { display: flex; gap: 8px; justify-content: center; align-items: center; }
+      .login-hint { margin-top: 10px; color: var(--faint); font-size: 11px; min-height: 16px; }
+      .login-hint[data-state="error"] { color: var(--danger); }
+
+      /* ── 通用输入对话框（Electron 不支持 window.prompt） ── */
+      .input-dialog {
+        position: fixed; inset: 0; z-index: 50;
+        display: flex; align-items: center; justify-content: center;
+        padding: calc(var(--pi-plugin-titlebar-height, 0px) + 12px) 16px 16px;
+        background: color-mix(in oklab, var(--bg) 84%, transparent);
+        backdrop-filter: blur(4px);
+      }
+      .input-dialog[hidden] { display: none; }
+      .input-dialog .box {
+        width: 340px; max-width: 100%;
+        border: 1px solid var(--border-strong); border-radius: 12px;
+        padding: 16px; background: var(--surface);
+        box-shadow: 0 22px 55px -20px rgb(0 0 0 / .5);
+      }
+      .input-dialog .box h3 { margin: 0 0 10px; font-size: 13.5px; font-weight: 600; }
+      .input-dialog .box input {
+        width: 100%;
+        border: 1px solid var(--border-strong); border-radius: 8px;
+        padding: 6px 10px; background: var(--bg); font-size: 13px;
+      }
+      .input-dialog .actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+      /* 退出登录确认：复用输入对话框的外观，多一行说明文字 */
+      .input-dialog .box .hint { margin: 0 0 4px; color: var(--secondary); font-size: 12px; line-height: 1.65; }
+      .input-dialog .box .hint.warn { color: var(--danger); }
+
+      /* ── 导出弹窗 ── */
+      .export-dialog .box { width: 420px; }
+      .export-dialog .export-note {
+        margin: 0 0 12px; color: var(--muted); font-size: 11.5px; line-height: 1.65;
+      }
+      .export-dialog .export-actions { display: flex; flex-direction: column; gap: 6px; }
+      /* 每个导出方式是一张卡片：主体是按钮，附加选项嵌在卡片内部 */
+      .export-dialog .export-action {
+        border: 1px solid var(--border-strong); border-radius: 8px;
+        background: transparent; overflow: hidden;
+      }
+      .export-dialog .export-action:hover { border-color: var(--accent); }
+      .export-dialog .export-actions button {
+        display: flex; align-items: center; gap: 8px;
+        width: 100%; text-align: left;
+        border: 0; padding: 8px 12px; background: transparent; color: var(--fg);
+        font-size: 12.5px;
+      }
+      .export-dialog .export-actions button:hover:not(:disabled) { background: var(--hover); }
+      .export-dialog .export-actions button:disabled { opacity: .45; cursor: default; }
+      .export-dialog .export-actions .sub {
+        display: block; margin-top: 2px; color: var(--faint); font-size: 11px;
+      }
+      /* 深色配色只影响 HTML 导出，所以嵌在「复制 HTML」卡片里 */
+      .export-dialog .export-option {
+        display: flex; align-items: center; gap: 6px;
+        border-top: 1px solid var(--border);
+        padding: 6px 12px;
+        color: var(--secondary); font-size: 11.5px; cursor: pointer;
+      }
+      .export-dialog .export-option:hover { background: var(--hover); }
+      /* width:auto 必须显式写：.input-dialog .box input 的 width:100% 会把复选框拉满整行 */
+      .export-dialog .export-option input {
+        width: auto; margin: 0; flex: 0 0 auto; accent-color: var(--accent);
+      }
+
+      /* ── 导入弹窗 ── */
+      .import-dialog .box { width: 430px; }
+      .import-dialog .import-note {
+        margin: 0 0 12px; color: var(--muted); font-size: 11.5px; line-height: 1.65;
+      }
+      .import-dialog .import-actions { display: flex; flex-direction: column; gap: 6px; }
+      /* 与导出弹窗同款卡片：主体是按钮，附加选项嵌在卡片内部 */
+      .import-dialog .import-action {
+        border: 1px solid var(--border-strong); border-radius: 8px;
+        background: transparent; overflow: hidden;
+      }
+      .import-dialog .import-action:hover { border-color: var(--accent); }
+      .import-dialog .import-actions button {
+        display: flex; align-items: center; gap: 8px;
+        width: 100%; text-align: left;
+        border: 0; padding: 8px 12px; background: transparent; color: var(--fg);
+        font-size: 12.5px;
+      }
+      .import-dialog .import-actions button:hover:not(:disabled) { background: var(--hover); }
+      .import-dialog .import-actions button:disabled { opacity: .45; cursor: default; }
+      .import-dialog .import-actions .sub {
+        display: block; margin-top: 2px; color: var(--faint); font-size: 11px;
+      }
+      .import-dialog .import-option {
+        display: flex; align-items: center; gap: 6px;
+        border-top: 1px solid var(--border);
+        padding: 6px 12px;
+        color: var(--secondary); font-size: 11.5px; cursor: pointer;
+      }
+      .import-dialog .import-option:hover { background: var(--hover); }
+      .import-dialog .import-option input {
+        width: auto; margin: 0; flex: 0 0 auto; accent-color: var(--accent);
+      }
+      .import-dialog .import-target {
+        display: flex; align-items: center; gap: 8px; margin-top: 12px;
+        color: var(--secondary); font-size: 12px;
+      }
+      .import-dialog .import-target select {
+        flex: 1; min-width: 0;
+        border: 1px solid var(--border-strong); border-radius: 8px;
+        padding: 5px 8px; background: var(--bg); color: var(--fg); font-size: 12.5px;
+      }
+      .import-dialog .import-summary {
+        margin: 10px 0 0; min-height: 16px;
+        color: var(--faint); font-size: 11.5px; line-height: 1.6;
+      }
+      .import-dialog .import-summary[data-state="error"] { color: var(--danger); }
+      .import-dialog .import-summary[data-state="busy"] { color: var(--accent); }
+      .import-dialog .import-bar {
+        margin-top: 6px; height: 4px; border-radius: 2px;
+        background: var(--border); overflow: hidden;
+      }
+      .import-dialog .import-bar[hidden] { display: none; }
+      .import-dialog .import-bar i {
+        display: block; height: 100%; width: 0;
+        background: var(--accent); transition: width .18s linear;
+      }
+      /* 拖拽到面板任意位置时的高亮提示 */
+      body.is-dropping::after {
+        content: "松开即导入 Markdown";
+        position: fixed; inset: 8px; z-index: 40; pointer-events: none;
+        display: flex; align-items: center; justify-content: center;
+        border: 2px dashed var(--accent); border-radius: 12px;
+        background: color-mix(in oklab, var(--bg) 78%, transparent);
+        color: var(--accent); font-size: 14px; font-weight: 600;
+      }
+
+      /* ── 问答抽屉 ── */
+      .ask-panel {
+        flex: 0 0 auto;
+        border-top: 1px solid var(--border);
+        background: var(--surface);
+        max-height: 52%;
+        display: flex; flex-direction: column;
+      }
+      .ask-panel[hidden] { display: none; }
+      .ask-head {
+        display: flex; align-items: center; gap: 8px;
+        padding: 7px 12px; border-bottom: 1px solid var(--border);
+      }
+      .ask-head .label { font-size: 12px; font-weight: 600; }
+      .ask-head select {
+        border: 1px solid var(--border-strong); border-radius: 6px;
+        padding: 2px 6px; background: var(--bg); color: var(--fg); font-size: 11.5px;
+        max-width: 260px;
+      }
+      .ask-log { flex: 1; min-height: 60px; overflow: auto; padding: 10px 12px; }
+      .ask-msg { margin-bottom: 10px; font-size: 12.5px; line-height: 1.6; }
+      .ask-msg .who { color: var(--faint); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; }
+      .ask-msg .body { margin-top: 2px; white-space: pre-wrap; word-wrap: break-word; }
+      .ask-msg[data-role="user"] .body { color: var(--secondary); }
+      .ask-msg .sources { margin-top: 5px; color: var(--faint); font-size: 11px; }
+      .ask-form { display: flex; gap: 8px; padding: 8px 12px 10px; }
+      .ask-form textarea {
+        flex: 1; min-height: 34px; max-height: 110px;
+        border: 1px solid var(--border-strong); border-radius: 8px;
+        padding: 6px 9px; background: var(--bg); font-size: 12.5px; resize: none;
+      }
+
+      /*
+       * 提示条堆叠容器。
+       *
+       * 以前只有一个 #toast 元素，新提示会直接覆盖旧提示 ——
+       * 「已删除·撤销」这种带操作按钮的提示被一条普通提示冲掉后，
+       * 按钮消失但 6 秒计时器还在跑，笔记照样被删且无法撤销（丢数据）。
+       * 改成堆叠：多条提示共存，互不影响。
+       */
+      .toast-stack {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+        z-index: 60;
+        display: flex; flex-direction: column-reverse; align-items: center; gap: 8px;
+        max-width: 70vw;
+        pointer-events: none;
+      }
+      .toast {
+        border: 1px solid var(--border-strong); border-radius: 10px;
+        padding: 8px 14px; background: var(--surface-2);
+        color: var(--fg); font-size: 12.5px;
+        box-shadow: 0 12px 30px -12px rgb(0 0 0 / .55);
+        pointer-events: auto;
+      }
+      .toast[data-level="error"] { border-color: color-mix(in oklab, var(--danger) 45%, transparent); color: var(--danger); }
+      /* 与状态栏的 warn 语义保持一致：都属于「要留意」，沿用 danger 色 */
+      .toast[data-level="warn"] { border-color: color-mix(in oklab, var(--danger) 45%, transparent); color: var(--danger); }
+      /* 带「撤销」按钮的提示条：正文与按钮横排 */
+      .toast .toast-row { display: flex; align-items: center; gap: 10px; }
+      .toast .toast-action {
+        flex: 0 0 auto;
+        border: 0; border-radius: 6px;
+        padding: 3px 9px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 12.5px; font-weight: 600;
+        cursor: pointer;
+      }
+      .toast .toast-action:hover { background: color-mix(in oklab, var(--accent) 26%, transparent); }
+
+      @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <!-- 控件行：整体位于宿主窗口控制胶囊下方的安全区，右侧留出胶囊宽度 -->
+        <div class="topbar-row">
+          <span class="brand"><span class="brand-dot"></span>小米笔记</span>
+          <div class="status" id="status" data-state="busy">
+            <span class="dot"></span><span id="statusText">正在检查登录状态…</span>
+          </div>
+          <div class="spacer"></div>
+          <span class="version" id="appVersion"></span>
+          <button class="btn" id="btnAsk" disabled>AI 问答</button>
+          <button class="btn" id="btnSync" disabled>同步</button>
+          <button class="btn primary" id="btnNew" disabled>新建</button>
+          <button class="btn logout" id="btnLogout" title="退出登录小米账号" disabled>退出</button>
+        </div>
+      </header>
+
+      <div class="main" id="main">
+        <!-- 列表（文件夹收进顶部下拉，不再单占一栏） -->
+        <section class="pane list">
+          <div class="list-bar">
+            <select class="folder-select" id="folderSelect" title="选择文件夹" disabled></select>
+            <button class="btn icon" id="btnNewFolder" title="新建文件夹" disabled>＋</button>
+          </div>
+          <div class="search-wrap">
+            <input class="search" id="search" type="search" placeholder="搜索标题与正文…" disabled />
+          </div>
+          <div class="scroll" id="noteList"></div>
+        </section>
+
+        <!-- 正文 -->
+        <section class="pane editor">
+          <div class="editor-bar">
+            <input class="title-input" id="titleInput" placeholder="无标题笔记" disabled />
+            <span class="saved" id="savedHint"></span>
+            <div class="tabs" id="tabs" hidden>
+              <!--
+                data-active 不在这里写死：它是 state.mode 的投影，由 syncTabs() 统一设置。
+                写死过 data-active="true" 的后果是首次打开时「编辑」高亮但渲染的是预览。
+              -->
+              <button class="tab" data-mode="edit">编辑</button>
+              <button class="tab" data-mode="preview">预览</button>
+            </div>
+            <button class="btn" id="btnOutline" title="显示 / 隐藏大纲" disabled>大纲</button>
+            <button class="btn" id="btnExport" title="导出 Markdown / HTML" disabled>导出</button>
+            <button class="btn" id="btnImport" title="导入 Markdown 文件或文件夹" disabled>导入</button>
+            <button class="btn" id="btnSave" disabled>保存</button>
+            <button class="btn danger" id="btnDelete" title="删除这篇笔记" disabled>删除</button>
+          </div>
+          <!--
+            编辑工具栏：只在编辑模式显示（syncTabs 里控制）。
+            按钮统一走 data-cmd，事件用委托挂在容器上，避免十几个监听器。
+          -->
+          <div class="editor-tools" id="editorTools" hidden>
+            <button class="tool" data-cmd="bold" data-bold title="粗体（Ctrl/Cmd+B）">B</button>
+            <button class="tool" data-cmd="italic" data-italic title="斜体（Ctrl/Cmd+I）">I</button>
+            <button class="tool" data-cmd="strike" title="删除线"><s>S</s></button>
+            <button class="tool" data-cmd="code" title="行内代码（Ctrl/Cmd+Shift+C）">&lt;/&gt;</button>
+            <span class="sep"></span>
+            <button class="tool" data-cmd="h1" title="一级标题">H1</button>
+            <button class="tool" data-cmd="h2" title="二级标题">H2</button>
+            <button class="tool" data-cmd="h3" title="三级标题">H3</button>
+            <span class="sep"></span>
+            <button class="tool" data-cmd="ul" title="无序列表">• 列表</button>
+            <button class="tool" data-cmd="ol" title="有序列表">1. 列表</button>
+            <button class="tool" data-cmd="task" title="任务列表">☑ 任务</button>
+            <button class="tool" data-cmd="quote" title="引用">❝ 引用</button>
+            <span class="sep"></span>
+            <button class="tool" data-cmd="link" title="链接（Ctrl/Cmd+K）">🔗 链接</button>
+            <button class="tool" data-cmd="image" title="图片">🖼 图片</button>
+            <button class="tool" data-cmd="codeblock" title="代码块">▤ 代码块</button>
+            <button class="tool" data-cmd="table" title="表格">▦ 表格</button>
+          </div>
+          <div class="editor-main">
+            <div class="editor-body" id="editorBody">
+              <div class="empty" id="editorEmpty">
+                <div class="big">选择一篇笔记</div>
+                <div class="small">从左侧列表点开一篇即可阅读与编辑。也可以直接点右上角「新建」写一篇新的。</div>
+              </div>
+            </div>
+            <!-- 大纲：H1–H5，点击跳转，滚动联动高亮 -->
+            <aside class="outline" id="outline" hidden>
+              <div class="outline-title">大纲</div>
+              <div id="outlineList"></div>
+            </aside>
+          </div>
+        </section>
+      </div>
+
+      <!-- 问答 -->
+      <section class="ask-panel" id="askPanel" hidden>
+        <div class="ask-head">
+          <span class="label">基于我的笔记提问</span>
+          <select id="askModel"></select>
+          <span class="spacer" style="flex:1"></span>
+          <button class="btn icon" id="btnAskClose" title="收起">收起</button>
+        </div>
+        <div class="ask-log" id="askLog"></div>
+        <div class="ask-form">
+          <textarea id="askInput" rows="1" placeholder="例如：我上次记录的会议时间都定了哪些？"></textarea>
+          <button class="btn primary" id="btnAskSend">提问</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 输入对话框（Electron 窗口不支持 window.prompt，所以自带一个） -->
+    <div class="input-dialog" id="inputDialog" hidden>
+      <div class="box">
+        <h3 id="inputDialogTitle">输入</h3>
+        <input id="inputDialogField" type="text" />
+        <div class="actions">
+          <button class="btn" id="inputDialogCancel">取消</button>
+          <button class="btn primary" id="inputDialogOk">确定</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 退出登录确认 -->
+    <div class="input-dialog" id="logoutDialog" hidden>
+      <div class="box">
+        <h3>退出登录？</h3>
+        <p class="hint">会清空本机保存的登录凭据与笔记缓存。云端笔记不会受影响，重新扫码登录后会自动同步回来。</p>
+        <p class="hint warn">本机尚未保存的草稿会一并丢弃。</p>
+        <div class="actions">
+          <button class="btn" id="logoutCancel">取消</button>
+          <button class="btn danger" id="logoutOk">退出登录</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导出 -->
+    <div class="input-dialog export-dialog" id="exportDialog" hidden>
+      <div class="box">
+        <h3>导出笔记</h3>
+        <p class="export-note" id="exportNote"></p>
+        <div class="export-actions">
+          <div class="export-action">
+            <button id="exportMdCopy">
+              <span>复制 Markdown 源码<span class="sub">纯文本，粘到任何编辑器里保存为 .md</span></span>
+            </button>
+          </div>
+          <div class="export-action">
+            <button id="exportHtmlCopy">
+              <span>复制 HTML<span class="sub">自包含单文件（样式、代码高亮、公式字体均已内联），粘到 .html 里即可离线打开</span></span>
+            </button>
+            <label class="export-option">
+              <input type="checkbox" id="exportDark" />
+              <span>使用深色配色</span>
+            </label>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="exportCancel">关闭</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 导入 -->
+    <div class="input-dialog import-dialog" id="importDialog" hidden>
+      <div class="box">
+        <h3>导入 Markdown</h3>
+        <p class="import-note">
+          从本机选 .md 文件导入到小米笔记。文件内容由面板读取后交给插件上传，
+          插件不会读取你的工作区。也可以直接把文件或文件夹拖进面板。
+        </p>
+        <div class="import-actions">
+          <div class="import-action">
+            <button id="importPickFiles">
+              <span>选择文件…<span class="sub">一次可多选 .md / .markdown / .txt</span></span>
+            </button>
+          </div>
+          <div class="import-action">
+            <button id="importPickFolder">
+              <span>选择文件夹…<span class="sub">递归包含子目录里的所有 Markdown</span></span>
+            </button>
+            <label class="import-option">
+              <input type="checkbox" id="importKeepStructure" checked />
+              <span>保留子文件夹结构（按目录在小米笔记里建文件夹）</span>
+            </label>
+          </div>
+        </div>
+        <div class="import-target">
+          <span>导入到</span>
+          <select id="importFolder"></select>
+        </div>
+        <p class="import-summary" id="importSummary">尚未选择文件。</p>
+        <div class="import-bar" id="importBar" hidden><i id="importBarFill"></i></div>
+        <div class="actions">
+          <button class="btn" id="importCancel">取消</button>
+          <button class="btn primary" id="importStart" disabled>开始导入</button>
+        </div>
+      </div>
+      <!-- 两个隐藏的文件选择器：一个选多文件，一个选目录（webkitdirectory） -->
+      <input type="file" id="importFileInput" multiple accept=".md,.markdown,.mdown,.mkd,.txt" hidden />
+      <input type="file" id="importDirInput" multiple webkitdirectory directory hidden />
+    </div>
+
+    <!-- 登录 -->
+    <div class="overlay" id="loginOverlay" hidden>      <div class="login-card">
+        <h2>扫码登录小米账号</h2>
+        <p class="sub">用小米手机「设置 → 小米账号 → 扫一扫」扫描并确认即可，不需要输入密码。</p>
+        <div class="qr-box">
+          <img id="qrImage" alt="登录二维码" />
+          <div class="qr-state" id="qrState">
+            <div class="spin"></div>
+            <span id="qrStateText">正在获取二维码…</span>
+          </div>
+        </div>
+        <ol class="login-steps">
+          <li><span class="num">1</span><span>在小米手机上打开「设置」→「小米账号」</span></li>
+          <li><span class="num">2</span><span>点右上角「扫一扫」，扫描上方二维码</span></li>
+          <li><span class="num">3</span><span>在手机上点确认，面板会自动完成登录与首次同步</span></li>
+        </ol>
+        <div class="login-foot">
+          <button class="btn primary" id="btnQrRefresh">重新获取</button>
+          <button class="btn" id="btnQrCancel">稍后再说</button>
+        </div>
+        <div class="login-hint" id="loginHint"></div>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack"></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // ── 主题 ────────────────────────────────────────────────────────────
+        /*
+         * 代码高亮的配色跟面板主题走，而不是操作系统的 prefers-color-scheme。
+         *
+         * 宿主主题可以与系统不一致（宿主设深色、系统是浅色），用 media 查询会挑错
+         * 那一份 —— 深色底配浅色主题的深色文字，代码块直接看不见。
+         * 两张表都加载，靠 disabled 切换，避免切换时闪一下无样式。
+         */
+        const syncHljsTheme = () => {
+          const link = document.getElementById("hljsTheme");
+          if (!link) return;
+          const isDark = document.documentElement.dataset.base === "dark";
+          if (link.disabled !== !isDark) link.disabled = !isDark;
+        };
+
+        const applyAppearance = (appearance) => {
+          const base = appearance && appearance.base;
+          document.documentElement.dataset.base =
+            base === "light" || base === "dark"
+              ? base
+              : window.matchMedia("(prefers-color-scheme: light)").matches
+                ? "light"
+                : "dark";
+          syncHljsTheme();
+        };
+        if (window.pluginBridge && window.pluginBridge.on) {
+          window.pluginBridge.on("appearance:changed", applyAppearance);
+        }
+        if (window.pluginBridge && window.pluginBridge.invoke) {
+          window.pluginBridge
+            .invoke("app.getAppearance")
+            .then(applyAppearance)
+            .catch(() => applyAppearance(null));
+        } else {
+          applyAppearance(null);
+        }
+        // 宿主主题到达前先按当前 data-base 定一次，避免首屏代码块配色不对
+        syncHljsTheme();
+
+        // ── 基础设施 ────────────────────────────────────────────────────────
+        const $ = (id) => document.getElementById(id);
+        const invoke = async (channel, payload) => {
+          if (!window.pluginBridge || !window.pluginBridge.invoke) {
+            return { ok: false, error: "面板桥接不可用（需要在 PI-Desktop 中打开）" };
+          }
+          try {
+            const result = await window.pluginBridge.invoke(channel, payload || {});
+            return result === undefined || result === null ? { ok: true } : result;
+          } catch (error) {
+            return { ok: false, error: error && error.message ? error.message : String(error) };
+          }
+        };
+
+        /*
+         * ── 附件图片 ────────────────────────────────────────────────────────
+         *
+         * 预览里的图片是异步取的：渲染只产出带 data-file-id 的骨架，这里按 id 去要
+         * data URI 再填进 src。同一张图在会话内只取一次（promise 缓存），
+         * 否则切来切去会反复下载同一张。
+         */
+        const attachmentPromises = new Map();
+
+        const fetchAttachmentDataUri = (fileId) => {
+          const key = String(fileId);
+          const cached = attachmentPromises.get(key);
+          if (cached) return cached;
+          /*
+           * 只缓存成功的结果。
+           *
+           * 若把失败也留在缓存里，一次网络抖动或未登录就会让这张图在**整个会话**
+           * 里永远取不回来（后续都直接命中那份失败缓存），用户只能重启面板。
+           */
+          const job = invoke("mn.attachment.get", { fileId: key })
+            .then((res) => {
+              const uri = res && res.ok && res.dataUri ? res.dataUri : null;
+              if (!uri) attachmentPromises.delete(key);
+              return uri;
+            })
+            .catch(() => {
+              attachmentPromises.delete(key);
+              return null;
+            });
+          attachmentPromises.set(key, job);
+          return job;
+        };
+
+        /*
+         * ── 提示条 ──────────────────────────────────────────────────────────
+         *
+         * 多条提示可以同时存在（堆叠显示），互不覆盖。
+         *
+         * 这是修一个会丢数据的缺陷：以前所有提示共用一个元素，
+         * 新提示直接 `textContent =` 覆盖旧的 ——「已删除·撤销」的按钮被冲掉后，
+         * 6 秒计时器仍在跑，笔记照样被删且无法撤销。
+         */
+        const TOAST_MAX = 3;
+        const toastStack = () => $("toastStack");
+
+        /** 移除一条提示；同一条重复调用无副作用。 */
+        const removeToast = (el) => {
+          if (!el || !el.parentNode) return;
+          el.remove();
+        };
+
+        /**
+         * 建一条提示。
+         * @returns {{el:HTMLElement, dismiss:()=>void}}
+         */
+        const pushToast = (level, durationMs) => {
+          const el = document.createElement("div");
+          el.className = "toast";
+          el.dataset.level = level || "info";
+          toastStack().appendChild(el);
+          const stack = toastStack();
+          while (stack.children.length > TOAST_MAX) stack.firstElementChild.remove();
+
+          let timer = null;
+          let done = false;
+          const dismiss = () => {
+            if (done) return;
+            done = true;
+            if (timer) clearTimeout(timer);
+            timer = null;
+            removeToast(el);
+          };
+          if (durationMs > 0) timer = setTimeout(dismiss, durationMs);
+          return { el, dismiss };
+        };
+
+        const toast = (message, level) => {
+          const { el } = pushToast(level, level === "error" ? 6000 : 3200);
+          el.textContent = message;
+        };
+
+        /**
+         * 带一个操作按钮的提示条（目前用于「已删除 · 撤销」）。
+         *
+         * 返回一个函数，调用它可立即收起提示（撤销或超时后调用，
+         * 避免旧提示还在屏幕上但已经失效）。
+         */
+        const toastWithAction = (message, actionLabel, onAction, durationMs = 6000) => {
+          const { el, dismiss } = pushToast("info", durationMs);
+
+          const row = document.createElement("div");
+          row.className = "toast-row";
+          const text = document.createElement("span");
+          text.textContent = message;
+          const action = document.createElement("button");
+          action.type = "button";
+          action.className = "toast-action";
+          action.textContent = actionLabel;
+          row.append(text, action);
+          el.appendChild(row);
+
+          action.addEventListener("click", () => {
+            dismiss();
+            onAction();
+          });
+          return dismiss;
+        };
+
+        // Electron 的窗口不实现 window.prompt（调用会直接返回 null），
+        // 所以自备一个输入对话框。返回用户输入，取消返回 null。
+        const askText = (title, initial) =>
+          new Promise((resolve) => {
+            const dialog = $("inputDialog");
+            const field = $("inputDialogField");
+            const ok = $("inputDialogOk");
+            const cancel = $("inputDialogCancel");
+            $("inputDialogTitle").textContent = title;
+            field.value = initial || "";
+            dialog.hidden = false;
+            field.focus();
+            field.select();
+
+            const cleanup = () => {
+              dialog.hidden = true;
+              ok.removeEventListener("click", onOk);
+              cancel.removeEventListener("click", onCancel);
+              field.removeEventListener("keydown", onKey);
+            };
+            const finish = (value) => {
+              cleanup();
+              resolve(value);
+            };
+            const onOk = () => finish(field.value);
+            const onCancel = () => finish(null);
+            const onKey = (event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                finish(field.value);
+              } else if (event.key === "Escape") {
+                event.preventDefault();
+                finish(null);
+              }
+            };
+            ok.addEventListener("click", onOk);
+            cancel.addEventListener("click", onCancel);
+            field.addEventListener("keydown", onKey);
+          });
+
+        /*
+         * 退出登录确认。
+         *
+         * 退出会清掉本机凭据与缓存，属于「不可逆但影响可控」的操作，
+         * 所以不静默执行。这里用自带弹窗而非 window.confirm：
+         * 无边框 Electron 窗口里的原生弹窗样式与面板完全脱节，而且会挡住拖拽区。
+         */
+        const confirmLogout = () =>
+          new Promise((resolve) => {
+            const dialog = $("logoutDialog");
+            const ok = $("logoutOk");
+            const cancel = $("logoutCancel");
+            dialog.hidden = false;
+            ok.focus();
+
+            const cleanup = () => {
+              dialog.hidden = true;
+              ok.removeEventListener("click", onOk);
+              cancel.removeEventListener("click", onCancel);
+              dialog.removeEventListener("keydown", onKey);
+            };
+            const finish = (value) => {
+              cleanup();
+              resolve(value);
+            };
+            const onOk = () => finish(true);
+            const onCancel = () => finish(false);
+            const onKey = (event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                finish(false);
+              }
+            };
+            ok.addEventListener("click", onOk);
+            cancel.addEventListener("click", onCancel);
+            dialog.addEventListener("keydown", onKey);
+          });
+
+        const formatTime = (ts) => {
+          const n = Number(ts);
+          if (!n) return "";
+          const d = new Date(n);
+          const pad = (x) => String(x).padStart(2, "0");
+          const now = new Date();
+          const sameDay = d.toDateString() === now.toDateString();
+          if (sameDay) return `今天 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          if (d.getFullYear() === now.getFullYear()) return `${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+          return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        };
+
+        // ── 状态 ────────────────────────────────────────────────────────────
+        const state = {
+          loggedIn: false,
+          folderId: "0",
+          folders: [],
+          notes: [],
+          total: 0,
+          query: "",
+          selectedId: null,
+          draft: { id: null, title: "", markdown: "", dirty: false },
+          /*
+           * 编辑 / 预览。这是标签高亮与正文渲染的**唯一**事实来源：
+           * syncTabs() 把高亮派生自它，renderEditor() 按它渲染正文。
+           * 默认 preview：点开一篇先看内容，比直接进编辑更符合阅读场景。
+           */
+          mode: "preview",
+          /*
+           * 已「乐观删除」但尚未真正提交的笔记 id。
+           *
+           * 删除后先把它从列表里隐起来，给 6 秒撤销窗口；期间若发生同步，
+           * 云端会把这篇笔记又拉回来 —— 所以 renderNotes 必须过滤这个集合，
+           * 否则被删的笔记会「复活」出现在列表里。
+           */
+          pendingDelete: new Set(),
+          /* IME 合成中标记：合成期间只更新内存，不触发保存 */
+          composing: false,
+          /* 切编辑/预览时的光标与滚动快照，重建 textarea 后还原 */
+          pendingEditorView: null,
+          loginJobId: null,
+          loginExpiresAt: 0,
+          loginTimer: null,
+          jobs: new Set(),
+          askModel: "",
+          askBusy: false,
+          /* 已选好待导入的文件：[{ name, markdown, dirs }]，dirs 为相对子目录链 */
+          importFiles: [],
+          /* 导入进行中：挡住重复提交与拖拽 */
+          importing: false,
+        };
+
+        /*
+         * 布局说明：本面板已重构为「固定比例两栏栅格」（列表 + 正文）。
+         *
+         * 此前的三栏 + 可拖动分隔条方案已整体删除，原因见 CSS 里的注释：
+         * 在无边框 Electron 窗口里，指针捕获、拖动死区、窗口缩放回写宽度
+         * 这一连串问题反复出现，维护成本远大于收益。
+         * 现在版面比例完全由 CSS 决定，JS 不再参与任何宽度计算。
+         */
+
+        /*
+         * 只有在确认没有宿主保留带时，才把右侧预留收回普通内边距。
+         * 判据必须严格：只有变量被显式设成 0（嵌入/组件模式）才收回；
+         * 变量还没注入（""）时保持 CSS 默认的 116px，
+         * 否则一旦宿主注入晚于脚本执行，顶栏按钮又会和窗口控制胶囊叠在一起。
+         */
+        const syncCapsuleSpace = () => {
+          const raw = getComputedStyle(document.documentElement)
+            .getPropertyValue("--pi-plugin-titlebar-height")
+            .trim();
+          const value = raw === "" ? NaN : parseFloat(raw);
+          if (!Number.isFinite(value)) return; // 还不知道，保持默认
+          document.documentElement.style.setProperty(
+            "--pi-capsule-space",
+            value > 0 ? "116px" : "14px",
+          );
+        };
+        syncCapsuleSpace();
+        // 宿主在 DOMContentLoaded 时才注入变量/安装 chrome，这里补一次
+        document.addEventListener("DOMContentLoaded", syncCapsuleSpace);
+        window.addEventListener("load", syncCapsuleSpace);
+
+        /*
+         * 胶囊底衬保险：宿主给胶囊上色用的是「安装 chrome 那一刻采样到的页面颜色」，
+         * 之后页面若因主题切换而改色，胶囊就可能与页面撞色（浅色下白底白图标）。
+         * 这里把宿主采样到的前景色按胶囊实际的 58% 不透明度合成到当前页面底色上，
+         * 算 WCAG 对比度；低于可辨阈值时，用「宿主采样到的页面底色」垫一块底衬 ——
+         * 那正是宿主以为的页面颜色，铺上去就把胶囊还原成宿主本意的对比度。
+         * 一切正常时保持透明，完全不改变外观。
+         */
+        const syncCapsuleBackdrop = () => {
+          const root = document.documentElement;
+          const host = document.querySelector("pi-plugin-panel-chrome");
+          const setBackdrop = (value) => root.style.setProperty("--pi-capsule-backdrop", value);
+          if (!host) return setBackdrop("transparent"); // 预览 / 嵌入：没有宿主 chrome
+
+          const parseRgb = (color) => {
+            const match = String(color || "").match(/rgba?\(([^)]+)\)/i);
+            if (!match) return null;
+            const parts = match[1].split(/[\s,/]+/).filter(Boolean).map(Number);
+            if (parts.length < 3 || parts.slice(0, 3).some((n) => !Number.isFinite(n))) return null;
+            const alpha = parts.length >= 4 && Number.isFinite(parts[3]) ? parts[3] : 1;
+            return { r: parts[0], g: parts[1], b: parts[2], a: alpha };
+          };
+          const luminance = ({ r, g, b }) => {
+            const channel = (value) => {
+              const v = value / 255;
+              return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            };
+            return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
+          };
+
+          const sampledFg = parseRgb(host.style.getPropertyValue("--pi-plugin-panel-page-foreground"));
+          const sampledBg = parseRgb(host.style.getPropertyValue("--pi-plugin-panel-page-background"));
+          const pageBg = parseRgb(getComputedStyle(document.body).backgroundColor);
+          if (!sampledFg || !pageBg || pageBg.a === 0) return setBackdrop("transparent");
+
+          // 胶囊图标 = 采样前景色 × 58% 叠在当前页面底色上
+          const glyph = {
+            r: sampledFg.r * 0.58 + pageBg.r * 0.42,
+            g: sampledFg.g * 0.58 + pageBg.g * 0.42,
+            b: sampledFg.b * 0.58 + pageBg.b * 0.42,
+          };
+          const l1 = luminance(glyph);
+          const l2 = luminance(pageBg);
+          const contrast = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+          if (contrast >= 3) return setBackdrop("transparent");
+
+          // 对比度不足：铺上宿主采样到的底色（也就是它以为的页面颜色）
+          if (!sampledBg) return setBackdrop("transparent");
+          setBackdrop(`rgba(${Math.round(sampledBg.r)}, ${Math.round(sampledBg.g)}, ${Math.round(sampledBg.b)}, 0.92)`);
+        };
+        syncCapsuleBackdrop();
+        document.addEventListener("DOMContentLoaded", syncCapsuleBackdrop);
+        window.addEventListener("load", syncCapsuleBackdrop);
+        // 主题落地后再复核（applyAppearance 已改过 data-base），多跑几次以覆盖异步时序
+        setTimeout(syncCapsuleBackdrop, 0);
+        setTimeout(syncCapsuleBackdrop, 300);
+        setTimeout(syncCapsuleBackdrop, 1200);
+
+        // ── 状态栏 ──────────────────────────────────────────────────────────
+        const setStatus = (text, kind) => {
+          $("statusText").textContent = text;
+          $("status").dataset.state = kind || "ok";
+        };
+
+        const refreshStatus = async (status) => {
+          const s = status || (await invoke("mn.status")).status;
+          if (!s) return;
+          state.loggedIn = s.loggedIn === true;
+          if (!state.loggedIn) {
+            setStatus("尚未登录", "warn");
+          } else if (s.syncing) {
+            setStatus("正在同步…", "busy");
+          } else if (s.needLogin) {
+            setStatus("登录已失效，请重新扫码", "warn");
+          } else if (s.lastSyncError) {
+            setStatus(`同步失败：${s.lastSyncError}`, "warn");
+          } else {
+            const when = s.lastSyncAt ? formatTime(s.lastSyncAt) : "尚未同步";
+            setStatus(`${s.noteCount} 篇笔记 · ${when}`, "ok");
+          }
+          setEnabled(state.loggedIn);
+        };
+
+        const setEnabled = (on) => {
+          for (const id of ["btnNew", "btnSync", "search", "btnNewFolder", "btnImport"]) {
+            const el = $(id);
+            if (el) el.disabled = !on;
+          }
+          $("btnAsk").disabled = !on;
+          // 没登录就没什么可退的
+          $("btnLogout").disabled = !on;
+          // 大纲/导出除了要登录，还得真的选中了一篇笔记 —— 统一交给它判断，
+          // 否则 refreshStatus 的 setEnabled(true) 会把 renderEditor 刚置灰的按钮又点亮
+          syncActionButtons();
+        };
+
+        /**
+         * 同步「依赖当前是否选中笔记」的按钮状态。
+         *
+         * 这里是唯一判定处：登录态变化（setEnabled）与笔记切换（renderEditor）
+         * 都会走到它，两边不再各写一份，也就不会再出现互相覆盖的时序 bug。
+         */
+        const syncActionButtons = () => {
+          const hasNote = state.loggedIn && state.draft.id !== null;
+          $("btnOutline").disabled = !hasNote;
+          $("btnExport").disabled = !hasNote;
+        };
+
+        // ── 登录 ────────────────────────────────────────────────────────────
+        const showLogin = () => { $("loginOverlay").hidden = false; };
+        const hideLogin = () => {
+          $("loginOverlay").hidden = true;
+          if (state.loginTimer) { clearInterval(state.loginTimer); state.loginTimer = null; }
+          state.loginJobId = null;
+        };
+
+        const setQrState = (text, spinner, isError) => {
+          const box = $("qrState");
+          box.hidden = !text;
+          $("qrStateText").textContent = text || "";
+          const sp = box.querySelector(".spin");
+          if (sp) sp.hidden = !spinner;
+          $("loginHint").textContent = "";
+          $("loginHint").dataset.state = isError ? "error" : "";
+        };
+
+        const setLoginHint = (text, isError) => {
+          $("loginHint").textContent = text || "";
+          $("loginHint").dataset.state = isError ? "error" : "";
+        };
+
+        const startLogin = async () => {
+          hideLogin();
+          showLogin();
+          setQrState("正在获取二维码…", true);
+          $("qrImage").removeAttribute("src");
+          setLoginHint("");
+          const res = await invoke("mn.login.start");
+          if (!res.ok) {
+            setQrState("获取失败", false);
+            setLoginHint(res.error || "无法获取二维码，请点「重新获取」", true);
+            return;
+          }
+          $("qrImage").src = res.qrDataUri;
+          setQrState("", false);
+          state.loginJobId = res.jobId;
+          state.loginExpiresAt = Number(res.expiresAt) || 0;
+          const seconds = Number(res.expiresInSeconds) || 0;
+          setLoginHint(`二维码 ${Math.max(1, Math.round(seconds / 60))} 分钟内有效。用小米手机「设置 → 小米账号 → 扫一扫」。`);
+          watchLogin();
+        };
+
+        // 轮询扫码结果。二维码有效期内一直等；过期就提示重新获取。
+        const watchLogin = () => {
+          if (state.loginTimer) clearInterval(state.loginTimer);
+          const jobId = state.loginJobId;
+          if (!jobId) return;
+          // 登录过程会改状态文案（已确认/首次同步中），登记为进行中的任务，
+          // 免得 20 秒的状态轮询把它覆盖成「尚未登录」。
+          state.jobs.add(jobId);
+          state.loginTimer = setInterval(async () => {
+            const res = await invoke("mn.job.get", { jobId });
+            const job = res.job;
+            if (!job) return;
+            if (job.status === "running") {
+              const phase = job.progress && job.progress.phase;
+              if (phase === "settling") setLoginHint("已确认，正在完成登录…");
+              else if (phase === "syncing") setLoginHint("登录成功，正在首次同步笔记…");
+              else if (Date.now() > state.loginExpiresAt && state.loginExpiresAt) {
+                setQrState("二维码已过期", false);
+                setLoginHint("二维码已过期，请点「重新获取」。", true);
+              }
+              return;
+            }
+            clearInterval(state.loginTimer);
+            state.loginTimer = null;
+            state.jobs.delete(jobId);
+            if (job.status === "done") {
+              setLoginHint("登录成功，正在加载笔记…");
+              hideLogin();
+              await refreshStatus();
+              await loadFolders();
+              await loadNotes();
+              // 侧边栏可能在这之前请求过「在主面板打开某篇」
+              await consumeFocus();
+              toast("已登录小米账号");
+            } else {
+              const message = job.error || "登录失败";
+              setQrState(/过期|取消/.test(message) ? "二维码已失效" : "登录失败", false);
+              setLoginHint(message, true);
+            }
+          }, 1200);
+        };
+
+        $("btnQrRefresh").addEventListener("click", () => void startLogin());
+        $("btnQrCancel").addEventListener("click", async () => {
+          hideLogin();
+          await invoke("mn.login.cancel");
+          if (!state.loggedIn) setStatus("尚未登录", "warn");
+        });
+
+        // ── 退出登录 ────────────────────────────────────────────────────────
+        /*
+         * 把面板恢复成「未登录」状态。
+         *
+         * 退出后不能只把状态文字改掉：列表节点、下拉选项、编辑器内容、
+         * 待删集合、光标快照全都是上一账号的数据，必须一并清干净，
+         * 否则新账号登录前会看到别人的笔记残影。
+         */
+        const resetWorkspace = () => {
+          cancelAutosave();
+          if (pendingDeleteTimer) {
+            clearTimeout(pendingDeleteTimer);
+            pendingDeleteTimer = null;
+          }
+          state.pendingDelete.clear();
+          state.folders = [];
+          state.notes = [];
+          state.total = 0;
+          state.query = "";
+          state.selectedId = null;
+          state.draft = { id: null, title: "", markdown: "", dirty: false };
+          state.pendingEditorView = null;
+          state.composing = false;
+          state.folderId = "0";
+          $("search").value = "";
+          $("titleInput").value = "";
+          $("savedHint").textContent = "";
+          $("exportDialog").hidden = true;
+          // 已选待导入的文件属于上一个账号的上下文，一并清掉
+          state.importFiles = [];
+          state.importing = false;
+          $("importDialog").hidden = true;
+          document.body.classList.remove("is-dropping");
+          noteNodes.clear();
+          $("folderSelect").textContent = "";
+          renderNotes();
+          renderEditor();
+        };
+
+        $("btnLogout").addEventListener("click", async () => {
+          if (!state.loggedIn) return;
+          if (!(await confirmLogout())) return;
+
+          // 先把未保存的草稿冲下去：即使马上要清缓存，也不该以「丢数据」收场
+          await flushSave();
+
+          const res = await invoke("mn.logout");
+          if (!res.ok) {
+            toast(res.error || "退出登录失败", "error");
+            return;
+          }
+
+          // 先置登录态再清面板：renderNotes 会据此走「尚未登录」空状态分支
+          state.loggedIn = false;
+          resetWorkspace();
+          setStatus("尚未登录", "warn");
+          setEnabled(false);
+          toast("已退出登录");
+
+          // 退出后直接把登录二维码摆到眼前，省得用户再找入口
+          showLogin();
+          await startLogin();
+        });
+
+        // ── 文件夹（重构后收进列表栏顶部的下拉框） ──────────────────────────
+        const renderFolders = () => {
+          const select = $("folderSelect");
+          select.textContent = "";
+          // 「全部笔记」+ 各文件夹；计数直接写进选项文字，省掉一栏的空间
+          const rootCount = state.folders.reduce((sum, f) => sum + f.count, 0);
+          const rootOption = document.createElement("option");
+          rootOption.value = "0";
+          rootOption.textContent = `全部笔记（${rootCount}）`;
+          select.appendChild(rootOption);
+
+          for (const folder of state.folders) {
+            const option = document.createElement("option");
+            option.value = folder.id;
+            option.textContent = `${folder.name}（${folder.count}）`;
+            select.appendChild(option);
+          }
+          select.value = state.folderId;
+          select.disabled = !state.loggedIn;
+        };
+
+        const loadFolders = async () => {
+          const res = await invoke("mn.folders.list");
+          if (!res.ok) return;
+          state.folders = Array.isArray(res.folders) ? res.folders : [];
+          renderFolders();
+        };
+
+        const selectFolder = async (folderId) => {
+          if (state.folderId === folderId) return;
+          // 切文件夹会重拉列表，先把草稿存好，避免未保存的修改被列表刷新带走
+          await flushSave();
+          state.folderId = folderId;
+          renderFolders();
+          await loadNotes();
+        };
+
+        $("folderSelect").addEventListener("change", (event) => {
+          void selectFolder(event.target.value);
+        });
+
+        // ── 列表 ────────────────────────────────────────────────────────────
+        /*
+         * 列表采用「局部更新」而非整表重建。
+         *
+         * 原来每次保存 / 切文件夹 / 搜索都会 textContent = "" 后重建最多 300 个节点，
+         * 代价是：滚动位置丢失、选中态闪动、每次自动保存都要重建一遍（自动保存
+         * 一秒可能触发一次，这个代价不能接受）。现在按 id 复用节点，只改变化的部分。
+         */
+        const noteNodes = new Map(); // id -> { el, title, meta, folder, summary }
+
+        /** 建一个笔记节点。只在这里创建 DOM，后续更新走 updateNoteNode。 */
+        const createNoteNode = (note) => {
+          const el = document.createElement("button");
+          el.className = "note-item";
+          el.dataset.id = note.id;
+
+          const title = document.createElement("span");
+          title.className = "title";
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          const time = document.createElement("span");
+          time.className = "time";
+          const folder = document.createElement("span");
+          folder.className = "folder";
+          meta.append(time, folder);
+
+          const summary = document.createElement("span");
+          summary.className = "summary";
+
+          el.append(title, meta, summary);
+          // 事件只绑一次；点击时按当前 dataset.id 打开，避免闭包引用过期对象
+          el.addEventListener("click", () => {
+            const id = el.dataset.id;
+            if (id) void openNote(id);
+          });
+          const entry = { el, title, meta, time, folder, summary };
+          updateNoteNode(entry, note);
+          return entry;
+        };
+
+        /** 只写真正变化的文本，避免无谓的 DOM 写入与重排。 */
+        const setText = (node, value) => {
+          if (node.textContent !== value) node.textContent = value;
+        };
+
+        /**
+         * 把命中的关键词包成 <mark>。
+         *
+         * 用 DOM 节点而不是 innerHTML：标题与摘要都来自云端，直接拼 HTML 等于
+         * 让笔记内容变成注入点。这里先按关键词切段，再逐个建文本节点与 mark。
+         *
+         * @param {HTMLElement} node
+         * @param {string} value 原始文本
+         * @param {string} query 搜索词（空则不处理）
+         */
+        const setHighlightedText = (node, value, query) => {
+          const text = String(value ?? "");
+          const needle = String(query || "").trim();
+
+          if (!needle) {
+            if (node.childNodes.length === 1 && node.firstChild.nodeType === 3) {
+              setText(node, text);
+              return;
+            }
+            node.textContent = text;
+            return;
+          }
+
+          // 已是纯文本且内容一致就跳过（自动保存会频繁调用，别每次都重建节点）
+          if (node.dataset.raw === text && node.dataset.query === needle) return;
+
+          node.textContent = "";
+          const lower = text.toLowerCase();
+          const lowerNeedle = needle.toLowerCase();
+          let from = 0;
+          let at = lower.indexOf(lowerNeedle);
+          while (at !== -1) {
+            if (at > from) node.appendChild(document.createTextNode(text.slice(from, at)));
+            const mark = document.createElement("mark");
+            mark.className = "search-hit";
+            mark.textContent = text.slice(at, at + needle.length);
+            node.appendChild(mark);
+            from = at + needle.length;
+            at = lower.indexOf(lowerNeedle, from);
+          }
+          if (from < text.length) node.appendChild(document.createTextNode(text.slice(from)));
+          node.dataset.raw = text;
+          node.dataset.query = needle;
+        };
+
+        const updateNoteNode = (entry, note) => {
+          setHighlightedText(entry.title, note.title || "无标题笔记", state.query);
+          setText(entry.time, formatTime(note.modifyDate));
+          const folderText = note.folderName ? `· ${note.folderName}` : "";
+          setText(entry.folder, folderText);
+          entry.folder.hidden = !folderText;
+          const summaryText = note.summary || "";
+          setHighlightedText(entry.summary, summaryText, state.query);
+          entry.summary.hidden = !summaryText;
+          const selected = String(note.id === state.selectedId);
+          if (entry.el.dataset.selected !== selected) entry.el.dataset.selected = selected;
+        };
+
+        const renderEmptyState = (box, override) => {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          const big = document.createElement("div");
+          big.className = "big";
+          big.textContent = override
+            ? override.big
+            : state.query
+              ? "没有匹配的笔记"
+              : "这里还没有笔记";
+          const small = document.createElement("div");
+          small.className = "small";
+          small.textContent = override
+            ? override.small
+            : state.query
+              ? "换个关键词试试，或清空搜索框。"
+              : "点右上角「新建」写一篇，或在手机上记一条后点「同步」。";
+          empty.append(big, small);
+          box.appendChild(empty);
+        };
+
+        const renderNotes = () => {
+          const box = $("noteList");
+
+          // 未登录时列表必然是空的：给一句解释，别留一片空白
+          if (!state.loggedIn) {
+            noteNodes.clear();
+            box.textContent = "";
+            renderEmptyState(box, {
+              big: "尚未登录",
+              small: "扫码登录后即可看到你的笔记。",
+            });
+            return;
+          }
+
+          // 删除待删项（乐观删除，见 deleteNote）
+          const visible = state.notes.filter((note) => !state.pendingDelete.has(String(note.id)));
+
+          if (!visible.length) {
+            noteNodes.clear();
+            box.textContent = "";
+            renderEmptyState(box);
+            return;
+          }
+
+          // 空状态占位符要清掉
+          const placeholder = box.querySelector(".empty");
+          if (placeholder) placeholder.remove();
+
+          const seen = new Set();
+          let cursor = box.firstChild;
+          for (const note of visible) {
+            const id = String(note.id);
+            seen.add(id);
+            let entry = noteNodes.get(id);
+            if (!entry) {
+              entry = createNoteNode(note);
+              noteNodes.set(id, entry);
+            } else {
+              updateNoteNode(entry, note);
+            }
+            // 按目标顺序把节点摆到 cursor 位置：已在位就跳过，否则插到前面。
+            // 这样顺序没变时零移动，只有真正换序/新增才动 DOM。
+            if (cursor === entry.el) {
+              cursor = cursor.nextSibling;
+            } else {
+              box.insertBefore(entry.el, cursor);
+            }
+          }
+
+          // 清掉本轮不再出现的节点
+          for (const [id, entry] of noteNodes) {
+            if (seen.has(id)) continue;
+            entry.el.remove();
+            noteNodes.delete(id);
+          }
+        };
+
+        const loadNotes = async () => {
+          if (!state.loggedIn) return;
+          const res = await invoke("mn.notes.list", {
+            folderId: state.folderId,
+            query: state.query,
+            limit: 300,
+          });
+          if (!res.ok) {
+            toast(res.error || "读取笔记列表失败", "error");
+            return;
+          }
+          state.notes = res.items || [];
+          state.total = res.total || 0;
+          renderNotes();
+        };
+
+        /**
+         * 只刷新一篇笔记在列表里的显示（保存后调用）。
+         *
+         * 替代原先的 `await loadNotes()`：后者会重新拉整份列表并重建节点，
+         * 自动保存下代价过高。这里直接按 id 定位节点做局部更新。
+         */
+        const refreshNoteInList = (note) => {
+          if (!note) return;
+          const id = String(note.id);
+          const index = state.notes.findIndex((n) => String(n.id) === id);
+          if (index < 0) {
+            // 列表里还没有（比如在「全部笔记」之外的文件夹新建）：退回一次轻量刷新
+            void loadNotes();
+            return;
+          }
+          const prev = state.notes[index];
+          state.notes[index] = {
+            ...prev,
+            title: note.title ?? prev.title,
+            summary: note.summary ?? prev.summary,
+            folderId: note.folderId ?? prev.folderId,
+            folderName: note.folderName ?? prev.folderName,
+            modifyDate: note.modifyDate ?? prev.modifyDate,
+          };
+          // 修改时间变了要重排；否则只更新节点内容
+          const moved = Number(state.notes[index].modifyDate) !== Number(prev.modifyDate);
+          if (moved) {
+            state.notes.sort((a, b) => Number(b.modifyDate ?? 0) - Number(a.modifyDate ?? 0));
+          }
+          const entry = noteNodes.get(id);
+          if (entry) updateNoteNode(entry, state.notes[index]);
+          if (moved) renderNotes();
+        };
+
+        // 搜索：输入后 250ms 去抖
+        let searchTimer = null;
+        $("search").addEventListener("input", (event) => {
+          const value = event.target.value;
+          if (searchTimer) clearTimeout(searchTimer);
+          searchTimer = setTimeout(async () => {
+            state.query = value.trim();
+            await loadNotes();
+            /*
+             * 列表高亮由 updateNoteNode 处理，但正文里的高亮是渲染时插进 DOM 的，
+             * 不会自己消失 —— 不清掉的话清空搜索后正文仍留着上一次的 <mark>。
+             * 编辑模式没有可清的 DOM（纯 textarea），跳过即可。
+             */
+            if (state.mode === "preview") renderEditor();
+          }, 250);
+        });
+
+        // ── 编辑器 ──────────────────────────────────────────────────────────
+        const setDirty = (dirty) => {
+          state.draft.dirty = dirty;
+          if (dirty) {
+            // 有未保存改动时立刻安排自动保存，不再让用户手动点
+            scheduleAutosave();
+          } else {
+            cancelAutosave();
+          }
+          if (dirty) {
+            $("savedHint").textContent = "未保存";
+          } else if ($("savedHint").textContent === "未保存") {
+            $("savedHint").textContent = "";
+          }
+          $("btnSave").disabled = !dirty || !state.selectedId;
+        };
+
+        /*
+         * ── 自动保存 ───────────────────────────────────────────────────────
+         *
+         * 目标：用户不必点保存，切笔记也不丢草稿。三个必须处理的坑：
+         *
+         *  1) 输入法（IME）合成中不能保存。
+         *     中文输入时每个按键都会触发 input，但此刻 textarea.value 只是拼音串，
+         *     直接存下去会把「nihao」这种中间态写进云端。判据用 event.isComposing，
+         *     并用 compositionstart/end 兜住 isComposing 不可靠的老环境。
+         *
+         *  2) 切笔记 / 关面板必须先冲刷。
+         *     原来的 openNote 是 confirm() 询问「要丢弃吗」—— 有了自动保存就不该再
+         *     丢东西，改成 await flushSave() 把草稿存下去再切。
+         *
+         *  3) 不能每秒都写整份磁盘缓存。
+         *     repository.updateNote 结尾会 writeCache(serialize())，即整份缓存重写。
+         *     自动保存一秒一次会把磁盘打满。所以：云端更新按 ~1.5s 去抖，
+         *     本地磁盘缓存由后端自己节流（见 repository 的 scheduleCacheWrite）。
+         */
+        const AUTOSAVE_DELAY_MS = 1500;
+        let autosaveTimer = null;
+        let saveInFlight = null;
+
+        const cancelAutosave = () => {
+          if (autosaveTimer) {
+            clearTimeout(autosaveTimer);
+            autosaveTimer = null;
+          }
+        };
+
+        const scheduleAutosave = () => {
+          if (autosaveTimer) clearTimeout(autosaveTimer);
+          autosaveTimer = setTimeout(() => {
+            autosaveTimer = null;
+            void saveNote({ auto: true });
+          }, AUTOSAVE_DELAY_MS);
+        };
+
+        /** 立即把未保存的草稿写下去（切笔记 / 关面板 / Ctrl+S 用）。 */
+        const flushSave = async () => {
+          cancelAutosave();
+          if (state.draft.id === null || !state.draft.dirty) return;
+          await saveNote({ auto: true });
+        };
+
+        /*
+         * 记住编辑区里 textarea 的光标与滚动位置。
+         *
+         * renderEditor 是「销毁 + 重建」，切到预览再切回来 textarea 是全新的，
+         * 不还原的话光标会跳到末尾、滚动回到顶部（实测 caret 12 → 184）。
+         * 这里在切换前抓一份，重建后还原。
+         */
+        const captureEditorView = () => {
+          const ta = document.querySelector(".md-input");
+          if (!ta) return null;
+          return {
+            id: state.draft.id,
+            caret: ta.selectionStart,
+            scrollTop: ta.scrollTop,
+          };
+        };
+
+        const restoreEditorView = (snapshot) => {
+          if (!snapshot || snapshot.id !== state.draft.id) return;
+          const ta = document.querySelector(".md-input");
+          if (!ta) return;
+          // 正文可能在别处被改短了，先夹到合法范围再设置，避免越界异常
+          const caret = Math.max(0, Math.min(snapshot.caret, ta.value.length));
+          ta.focus({ preventScroll: true });
+          ta.setSelectionRange(caret, caret);
+          ta.scrollTop = snapshot.scrollTop;
+        };
+
+        /*
+         * 把标签高亮同步成 state.mode 的样子。
+         *
+         * 必须单向派生：以前 HTML 里写死 data-active="true"，而 state.mode 默认是
+         * "preview"，两个事实来源各说各话 —— 首次打开面板就会「编辑高亮、内容却是预览」。
+         * 更麻烦的是点「预览」时因为 mode 已经是 preview，处理函数直接 return，
+         * 高亮连纠正的机会都没有。现在只有 state.mode 一个源头。
+         */
+        const syncTabs = () => {
+          for (const tab of document.querySelectorAll(".tab")) {
+            tab.dataset.active = String(tab.dataset.mode === state.mode);
+          }
+        };
+
+        /*
+         * ── 编辑辅助 ────────────────────────────────────────────────────────
+         *
+         * 逻辑在 lib/editor.js（面板与侧边栏共用），这里只负责「什么时候调它」。
+         *
+         * 关键：所有改动都让 editor.js 走 textarea 的原生 API 并派发 input，
+         * 因此浏览器的原生撤销栈（Ctrl+Z）和既有的自动保存都会照常工作 ——
+         * 不需要另接一套状态，也不会出现「工具栏改的内容存不进去」。
+         */
+        const attachEditorKeys = (textarea) => {
+          const editor = window.MiNoteEditor;
+          if (!editor) return;
+
+          textarea.addEventListener("keydown", (event) => {
+            // IME 合成中的按键不是用户意图（比如选词回车），一律放过
+            if (event.isComposing || state.composing) return;
+
+            const mod = event.ctrlKey || event.metaKey;
+
+            // Tab / Shift+Tab：缩进与反缩进（多行选区一起处理）
+            if (event.key === "Tab") {
+              event.preventDefault();
+              if (event.shiftKey) editor.outdent(textarea);
+              else editor.indent(textarea);
+              return;
+            }
+
+            if (mod) {
+              const key = event.key.toLowerCase();
+              if (key === "b") { event.preventDefault(); editor.wrap(textarea, "**", "**", "粗体"); return; }
+              if (key === "i") { event.preventDefault(); editor.wrap(textarea, "*", "*", "斜体"); return; }
+              if (key === "k") { event.preventDefault(); editor.wrap(textarea, "[", "](https://)", "链接文字"); return; }
+              if (key === "c" && event.shiftKey) { event.preventDefault(); editor.wrap(textarea, "`", "`", "代码"); return; }
+              return;
+            }
+
+            // Enter：列表续行（不在列表里就交回浏览器默认行为）
+            if (event.key === "Enter" && !event.shiftKey) {
+              if (editor.continueList(textarea)) event.preventDefault();
+            }
+          });
+        };
+
+        /** 工具栏按钮 → 编辑器动作。 */
+        const runEditorCommand = (cmd) => {
+          const textarea = document.querySelector(".md-input");
+          const editor = window.MiNoteEditor;
+          if (!textarea || !editor) return;
+          switch (cmd) {
+            case "bold": editor.wrap(textarea, "**", "**", "粗体"); break;
+            case "italic": editor.wrap(textarea, "*", "*", "斜体"); break;
+            case "strike": editor.wrap(textarea, "~~", "~~", "删除线"); break;
+            case "code": editor.wrap(textarea, "`", "`", "代码"); break;
+            case "link": editor.wrap(textarea, "[", "](https://)", "链接文字"); break;
+            case "image": editor.insertImage(textarea, "图片说明"); break;
+            case "h1": editor.toggleLinePrefix(textarea, "# ", { exclusive: true, match: /^#\s+/ }); break;
+            case "h2": editor.toggleLinePrefix(textarea, "## ", { exclusive: true, match: /^##\s+/ }); break;
+            case "h3": editor.toggleLinePrefix(textarea, "### ", { exclusive: true, match: /^###\s+/ }); break;
+            case "ul": editor.toggleLinePrefix(textarea, "- ", { match: /^[-*+]\s+/ }); break;
+            case "ol": editor.toggleLinePrefix(textarea, "1. ", { match: /^\d+\.\s+/ }); break;
+            case "task": editor.toggleLinePrefix(textarea, "- [ ] ", { match: /^[-*+]\s+\[[ xX]\]\s+/ }); break;
+            case "quote": editor.toggleLinePrefix(textarea, "> ", { match: /^>\s?/ }); break;
+            case "codeblock": editor.insertBlock(textarea, "```\n$SELECTION\n```", 4); break;
+            case "table":
+              editor.insertBlock(textarea, "| 列 1 | 列 2 |\n| --- | --- |\n| $SELECTION |  |");
+              break;
+            default: break;
+          }
+        };
+
+        $("editorTools").addEventListener("click", (event) => {
+          const button = event.target.closest(".tool");
+          if (!button) return;
+          event.preventDefault();
+          runEditorCommand(button.dataset.cmd);
+        });
+
+        /*
+         * 工具栏按钮按下时不能抢走 textarea 的焦点，否则选区会丢、
+         * 命令作用不到用户刚选中的文字上。
+         */
+        $("editorTools").addEventListener("mousedown", (event) => event.preventDefault());
+
+        /*
+         * ── 大纲 ────────────────────────────────────────────────────────────
+         *
+         * 提取逻辑在 lib/outline.js（纯函数，便于单测）。这里负责：
+         *   - 把标题渲染成可点的列表
+         *   - 预览模式：给标题补 id + IntersectionObserver 滚动联动
+         *   - 编辑模式：点击后把光标移到源码里那一行
+         *
+         * 「跳到源码第几行」靠 extract() 给出的标题序号，与 markdown-it 的渲染顺序
+         * 一一对应；所以编辑模式只需要按序号数到第 N 个 `#` 行即可。
+         */
+        let outlineUnwatch = null;
+        /*
+         * 点击大纲项后会平滑滚动，而滚动联动同时也在更新高亮 ——
+         * 两者会打架：刚点的第 5 项，滚动一停下就被联动改成了第 6 项。
+         * 用一个短暂的抑制窗口：跳转期间以用户的点击为准。
+         */
+        let outlineJumpUntil = 0;
+
+        const stopOutlineWatch = () => {
+          if (outlineUnwatch) {
+            outlineUnwatch();
+            outlineUnwatch = null;
+          }
+        };
+
+        /** 点击大纲项：预览模式滚过去，编辑模式把光标移到那一行。 */
+        const jumpToHeading = (index) => {
+          // 跳转期间让点击结果压过滚动联动
+          outlineJumpUntil = Date.now() + 800;
+          setActiveHeading(index);
+
+          if (state.mode === "preview") {
+            const target = document.getElementById(window.MiNoteOutline.headingId(index));
+            const scroller = $("editorBody").querySelector(".md-view");
+            if (target && scroller) {
+              /*
+               * 自己算滚动位置而不是用 scrollIntoView：
+               * 后者会挑「最近的滚动祖先」，在 flex 布局里可能选中 body，
+               * 结果 .md-view 的 scrollTop 纹丝不动（实测过）。
+               *
+               * 用瞬时滚动而不是 smooth：长文里平滑动画要一秒多才停，
+               * 点目录是导航动作，立刻到位比看得见动画更重要。
+               */
+              const top = target.offsetTop - scroller.offsetTop;
+              scroller.scrollTop = Math.max(0, top - 8);
+            }
+            return;
+          }
+          // 编辑模式：在源码里数到第 index 个标题行
+          const textarea = document.querySelector(".md-input");
+          if (!textarea) return;
+          const lines = textarea.value.split("\n");
+          let seen = 0;
+          let fence = null;
+          for (let i = 0; i < lines.length; i += 1) {
+            const fenceMatch = lines[i].match(/^\s*(```|~~~)/);
+            if (fenceMatch) {
+              if (fence === null) fence = fenceMatch[1];
+              else if (fence === fenceMatch[1]) fence = null;
+              continue;
+            }
+            if (fence !== null) continue;
+            if (!/^#{1,5}\s+/.test(lines[i])) continue;
+            if (seen === index) {
+              // 算出该行行首的绝对偏移
+              let offset = 0;
+              for (let k = 0; k < i; k += 1) offset += lines[k].length + 1;
+              textarea.focus();
+              textarea.setSelectionRange(offset, offset + lines[i].length);
+              // 让选中行滚到可视区中间
+              const lineHeight = 21;
+              textarea.scrollTop = Math.max(0, i * lineHeight - textarea.clientHeight / 2);
+              return;
+            }
+            seen += 1;
+          }
+        };
+
+        const renderOutline = (headings) => {
+          const box = $("outlineList");
+          const panel = $("outline");
+          if (!panel.hidden) box.textContent = "";
+
+          if (!headings.length) {
+            if (panel.hidden) return;
+            const empty = document.createElement("div");
+            empty.className = "outline-empty";
+            empty.textContent = state.mode === "edit"
+              ? "正文里还没有标题。用「# 」开头写一行即可。"
+              : "这篇笔记没有标题。";
+            box.appendChild(empty);
+            return;
+          }
+
+          if (panel.hidden) return;
+          for (const heading of headings) {
+            const item = document.createElement("button");
+            item.className = "outline-item";
+            item.dataset.level = String(heading.level);
+            item.dataset.index = String(heading.index);
+            item.title = heading.text;
+            item.textContent = heading.text;
+            item.addEventListener("click", () => jumpToHeading(heading.index));
+            box.appendChild(item);
+          }
+        };
+
+        /** 高亮大纲里当前所在的那一条。 */
+        const setActiveHeading = (index) => {
+          const items = $("outlineList").querySelectorAll(".outline-item");
+          for (const item of items) {
+            const active = String(item.dataset.index === String(index));
+            if (item.dataset.active !== active) item.dataset.active = active;
+          }
+        };
+
+        const refreshOutline = () => {
+          stopOutlineWatch();
+          const headings = window.MiNoteOutline.extract(state.draft.markdown || "");
+          renderOutline(headings);
+          syncActionButtons();
+
+          // 预览模式才有可联动的 DOM；编辑模式只有源码
+          if (state.mode !== "preview" || $("outline").hidden) return;
+          const md = $("editorBody").querySelector(".md-body");
+          if (!md) return;
+          const nodes = window.MiNoteOutline.decorate(md);
+          outlineUnwatch = window.MiNoteOutline.watchScroll(
+            $("editorBody").querySelector(".md-view"),
+            nodes,
+            (index) => {
+              // 刚点过大纲就别让联动抢走高亮
+              if (Date.now() < outlineJumpUntil) return;
+              setActiveHeading(index);
+            },
+          );
+        };
+
+        $("btnOutline").addEventListener("click", () => {
+          const panel = $("outline");
+          panel.hidden = !panel.hidden;
+          $("btnOutline").dataset.active = String(!panel.hidden);
+          refreshOutline();
+        });
+
+        /**
+         * 在渲染后的正文里高亮搜索词，并把首个命中滚进视野。
+         *
+         * 只在预览模式做：编辑模式是纯 textarea，没有可标记的 DOM，
+         * 硬要跳转还会打乱用户正在输入的光标位置。
+         */
+        const highlightInBody = (root) => {
+          if (!root || !state.query) return;
+          const needle = state.query.trim();
+          if (!needle) return;
+          const lower = needle.toLowerCase();
+
+          // 收集文本节点（跳过代码块内部：那里高亮会打乱等宽排版，也没必要）
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+              if (!node.nodeValue || !node.nodeValue.toLowerCase().includes(lower)) {
+                return NodeFilter.FILTER_REJECT;
+              }
+              if (node.parentNode && node.parentNode.closest("pre, code, mark")) {
+                return NodeFilter.FILTER_REJECT;
+              }
+              return NodeFilter.FILTER_ACCEPT;
+            },
+          });
+
+          const targets = [];
+          while (walker.nextNode()) targets.push(walker.currentNode);
+
+          let first = null;
+          for (const node of targets) {
+            const text = node.nodeValue;
+            const fragment = document.createDocumentFragment();
+            let from = 0;
+            let at = text.toLowerCase().indexOf(lower);
+            while (at !== -1) {
+              if (at > from) fragment.appendChild(document.createTextNode(text.slice(from, at)));
+              const mark = document.createElement("mark");
+              mark.className = "search-hit";
+              if (!first) {
+                mark.classList.add("is-current");
+                first = mark;
+              }
+              mark.textContent = text.slice(at, at + needle.length);
+              fragment.appendChild(mark);
+              from = at + needle.length;
+              at = text.toLowerCase().indexOf(lower, from);
+            }
+            if (from < text.length) fragment.appendChild(document.createTextNode(text.slice(from)));
+            node.parentNode.replaceChild(fragment, node);
+          }
+
+          // 滚到第一处命中（瞬时：长文里 smooth 要一秒多才停）
+          if (first) {
+            const scroller = root.closest(".md-view");
+            if (scroller) {
+              const top = first.offsetTop - scroller.offsetTop;
+              scroller.scrollTop = Math.max(0, top - scroller.clientHeight / 3);
+            } else {
+              first.scrollIntoView({ block: "center" });
+            }
+          }
+        };
+
+        /*
+         * ── 导出 ────────────────────────────────────────────────────────────
+         *
+         * 走剪贴板而不是写文件：宿主没有「另存为」对话框，落地到文件需要
+         * fs.read（选目录）+ fs.write（写文件）两个权限，而本项目对外承诺
+         * 「不读也不写你的工作区文件」。所以导出 = 生成内容 → 剪贴板 / 浏览器下载。
+         *
+         * 复制大段文本走插件进程（mn.clipboard.write，与侧边栏「复制全文」同一条路），
+         * 因为视图是 file:// 沙箱页，navigator.clipboard 不保证可用。
+         */
+        const openExportDialog = () => {
+          if (state.draft.id === null) return;
+          const title = state.draft.title || "无标题笔记";
+          const chars = (state.draft.markdown || "").length;
+          // 导出只能落到剪贴板（面板没有文件写入权限），所以把建议文件名一并给出，
+          // 用户粘完就知道该存成什么名字。
+          const mdName = window.MiNoteExport.suggestFileName(title, "md");
+          const htmlName = window.MiNoteExport.suggestFileName(title, "html");
+          const images = window.MiNoteExport.countAttachments(state.draft.markdown);
+          $("exportNote").textContent =
+            `「${title}」 · 正文 ${chars} 字` +
+            (images ? ` · ${images} 张图片` : "") +
+            ` · 建议存为 ${mdName} / ${htmlName}`;
+          $("exportDialog").hidden = false;
+        };
+
+        const closeExportDialog = () => {
+          $("exportDialog").hidden = true;
+        };
+
+        $("btnExport").addEventListener("click", openExportDialog);
+        $("exportCancel").addEventListener("click", closeExportDialog);
+        $("exportDialog").addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeExportDialog();
+        });
+
+        $("exportMdCopy").addEventListener("click", async () => {
+          const text = state.draft.markdown || "";
+          if (!text.trim()) {
+            toast("这篇笔记还没有正文", "error");
+            return;
+          }
+          const res = await invoke("mn.clipboard.write", { text });
+          if (!res.ok) {
+            toast(res.error || "复制失败", "error");
+            return;
+          }
+          closeExportDialog();
+          toast(`已复制 Markdown（${res.length} 字）`);
+        });
+
+        $("exportHtmlCopy").addEventListener("click", async () => {
+          // 生成含字体内联的 HTML 要拼几百 KB 字符串，按钮先禁用防连点
+          const button = $("exportHtmlCopy");
+          button.disabled = true;
+          try {
+            const theme = $("exportDark").checked ? "dark" : "light";
+            // 传取图函数：导出文件是离开本机/离开小米云后看的，
+            // 留着 data-file-id 骨架等于导出后图片全空
+            const html = await window.MiNoteExport.toHtml(
+              state.draft.title,
+              state.draft.markdown,
+              { theme, resolveImage: fetchAttachmentDataUri },
+            );
+            const res = await invoke("mn.clipboard.write", { text: html });
+            if (!res.ok) {
+              toast(res.error || "复制失败", "error");
+              return;
+            }
+            const pending = window.MiNoteExport.countAttachments(state.draft.markdown) -
+              (html.match(/class="md-attachment is-loaded"/g) || []).length;
+            closeExportDialog();
+            toast(
+              pending > 0
+                ? `已复制 HTML（${window.MiNoteExport.describe(html)}）· ${pending} 张图片未取回`
+                : `已复制 HTML（${window.MiNoteExport.describe(html)}）`,
+              pending > 0 ? "warn" : "info",
+            );
+          } catch (error) {
+            toast(`生成 HTML 失败：${error?.message ?? error}`, "error");
+          } finally {
+            button.disabled = false;
+          }
+        });
+
+        /*
+         * ── 导入 ────────────────────────────────────────────────────────────
+         *
+         * 与导出的约束完全对称：面板没有 fs 权限，也承诺不读写工作区文件。
+         * 所以导入只能走「用户显式选中的文件」这条路 —— `<input type="file">`
+         * （含 `webkitdirectory` 选目录）与拖拽，浏览器把用户选中的文件以 File
+         * 对象交给页面，页面读出文本再交给插件上传。插件进程全程不碰文件系统，
+         * manifest 因此不需要任何 fs.* 权限。
+         *
+         * 注意不能用 `showDirectoryPicker()`（File System Access API）：面板是
+         * `file://` 页面，不是安全上下文，该 API 直接不可用。`webkitdirectory`
+         * 是这条路上唯一能拿到目录结构的办法。
+         */
+        const IMPORT_EXT = /\.(md|markdown|mdown|mkd|txt)$/i;
+        const isImportable = (name) => IMPORT_EXT.test(String(name || ""));
+        /*
+         * 单次上限，与 repository.importNotes 的 maxItems 对齐。
+         *
+         * 在面板这一侧就先卡住，而不是让用户选完 5 万个文件再等插件逐条回报
+         * 「超出上限」：读文件、拼 payload、过宿主通道都要成本，早点说清楚更省事。
+         */
+        const IMPORT_MAX_FILES = 500;
+
+        /** 人读的体积。 */
+        const formatBytes = (bytes) => {
+          if (bytes < 1024) return `${bytes} B`;
+          if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+          return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+        };
+
+        /** 同一份文件的稳定标识：目录链 + 文件名。用于挡掉重复拖入。 */
+        const fileKey = (entry) => `${entry.dirs.join("/")}\u0000${entry.name}`;
+
+        /**
+         * 从 `webkitRelativePath`（形如 `根目录/子目录/a.md`）拆出目录链。
+         *
+         * 保留最外层根目录名：用户选 D:\notes\journal 时云端会建出同名的 journal
+         * 文件夹，结构与来源一眼对得上。重复导入不会建出重名目录 —— repository
+         * 按 (parentId, name) 索引复用已有文件夹。
+         * 普通多选（不是选目录）时 `webkitRelativePath` 为空串，目录链就是空的。
+         */
+        const dirsOf = (file) => {
+          const parts = String(file.webkitRelativePath || "").split("/").filter(Boolean);
+          return parts.length > 1 ? parts.slice(0, -1) : [];
+        };
+
+        /**
+         * 把文件读成文本。单个文件读不出来只跳过它，不能让整批导入作废。
+         * @returns {Promise<{added:Array<object>, unreadable:number}>}
+         */
+        const readPairs = async (pairs) => {
+          const added = [];
+          let unreadable = 0;
+          for (const pair of pairs) {
+            try {
+              added.push({
+                name: pair.file.name,
+                markdown: await pair.file.text(),
+                dirs: pair.dirs,
+                bytes: pair.file.size || 0,
+              });
+            } catch {
+              unreadable += 1;
+            }
+          }
+          return { added, unreadable };
+        };
+
+        /**
+         * 拖拽目录时必须递归展开。
+         * `readEntries` 每次最多返回 100 条，**必须循环读到空数组为止**，
+         * 只调一次会静默丢掉大目录里第 100 个之后的文件。
+         */
+        const readEntriesAll = (reader) => new Promise((resolve) => {
+          const all = [];
+          const step = () => reader.readEntries(
+            (batch) => {
+              if (!batch.length) return resolve(all);
+              all.push(...batch);
+              step();
+            },
+            () => resolve(all),
+          );
+          step();
+        });
+
+        const walkEntry = async (entry, dirs, out) => {
+          if (!entry) return;
+          if (entry.isFile) {
+            const file = await new Promise((resolve) => entry.file(resolve, () => resolve(null)));
+            if (file && isImportable(file.name)) out.push({ file, dirs });
+            return;
+          }
+          if (entry.isDirectory) {
+            const children = await readEntriesAll(entry.createReader());
+            for (const child of children) await walkEntry(child, [...dirs, entry.name], out);
+          }
+        };
+
+        /** 把一次 drop 变成 `[{file, dirs}]`。 */
+        const pairsFromDrop = async (dataTransfer) => {
+          if (!dataTransfer) return [];
+          const entries = [];
+          for (const item of [...(dataTransfer.items || [])]) {
+            if (item.kind !== "file") continue;
+            const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+            if (entry) entries.push(entry);
+          }
+          if (!entries.length) {
+            // 退化路径：拿不到 entry（有些来源只给 File）时只能按平铺文件处理
+            return [...(dataTransfer.files || [])]
+              .filter((file) => isImportable(file.name))
+              .map((file) => ({ file, dirs: [] }));
+          }
+          const out = [];
+          for (const entry of entries) await walkEntry(entry, [], out);
+          return out;
+        };
+
+        const renderImportFolders = () => {
+          const select = $("importFolder");
+          select.textContent = "";
+          const rootCount = state.folders.reduce((sum, f) => sum + f.count, 0);
+          const rootOption = document.createElement("option");
+          rootOption.value = "0";
+          rootOption.textContent = `全部笔记（${rootCount}）`;
+          select.appendChild(rootOption);
+          for (const folder of state.folders) {
+            const option = document.createElement("option");
+            option.value = folder.id;
+            option.textContent = `${folder.name}（${folder.count}）`;
+            select.appendChild(option);
+          }
+          // 默认落在当前浏览的文件夹：所见即所导
+          select.value = state.folderId || "0";
+        };
+
+        const updateImportSummary = (extra) => {
+          const summary = $("importSummary");
+          const files = state.importFiles;
+          if (state.importing) return;
+          if (!files.length) {
+            summary.dataset.state = extra ? "error" : "";
+            summary.textContent = extra || "尚未选择文件。";
+            $("importStart").disabled = true;
+            return;
+          }
+          // 统计「子文件夹」按目录链去重，而不是按文件数
+          const dirs = new Set();
+          for (const file of files) {
+            for (let i = 1; i <= file.dirs.length; i += 1) dirs.add(file.dirs.slice(0, i).join("/"));
+          }
+          const chars = files.reduce((sum, file) => sum + (file.markdown ? file.markdown.length : 0), 0);
+          const bytes = files.reduce((sum, file) => sum + (file.bytes || 0), 0);
+          const overflow = files.length > IMPORT_MAX_FILES;
+          summary.dataset.state = overflow || extra ? "error" : "";
+          summary.textContent =
+            `已选 ${files.length} 个文件` +
+            (dirs.size ? ` · ${dirs.size} 个子文件夹` : "") +
+            ` · 正文合计 ${chars} 字` +
+            (bytes ? `（${formatBytes(bytes)}）` : "") +
+            (extra ? ` · ${extra}` : "") +
+            (overflow ? ` · 单次最多 ${IMPORT_MAX_FILES} 个，超出部分不会导入` : "");
+          $("importStart").disabled = overflow;
+        };
+
+        /**
+         * 收下文件。
+         * @param {Array<{file:File, dirs:string[]}>} pairs
+         */
+        const ingest = async (pairs) => {
+          // 去重：同一份文件被拖两次（或先选文件又拖了一遍）不该导入两遍
+          const seen = new Set(state.importFiles.map(fileKey));
+          const fresh = [];
+          let duplicated = 0;
+          for (const pair of pairs) {
+            const key = fileKey({ name: pair.file.name, dirs: pair.dirs });
+            if (seen.has(key)) { duplicated += 1; continue; }
+            seen.add(key);
+            fresh.push(pair);
+          }
+          const { added, unreadable } = await readPairs(fresh);
+          state.importFiles.push(...added);
+          const notes = [];
+          if (duplicated) notes.push(`${duplicated} 个重复已忽略`);
+          if (unreadable) notes.push(`${unreadable} 个读不出来已跳过`);
+          updateImportSummary(notes.join("，"));
+        };
+
+        /**
+         * @param {boolean} reset 是否清空已选文件并重置对话框。
+         *   从「导入」按钮进要清空；拖拽追加到已打开的对话框时不能清空，
+         *   也不该把用户刚勾好的选项复位。
+         */
+        const openImportDialog = (reset = true) => {
+          if (!state.loggedIn) return;
+          state.importing = false;
+          if (reset) {
+            state.importFiles = [];
+            renderImportFolders();
+            $("importKeepStructure").checked = true;
+            $("importBar").hidden = true;
+            $("importBarFill").style.width = "0%";
+            $("importStart").textContent = "开始导入";
+            $("importCancel").textContent = "取消";
+          }
+          $("importCancel").disabled = false;
+          if (reset) updateImportSummary();
+          $("importDialog").hidden = false;
+        };
+
+        const closeImportDialog = () => {
+          // 导入进行中不让关：job 已经在插件进程里跑了，关掉只会让用户以为取消了
+          if (state.importing) return;
+          $("importDialog").hidden = true;
+          state.importFiles = [];
+        };
+
+        $("btnImport").addEventListener("click", () => openImportDialog(true));
+        $("importCancel").addEventListener("click", closeImportDialog);
+        $("importDialog").addEventListener("keydown", (event) => {
+          if (event.key === "Escape") closeImportDialog();
+        });
+
+        // 选文件 / 选目录都走同一个隐藏 input，靠 webkitdirectory 区分
+        const pickWith = (inputId) => {
+          const input = $(inputId);
+          // 必须先清空 value：否则连选同一个文件两次不会再派发 change
+          input.value = "";
+          input.click();
+        };
+        $("importPickFiles").addEventListener("click", () => pickWith("importFileInput"));
+        $("importPickFolder").addEventListener("click", () => pickWith("importDirInput"));
+        for (const id of ["importFileInput", "importDirInput"]) {
+          $(id).addEventListener("change", async (event) => {
+            const picked = [...(event.target.files || [])]
+              .filter((file) => isImportable(file.name))
+              .map((file) => ({ file, dirs: dirsOf(file) }));
+            if (!picked.length) {
+              updateImportSummary("选中的文件里没有 Markdown");
+              return;
+            }
+            await ingest(picked);
+          });
+        }
+
+        const startImport = async () => {
+          if (state.importing || !state.importFiles.length) return;
+          // 面板这侧也卡一次上限：repository 会把超出的记成失败，但让用户
+          // 白白等一整轮才看到「超出上限」不如现在就说清楚
+          const files = state.importFiles.slice(0, IMPORT_MAX_FILES);
+          const overflow = state.importFiles.length - files.length;
+          // 只传插件需要的三个字段：bytes 只是面板用来显示体积的
+          const items = files.map((file) => ({
+            name: file.name,
+            markdown: file.markdown,
+            dirs: file.dirs,
+          }));
+          const folderId = $("importFolder").value || "0";
+          const keepStructure = $("importKeepStructure").checked;
+
+          state.importing = true;
+          const start = $("importStart");
+          const cancel = $("importCancel");
+          const summary = $("importSummary");
+          start.disabled = true;
+          cancel.disabled = true;
+          start.textContent = "导入中…";
+          summary.dataset.state = "busy";
+          summary.textContent = `正在导入 0/${items.length}…`;
+          $("importBar").hidden = false;
+          $("importBarFill").style.width = "0%";
+
+          const res = await invoke("mn.import.start", { items, folderId, keepStructure });
+          if (!res.ok) {
+            state.importing = false;
+            start.disabled = false;
+            cancel.disabled = false;
+            start.textContent = "开始导入";
+            summary.dataset.state = "error";
+            summary.textContent = res.error || "导入失败";
+            return;
+          }
+
+          const jobId = res.jobId;
+          // 登记为进行中的任务，免得 20 秒的状态轮询把进度文案覆盖掉
+          state.jobs.add(jobId);
+          const poll = setInterval(async () => {
+            const jobRes = await invoke("mn.job.get", { jobId });
+            const job = jobRes.job;
+            if (!job) { clearInterval(poll); state.jobs.delete(jobId); state.importing = false; return; }
+            if (job.status === "running") {
+              const p = job.progress || {};
+              const done = Number(p.done) || 0;
+              const total = Number(p.total) || items.length;
+              summary.textContent = `正在导入 ${done}/${total}…` + (p.title ? `（${p.title}）` : "");
+              $("importBarFill").style.width = `${total ? Math.round((done / total) * 100) : 0}%`;
+              return;
+            }
+            clearInterval(poll);
+            state.jobs.delete(jobId);
+            state.importing = false;
+            cancel.disabled = false;
+            start.textContent = "开始导入";
+            $("importBar").hidden = true;
+
+            if (job.status !== "done") {
+              summary.dataset.state = "error";
+              summary.textContent = job.error || "导入失败";
+              return;
+            }
+
+            const result = job.result || {};
+            const created = Number(result.created) || 0;
+            const failed = Array.isArray(result.failed) ? result.failed : [];
+            const folders = Number(result.foldersCreated) || 0;
+            summary.dataset.state = failed.length ? "error" : "";
+            summary.textContent =
+              `成功 ${created} 篇` +
+              (folders ? ` · 新建 ${folders} 个文件夹` : "") +
+              (failed.length
+                ? ` · 失败 ${failed.length} 篇：` +
+                  failed.slice(0, 3).map((f) => `${f.name || "（无标题）"}（${f.error}）`).join("；") +
+                  (failed.length > 3 ? ` 等 ${failed.length} 项` : "")
+                : "") +
+              (overflow ? ` · 另有 ${overflow} 个文件因超出单次上限未导入` : "");
+
+            await refreshStatus();
+            await loadFolders();
+            await loadNotes();
+
+            if (!failed.length) {
+              state.importFiles = [];
+              $("importDialog").hidden = true;
+              toast(`已导入 ${created} 篇笔记`);
+            } else {
+              cancel.textContent = "关闭";
+              toast(`导入完成：成功 ${created} 篇，失败 ${failed.length} 篇`, "warn");
+            }
+          }, 900);
+        };
+        $("importStart").addEventListener("click", () => void startImport());
+
+        /*
+         * 拖拽导入。拖到面板任意位置即可，不必先开对话框。
+         *
+         * 两个必须处理的坑：
+         *   1. `dragover` 必须 `preventDefault()`，否则浏览器根本不派发 drop。
+         *   2. 文件拖到页面上时，浏览器的**默认动作是导航到那个文件** —— 面板会
+         *      被整个替换掉。所以只要拖的是文件，无论登录与否都要拦住默认行为
+         *      （未登录时给一句提示，而不是让它静默失效或把面板弄没）。
+         * 用 dragenter/dragleave 计数判断「是否真的离开了窗口」：子元素之间移动
+         * 也会派发 dragleave，只看单个事件会让高亮疯狂闪烁。
+         */
+        let dragDepth = 0;
+        let dragHasFiles = false;
+        const hasFiles = (event) => [...(event.dataTransfer?.types || [])].includes("Files");
+
+        document.addEventListener("dragenter", (event) => {
+          if (!hasFiles(event)) return;
+          event.preventDefault();
+          dragHasFiles = true;
+          dragDepth += 1;
+          // 未登录/导入中不摆出「松开即导入」的架势，免得用户白拖一趟
+          if (state.loggedIn && !state.importing) document.body.classList.add("is-dropping");
+        });
+        document.addEventListener("dragover", (event) => {
+          if (!dragHasFiles) return;
+          // 不 preventDefault 的话浏览器会拒绝这次 drop，并改成导航到该文件
+          event.preventDefault();
+          if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+        });
+        document.addEventListener("dragleave", () => {
+          dragDepth = Math.max(0, dragDepth - 1);
+          if (!dragDepth) {
+            dragHasFiles = false;
+            document.body.classList.remove("is-dropping");
+          }
+        });
+        document.addEventListener("drop", async (event) => {
+          dragDepth = 0;
+          dragHasFiles = false;
+          document.body.classList.remove("is-dropping");
+          if (!hasFiles(event)) return; // 拖的是选中的文字，交给 textarea 自己处理
+          event.preventDefault();
+          if (!state.loggedIn) {
+            toast("请先扫码登录，再导入笔记", "warn");
+            return;
+          }
+          if (state.importing) return;
+          const pairs = await pairsFromDrop(event.dataTransfer);
+          if (!pairs.length) {
+            toast("拖进来的内容里没有 Markdown 文件", "warn");
+            return;
+          }
+          // 对话框已打开时追加，否则新开一个（用户还要选导入到哪个文件夹）
+          const wasOpen = !$("importDialog").hidden;
+          openImportDialog(!wasOpen);
+          await ingest(pairs);
+        });
+
+        const renderEditor = () => {
+          const body = $("editorBody");
+          body.textContent = "";
+          const note = state.draft;
+          // 内容与高亮同源：先对齐标签，再渲染正文，两者不可能再分叉
+          syncTabs();
+
+          if (note.id === null) {
+            const empty = document.createElement("div");
+            empty.className = "empty";
+            empty.innerHTML = '<div class="big">选择一篇笔记</div><div class="small">从左侧列表点开一篇即可阅读与编辑。也可以直接点右上角「新建」写一篇新的。</div>';
+            body.appendChild(empty);
+            $("tabs").hidden = true;
+            $("editorTools").hidden = true;
+            $("titleInput").disabled = true;
+            $("btnDelete").disabled = true;
+            $("btnSave").disabled = true;
+            $("exportDialog").hidden = true;
+            syncActionButtons();
+            return;
+          }
+
+          $("tabs").hidden = false;
+          $("titleInput").disabled = false;
+          $("btnDelete").disabled = false;
+          syncActionButtons();
+          // 工具栏只在编辑模式有意义（预览模式下没有可操作的选区）
+          $("editorTools").hidden = state.mode !== "edit";
+
+          if (state.mode === "edit") {
+            const textarea = document.createElement("textarea");
+            textarea.className = "md-input";
+            textarea.spellcheck = false;
+            textarea.value = note.markdown;
+            textarea.placeholder = "用 Markdown 记点什么…";
+            textarea.addEventListener("compositionstart", () => {
+              state.composing = true;
+            });
+            textarea.addEventListener("compositionend", () => {
+              state.composing = false;
+              // 合成结束这一次 input 会被浏览器紧接着派发；这里直接记下来并安排保存，
+              // 保证最后一个字的修改不会因为「合成中跳过」而漏掉。
+              note.markdown = textarea.value;
+              setDirty(true);
+            });
+            textarea.addEventListener("input", () => {
+              note.markdown = textarea.value;
+              // IME 合成中：只更新内存，不触发保存（否则会存下拼音中间态）
+              if (state.composing) {
+                $("savedHint").textContent = "未保存";
+                $("btnSave").disabled = !state.selectedId;
+                return;
+              }
+              setDirty(true);
+            });
+            attachEditorKeys(textarea);
+            body.appendChild(textarea);
+            // 若是从预览切回来的，还原光标与滚动
+            restoreEditorView(state.pendingEditorView);
+            state.pendingEditorView = null;
+          } else {
+            const view = document.createElement("div");
+            view.className = "md-view";
+            const md = document.createElement("div");
+            md.className = "md-body";
+            md.innerHTML = renderMarkdown(note.markdown);
+            if (!note.markdown.trim()) {
+              md.innerHTML = '<p style="color:var(--faint)">这篇笔记还没有正文。切到「编辑」写点内容。</p>';
+            }
+            view.appendChild(md);
+            body.appendChild(view);
+            /*
+             * 附件图片是异步取回来的：渲染只产出带 data-file-id 的骨架，
+             * 这里再把它换成真的 data URI。取不到就降级为文本提示，不显示破图。
+             */
+            void window.MiNoteMarkdown.hydrate(md, fetchAttachmentDataUri);
+            // 有搜索词时把命中标出来，并滚到第一处
+            highlightInBody(md);
+          }
+          // 正文换了，大纲要跟着换（含给预览标题补 id 以支持滚动联动）
+          refreshOutline();
+        };
+
+        for (const tab of document.querySelectorAll(".tab")) {
+          tab.addEventListener("click", () => {
+            if (tab.dataset.mode === state.mode) return;
+            /*
+             * 只在「离开编辑模式」时抓快照。
+             * 从预览切回编辑时页面上没有 textarea，captureEditorView 会返回 null，
+             * 若不加判断就会把上一步存好的快照覆盖掉，光标照样丢失。
+             */
+            if (state.mode === "edit") {
+              state.pendingEditorView = captureEditorView();
+            }
+            state.mode = tab.dataset.mode;
+            syncTabs();
+            renderEditor();
+          });
+        }
+
+        const openNote = async (noteId) => {
+          const id = String(noteId);
+          if (state.selectedId === id) return;
+
+          /*
+           * 切笔记不再询问「要丢弃修改吗」：先把草稿冲刷下去。
+           * 自动保存可能还没来得及跑（去抖 1.5s），这里必须同步等它写完，
+           * 否则刚打的字会在切换瞬间丢掉。
+           */
+          await flushSave();
+
+          state.selectedId = id;
+          renderNotes();
+          const res = await invoke("mn.note.get", { id });
+          if (!res.ok || !res.note) {
+            toast(res.error || "读取笔记失败", "error");
+            return;
+          }
+          state.draft = {
+            id: res.note.id,
+            title: res.note.title || "",
+            markdown: res.note.markdown || "",
+            folderId: res.note.folderId,
+            dirty: false,
+          };
+          state.composing = false;
+          // 换了一篇笔记，旧的光标快照不再适用
+          state.pendingEditorView = null;
+          $("titleInput").value = state.draft.title;
+          $("savedHint").textContent = "";
+          $("btnSave").disabled = true;
+          renderEditor();
+        };
+
+        $("titleInput").addEventListener("input", (event) => {
+          if (state.draft.id === null) return;
+          state.draft.title = event.target.value;
+          setDirty(true);
+        });
+
+        const saveNote = async ({ auto = false } = {}) => {
+          if (state.draft.id === null || !state.draft.dirty) return;
+          // 并发保护：自动保存与手动保存可能撞在一起，复用同一个 in-flight Promise
+          if (saveInFlight) {
+            await saveInFlight;
+            // 上一次保存完成后可能又有新改动，交给下一次调度
+            if (!state.draft.dirty) return;
+          }
+          // 记下这次要保存的内容；保存期间用户可能继续输入
+          const snapshot = {
+            id: state.draft.id,
+            title: state.draft.title,
+            markdown: state.draft.markdown,
+          };
+          cancelAutosave();
+          if (!auto) {
+            $("btnSave").disabled = true;
+            $("savedHint").textContent = "保存中…";
+          } else {
+            $("savedHint").textContent = "保存中…";
+          }
+
+          saveInFlight = (async () => {
+            const res = await invoke("mn.note.update", {
+              id: snapshot.id,
+              title: snapshot.title,
+              markdown: snapshot.markdown,
+            });
+            if (!res.ok) {
+              toast(res.error || "保存失败", "error");
+              $("savedHint").textContent = "保存失败";
+              $("btnSave").disabled = false;
+              return;
+            }
+            // 只有当前草稿仍是这一篇时才清 dirty（用户可能已经切走了）
+            if (state.draft.id === snapshot.id) {
+              const unchanged =
+                state.draft.title === snapshot.title && state.draft.markdown === snapshot.markdown;
+              state.draft.dirty = !unchanged;
+              $("savedHint").textContent = unchanged ? "已保存" : "未保存";
+              $("btnSave").disabled = unchanged;
+              if (unchanged) {
+                setTimeout(() => {
+                  if (state.draft.id === snapshot.id && !state.draft.dirty) {
+                    $("savedHint").textContent = "";
+                  }
+                }, 2200);
+              } else {
+                // 保存期间又有改动：继续安排下一次自动保存
+                scheduleAutosave();
+              }
+            }
+            // 列表只做局部更新，不再整份重拉重建
+            if (res.note) refreshNoteInList(res.note);
+          })();
+
+          try {
+            await saveInFlight;
+          } finally {
+            saveInFlight = null;
+          }
+        };
+        $("btnSave").addEventListener("click", () => void saveNote());
+
+        document.addEventListener("keydown", (event) => {
+          const meta = event.ctrlKey || event.metaKey;
+          if (meta && event.key.toLowerCase() === "s") {
+            event.preventDefault();
+            void saveNote();
+          }
+        });
+
+        /*
+         * 面板关闭 / 隐藏前尽力把草稿冲下去。
+         * pagehide 里发起 IPC 不保证能跑完，所以方向选「宁可留在本地未保存」，
+         * 不做任何可能报错的强制写。visibilitychange 覆盖切标签页的情况。
+         */
+        window.addEventListener("pagehide", () => {
+          if (state.draft.dirty) void flushSave();
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "hidden" && state.draft.dirty) void flushSave();
+        });
+
+        $("btnNew").addEventListener("click", async () => {
+          const title = await askText("新笔记的标题（可以留空）", "");
+          if (title === null) return;
+          // 新建会切走当前笔记，先把草稿冲下去
+          await flushSave();
+          const res = await invoke("mn.note.create", {
+            title: title.trim(),
+            markdown: "",
+            folderId: state.folderId === "0" ? "0" : state.folderId,
+          });
+          if (!res.ok || !res.note) {
+            toast(res.error || "新建失败", "error");
+            return;
+          }
+          await loadNotes();
+          await loadFolders();
+          // 先切到编辑模式再打开，避免「打开（预览）→ 再切编辑」白渲染一次
+          state.mode = "edit";
+          await openNote(res.note.id);
+        });
+
+        /*
+         * ── 删除（取消回收站，改为「直接删 + 可撤销」）────────────────────────
+         *
+         * 服务端没有「从回收站恢复」的接口，所以撤销不能靠删完再恢复。
+         * 这里用「延迟提交」：先把笔记从列表里隐起来（乐观删除），给 6 秒撤销窗口，
+         * 窗口内没撤销才真正调用删除接口。
+         *
+         * 两个必须注意的点：
+         *   - renderNotes 要过滤 state.pendingDelete，否则 5 分钟自动同步把云端
+         *     数据拉回来后，这篇笔记会「复活」出现在列表里。
+         *   - 待删笔记如果正开着，要先把编辑器清空，避免用户对着已删笔记继续打字。
+         */
+        const DELETE_UNDO_MS = 6000;
+        let pendingDeleteTimer = null;
+
+        /** 真正把待删的笔记提交到云端（不可撤销）。 */
+        const commitPendingDeletes = async () => {
+          const ids = [...state.pendingDelete];
+          state.pendingDelete.clear();
+          if (pendingDeleteTimer) {
+            clearTimeout(pendingDeleteTimer);
+            pendingDeleteTimer = null;
+          }
+          if (!ids.length) return;
+          for (const id of ids) {
+            const res = await invoke("mn.note.delete", { id, purge: true });
+            if (!res.ok) {
+              // 提交失败就把它放回列表，别让用户以为删掉了
+              toast(res.error || "删除失败", "error");
+            }
+          }
+          await loadNotes();
+          await loadFolders();
+        };
+
+        $("btnDelete").addEventListener("click", async () => {
+          const id = state.draft.id;
+          if (id === null) return;
+          // 有未保存改动先冲下去，避免待会儿删除与保存打架
+          await flushSave();
+
+          state.pendingDelete.add(String(id));
+          // 清空编辑器：这篇已经从列表里拿掉了
+          state.selectedId = null;
+          state.draft = { id: null, title: "", markdown: "", dirty: false };
+          $("titleInput").value = "";
+          $("savedHint").textContent = "";
+          renderEditor();
+          renderNotes();
+
+          const dismiss = toastWithAction("已删除", "撤销", () => {
+            // 撤销：把它从待删集合里去掉即可，云端还没动过
+            state.pendingDelete.delete(String(id));
+            if (pendingDeleteTimer) {
+              clearTimeout(pendingDeleteTimer);
+              pendingDeleteTimer = null;
+            }
+            renderNotes();
+            void loadFolders();
+            toast("已恢复");
+          }, DELETE_UNDO_MS);
+
+          if (pendingDeleteTimer) clearTimeout(pendingDeleteTimer);
+          pendingDeleteTimer = setTimeout(() => {
+            pendingDeleteTimer = null;
+            dismiss();
+            void commitPendingDeletes();
+          }, DELETE_UNDO_MS);
+        });
+
+        $("btnNewFolder").addEventListener("click", async () => {
+          const name = await askText("新文件夹的名称", "");
+          if (name === null || !name.trim()) return;
+          const res = await invoke("mn.folder.create", { name: name.trim() });
+          if (!res.ok) {
+            toast(res.error || "新建文件夹失败", "error");
+            return;
+          }
+          await loadFolders();
+          toast(`已创建文件夹「${name.trim()}」`);
+        });
+
+        // ── 同步 ────────────────────────────────────────────────────────────
+        const runSync = async (full) => {
+          setStatus("正在同步…", "busy");
+          const res = await invoke("mn.sync.start", { full: full === true });
+          if (!res.ok) {
+            setStatus("同步失败", "warn");
+            toast(res.error || "同步失败", "error");
+            return;
+          }
+          const jobId = res.jobId;
+          state.jobs.add(jobId);
+          const poll = setInterval(async () => {
+            const jobRes = await invoke("mn.job.get", { jobId });
+            const job = jobRes.job;
+            if (!job) { clearInterval(poll); state.jobs.delete(jobId); return; }
+            if (job.status === "running") {
+              const p = job.progress || {};
+              if (p.phase === "bodies" && p.total) setStatus(`正在同步正文 ${p.done || 0}/${p.total}…`, "busy");
+              else if (p.phase === "list") setStatus(`正在读取列表（${p.count || 0} 篇）…`, "busy");
+              return;
+            }
+            clearInterval(poll);
+            state.jobs.delete(jobId);
+            if (job.status === "done") {
+              await refreshStatus();
+              await loadFolders();
+              await loadNotes();
+              toast(`同步完成：${job.result ? job.result.notes : ""} 篇笔记`);
+            } else {
+              setStatus(`同步失败：${job.error || "未知错误"}`, "warn");
+              toast(job.error || "同步失败", "error");
+            }
+          }, 900);
+        };
+        $("btnSync").addEventListener("click", () => void runSync(false));
+
+        // ── AI 问答 ─────────────────────────────────────────────────────────
+        $("btnAsk").addEventListener("click", async () => {
+          $("askPanel").hidden = false;
+          const res = await invoke("mn.models.list");
+          const select = $("askModel");
+          select.textContent = "";
+          const models = (res.ok && res.models) || [];
+          if (!models.length) {
+            const option = document.createElement("option");
+            option.textContent = "（没有可用模型，请先在 PI-Desktop 登录模型）";
+            option.value = "";
+            select.appendChild(option);
+            return;
+          }
+          for (const model of models) {
+            const option = document.createElement("option");
+            option.value = model.key;
+            option.textContent = model.label + (model.isDefault ? "（默认）" : "");
+            select.appendChild(option);
+          }
+          // 默认选中：先看设置里记住的，再看宿主默认模型
+          const saved = (await invoke("mn.ask.default-model")).modelKey || "";
+          const preferred = models.find((m) => m.key === saved)
+            ?? models.find((m) => m.isDefault)
+            ?? models[0];
+          state.askModel = preferred.key;
+          select.value = state.askModel;
+          $("askInput").focus();
+        });
+        $("btnAskClose").addEventListener("click", () => { $("askPanel").hidden = true; });
+        $("askModel").addEventListener("change", async (event) => {
+          state.askModel = event.target.value;
+          // 记住选择，下次打开面板与 AI 工具都沿用
+          await invoke("mn.ask.set-model", { modelKey: state.askModel });
+        });
+
+        const appendAsk = (role, text, sources) => {
+          const log = $("askLog");
+          const wrap = document.createElement("div");
+          wrap.className = "ask-msg";
+          wrap.dataset.role = role;
+          const who = document.createElement("div");
+          who.className = "who";
+          who.textContent = role === "user" ? "我" : "助手";
+          const body = document.createElement("div");
+          body.className = "body";
+          body.textContent = text;
+          wrap.append(who, body);
+          if (sources && sources.length) {
+            const src = document.createElement("div");
+            src.className = "sources";
+            src.textContent = "参考：" + sources.map((s) => `《${s.title}》`).join("、");
+            wrap.appendChild(src);
+          }
+          log.appendChild(wrap);
+          log.scrollTop = log.scrollHeight;
+          return body;
+        };
+
+        const ask = async () => {
+          if (state.askBusy) return;
+          const input = $("askInput");
+          const question = input.value.trim();
+          if (!question) return;
+          state.askBusy = true;
+          input.value = "";
+          appendAsk("user", question);
+          const body = appendAsk("assistant", "正在翻阅你的笔记…");
+          $("btnAskSend").disabled = true;
+
+          const res = await invoke("mn.ask", { question, modelKey: state.askModel });
+          if (!res.ok) {
+            body.textContent = res.error || "提问失败";
+            state.askBusy = false;
+            $("btnAskSend").disabled = false;
+            return;
+          }
+          const jobId = res.jobId;
+          const poll = setInterval(async () => {
+            const jobRes = await invoke("mn.job.get", { jobId });
+            const job = jobRes.job;
+            if (!job) { clearInterval(poll); state.askBusy = false; $("btnAskSend").disabled = false; return; }
+            if (job.status === "running") return;
+            clearInterval(poll);
+            state.askBusy = false;
+            $("btnAskSend").disabled = false;
+            if (job.status === "done" && job.result) {
+              body.textContent = job.result.answer;
+              if (job.result.usedFallback) {
+                body.textContent += "\n\n（没有找到直接相关的笔记，以上基于最近更新的几篇。）";
+              }
+              if (job.result.sources && job.result.sources.length) {
+                const src = document.createElement("div");
+                src.className = "sources";
+                src.textContent = "参考：" + job.result.sources.map((s) => `《${s.title}》`).join("、");
+                body.parentElement.appendChild(src);
+              }
+            } else {
+              body.textContent = job.error || "回答失败";
+            }
+          }, 900);
+        };
+        $("btnAskSend").addEventListener("click", () => void ask());
+        $("askInput").addEventListener("keydown", (event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            void ask();
+          }
+        });
+
+        // ── 侧边栏联动：跳转过来时自动定位到指定笔记 ────────────────────────
+        const consumeFocus = async () => {
+          const res = await invoke("mn.focus.consume");
+          if (res.ok && res.focus) {
+            await openNote(res.focus);
+            const folder = state.notes.find((n) => n.id === res.focus);
+            if (folder) selectFolder(folder.folderId);
+          }
+        };
+
+        // ── 启动 ────────────────────────────────────────────────────────────
+        (async () => {
+          // 版本号与清单同源：mn.ping 回的是 manifest.json 里的 version
+          void invoke("mn.ping").then((res) => {
+            if (res.ok && res.version) $("appVersion").textContent = `v${res.version}`;
+          });
+          const status = (await invoke("mn.status")).status;
+          await refreshStatus(status);
+          if (!state.loggedIn) {
+            showLogin();
+            await startLogin();
+          } else {
+            /*
+             * 首次打开要快：mn.status / mn.folders.list / mn.notes.list 都是内存读取，
+             * 但它们仍是 3 次串行 IPC。这里并行发出，省掉两轮往返；
+             * consumeFocus（侧边栏「在主面板打开」的待办）与首屏无关，放到最后，
+             * 不让它挡在列表渲染之前。
+             */
+            await Promise.all([loadFolders(), loadNotes()]);
+            void consumeFocus();
+          }
+          // 面板打开时轻量轮询状态，让「同步中 / 上次同步」保持新鲜
+          setInterval(async () => {
+            if (state.jobs.size) return;
+            const res = await invoke("mn.status");
+            if (!res.ok) return;
+            /*
+             * 状态显示「登录已失效」时顺手探活一次（mn.session.ensure）。
+             *
+             * 失效可能只是一次网络抖动（掉线、公司 WiFi 登录网关、代理拦截）
+             * 造成的误判，而唯一的清除路径就是走一次 ensureSession ——
+             * 以前面板从不调它，于是一次抖动就会让状态栏一直挂着
+             * 「登录已失效，请重新扫码」，直到用户碰巧做了别的操作。
+             * 这里每轮只探活一次，确认仍可用就自然回到正常状态。
+             *
+             * 注意：探活只判断会话是否还活着，不做自动续期（0.2.6 起移除，
+             * 小米的续期接口在无人交互时换不到新票据）。真的失效就得重新扫码。
+             */
+            if (res.status && res.status.needLogin) await invoke("mn.session.ensure");
+            const next = await invoke("mn.status");
+            if (next.ok) await refreshStatus(next.status);
+          }, 20000);
+        })();
+
+        /*
+         * Markdown 渲染：唯一实现在 lib/markdown.js（面板与侧边栏共用）。
+         *
+         * 此前这里有一份手写渲染器，与 views/sidebar.html 里的副本逐字相同，
+         * 任何语法补强都要改两处、漏一处两侧就不一致。现已抽成共享模块，
+         * 并换成 markdown-it（表格 / 嵌套列表 / 图片 / 代码高亮 / 公式）。
+         */
+        function renderMarkdown(source) {
+          return window.MiNoteMarkdown.render(source);
+        }
+      })();
+    </script>
+  </body>
+</html>

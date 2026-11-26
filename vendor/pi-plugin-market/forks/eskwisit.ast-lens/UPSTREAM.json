@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.ast-lens",
+  "repository": "https://github.com/eskwisit/pi-ast-lens",
+  "branch": "HEAD",
+  "commit": "fdf1b3c",
+  "version": "0.9.0",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-ast-lens/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:37.584Z",
+  "mode": "source-snapshot",
+  "sha256": "706106051f82f2c73ca12e4daed3c2292f72d98d0d5070f181758fdf03bc60f6"
+}

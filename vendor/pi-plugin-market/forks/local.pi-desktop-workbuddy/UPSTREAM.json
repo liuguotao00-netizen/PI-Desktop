@@ -1,0 +1,11 @@
+{
+  "id": "local.pi-desktop-workbuddy",
+  "repository": "https://github.com/eric8bit/pi-desktop-workbuddy",
+  "branch": "HEAD",
+  "commit": "75d83e3764554b38",
+  "version": "1.0.7",
+  "tarball": "https://api.github.com/repos/eric8bit/pi-desktop-workbuddy/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:45:14.397Z",
+  "mode": "source-snapshot",
+  "sha256": "75d83e3764554b38a9f939f5206801d0e4167e4b230d52f1f4e3ae5f383819bd"
+}

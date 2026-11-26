@@ -1,0 +1,11 @@
+{
+  "id": "pi.piopt",
+  "repository": "https://github.com/Lu-Mine/PiOpt",
+  "branch": "HEAD",
+  "commit": "75b1b5b",
+  "version": "2.0.0",
+  "tarball": "https://api.github.com/repos/Lu-Mine/PiOpt/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:26.970Z",
+  "mode": "source-snapshot",
+  "sha256": "9c35dc63a0c72ce175f4c4e896693ecec415f82424245ce2236c8e959c42d955"
+}

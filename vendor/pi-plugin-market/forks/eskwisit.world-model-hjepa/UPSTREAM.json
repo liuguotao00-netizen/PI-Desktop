@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.world-model-hjepa",
+  "repository": "https://github.com/eskwisit/pi-world-model-hjepa",
+  "branch": "HEAD",
+  "commit": "0ff92b7",
+  "version": "0.10.1",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-world-model-hjepa/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:45.253Z",
+  "mode": "source-snapshot",
+  "sha256": "f4493a7482c428c5c7b04b259115fcbbd6624a014e2cc53ec6583e9128571e66"
+}

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "id": "local.chrome-cdp",
+  "name": "Chrome CDP",
+  "version": "0.1.0",
+  "description": "Real Google Chrome for the agent: launches a visible Chrome window and drives it over the DevTools Protocol (navigate, snapshot, click, fill, screenshots, JavaScript, console, tabs, raw CDP).",
+  "main": "main.js",
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "Chrome",
+        "description": "Drive a real Google Chrome window over the Chrome DevTools Protocol (CDP). Call ToolSearch for \"chrome\", \"cdp\" or \"browser automation\" to load this tool. Action launch starts Chrome (visible window) and connects; every other action uses that window, including when the user works in another app. Then snapshot the accessibility tree, click/fill by uid (e1, e2, …), take screenshots, evaluate JavaScript, read console output, manage tabs, or send a raw CDP method. Navigate first after launch; re-snapshot after a page change because uids expire. This is a real browser with cookies, localStorage and network access: treat it as the user's machine.",
+        "risk": "medium",
+        "planSafeActions": ["status", "tabs", "snapshot", "screenshot", "console"],
+        "schema": {
+          "type": "object",
+          "properties": {
+            "action": {
+              "type": "string",
+              "enum": [
+                "launch",
+                "status",
+                "tabs",
+                "select",
+                "navigate",
+                "snapshot",
+                "screenshot",
+                "click",
+                "fill",
+                "evaluate",
+                "console",
+                "cdp",
+                "close"
+              ],
+              "description": "launch=start the browser; navigate/open a page; snapshot read the UI tree; click/fill use snapshot uids; screenshot returns the image; evaluate runs JavaScript in the page; console reads console output; tabs/select/close manage tabs; cdp sends a raw CDP method; status reports state."
+            },
+            "url": { "type": "string", "description": "http(s) URL for action=launch and action=navigate." },
+            "uid": { "type": "string", "description": "Snapshot uid (e1, e2, …) for action=click and action=fill." },
+            "text": { "type": "string", "description": "Text to type for action=fill." },
+            "expression": { "type": "string", "description": "JavaScript for action=evaluate." },
+            "method": { "type": "string", "description": "CDP method for action=cdp, e.g. Page.getLayoutMetrics." },
+            "params": { "type": "object", "description": "CDP parameters for action=cdp." },
+            "fullPage": { "type": "boolean", "description": "Capture beyond the viewport for action=screenshot." },
+            "format": { "type": "string", "enum": ["jpeg", "png"], "description": "Image format for action=screenshot." },
+            "quality": { "type": "number", "description": "JPEG quality 1-100 for action=screenshot." },
+            "limit": { "type": "number", "description": "Max console messages for action=console." },
+            "targetId": { "type": "string", "description": "Tab target id for action=select and action=close." },
+            "index": { "type": "number", "description": "Tab index from action=tabs for action=select." },
+            "closeWindow": {
+              "type": "boolean",
+              "description": "Also close the browser window for action=close (default true)."
+            }
+          },
+          "required": ["action"]
+        }
+      }
+    ],
+    "settings": [
+      {
+        "key": "chromePath",
+        "title": "Chrome binary path",
+        "type": "string",
+        "default": "",
+        "description": "Absolute path to chrome.exe / Google Chrome. Empty = autodetect the standard install locations."
+      },
+      {
+        "key": "userDataDir",
+        "title": "Profile directory",
+        "type": "string",
+        "default": "",
+        "description": "Chrome --user-data-dir. Empty = ~/.pi-desktop/chrome-cdp-profile (a private profile, safe to delete)."
+      },
+      {
+        "key": "port",
+        "title": "DevTools port",
+        "type": "number",
+        "default": 9333,
+        "description": "localhost port for --remote-debugging-port. If Chrome already answers there, the plugin attaches instead of launching."
+      },
+      {
+        "key": "attachUrl",
+        "title": "Attach to running Chrome",
+        "type": "string",
+        "default": "",
+        "description": "e.g. http://127.0.0.1:9222 to drive a Chrome you started yourself with --remote-debugging-port. Empty = launch our own."
+      },
+      {
+        "key": "headless",
+        "title": "Headless",
+        "type": "boolean",
+        "default": false,
+        "description": "Start Chrome without a visible window (--headless=new)."
+      },
+      {
+        "key": "chromeArgs",
+        "title": "Extra Chrome arguments",
+        "type": "string",
+        "default": "",
+        "description": "Whitespace-separated extra flags appended to the Chrome command line."
+      }
+    ]
+  },
+  "permissions": ["agent.tool.register"],
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "activationEvents": ["onStartup"]
+}

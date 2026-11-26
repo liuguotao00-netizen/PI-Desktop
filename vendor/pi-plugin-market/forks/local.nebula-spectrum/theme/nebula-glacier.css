@@ -1,0 +1,218 @@
+/* Nebula Spectrum Glacier — cold light edition (ice blue / silver / mint).
+   Theme id: plugin:local.nebula-spectrum:nebula-glacier   (base: light)
+   Same structure as the other editions; every selector carries the theme attribute. */
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] {
+  color-scheme: light;
+
+  --gray-0: #ffffff;
+  --gray-50: #fbfdff;
+  --gray-75: #f4f9fd;
+  --gray-100: #e7f0f8;
+  --gray-300: #b0c4d3;
+  --gray-500: #66798a;
+  --gray-550: #566979;
+  --gray-600: #465868;
+  --gray-700: #34475a;
+  --gray-750: #29394a;
+  --gray-800: #1e2c3a;
+  --gray-900: #131e29;
+  --gray-1000: #0a1118;
+
+  --accent-50: #f0f9ff;
+  --accent-100: #e0f2fe;
+  --accent-300: #7dd3fc;
+  --accent-400: #ffffff;
+  --accent-900: #0b2b3d;
+
+  --ds-bg-primary: #ffffff;
+  --ds-bg-under: #fbfdff;
+  --ds-settings-rail-bg: #f4f9fd;
+  --ds-bg-sidebar: #f6fbfe;
+  --ds-bg-secondary: #fdfeff;
+  --ds-bg-tertiary: #f1f7fb;
+  --ds-bg-inset: #edf4fa;
+  --ds-bg-dock: #fdfeff;
+  --ds-bg-dock-raised: #ffffff;
+  --ds-bg-elevated: rgba(253, 254, 255, 0.9);
+  --ds-bg-elevated-opaque: #fdfeff;
+  --ds-bg-elevated-primary: rgba(253, 254, 255, 0.96);
+  --ds-bg-hover: rgba(64, 104, 140, 0.06);
+  --ds-bg-active: rgba(64, 104, 140, 0.1);
+  --ds-bg-chip: rgba(64, 104, 140, 0.05);
+  --ds-bg-composer: rgba(255, 255, 255, 0.94);
+  --ds-sidebar-glass-tint: rgba(246, 250, 254, 0.62);
+  --ds-sidebar-glass-sheen-top: rgba(255, 255, 255, 0.96);
+  --ds-sidebar-glass-sheen-bottom: rgba(153, 246, 228, 0.08);
+
+  --ds-text-primary: #16232e;
+  --ds-text-secondary: rgba(26, 42, 56, 0.74);
+  --ds-text-muted: rgba(34, 54, 70, 0.54);
+  --ds-text-faint: rgba(44, 68, 88, 0.4);
+  --ds-placeholder-ink: rgba(64, 96, 124, 0.4);
+  --ds-prose-kbd-fg: rgba(26, 42, 56, 0.8);
+
+  --ds-border-default: rgba(64, 104, 140, 0.14);
+  --ds-border-subtle: rgba(64, 104, 140, 0.09);
+  --ds-border-strong: rgba(64, 104, 140, 0.22);
+
+  --ds-tile: rgba(64, 104, 140, 0.04);
+  --ds-tile-hover: rgba(64, 104, 140, 0.07);
+  --ds-tile-deep: rgba(56, 189, 248, 0.12);
+  --ds-tool-row-bg: rgba(64, 104, 140, 0.04);
+  --ds-raised: #ffffff;
+  --ds-raised-shadow: 0 1px 2px rgba(24, 48, 70, 0.12);
+
+  --ds-accent: #0369a1;
+  --ds-accent-hover: #075985;
+  --ds-accent-soft: #38bdf8;
+  --ds-focus: #0284c7;
+  --ds-success: #15803d;
+  --ds-warning: #b45309;
+  --ds-error: #be123c;
+  --ds-info: #0369a1;
+  --ds-purple: #0e7490;
+
+  --ds-settings-field-bg: #ffffff;
+  --ds-settings-nav-active: rgba(64, 104, 140, 0.08);
+  --ds-field-inset-bg: rgba(64, 104, 140, 0.04);
+  --ds-field-inset-focus-bg: rgba(64, 104, 140, 0.07);
+  --ds-switch-track-off: rgba(64, 104, 140, 0.14);
+  --ds-switch-track-off-hover: rgba(64, 104, 140, 0.22);
+  --ds-switch-ring-off: rgba(64, 104, 140, 0.22);
+  --ds-switch-knob-off: #ffffff;
+  --ds-switch-knob-on: #ffffff;
+
+  --ds-code-head-bg: rgba(64, 104, 140, 0.06);
+  --ds-code-hover-bg: rgba(64, 104, 140, 0.1);
+  --ds-thinking-code-bg: rgba(64, 104, 140, 0.04);
+  --ds-mermaid-canvas: #fdfeff;
+
+  --ds-scrim: rgba(18, 32, 44, 0.28);
+  --ds-modal-veil: rgba(251, 253, 255, 0.72);
+  --ds-send-disabled-bg: rgba(64, 104, 140, 0.16);
+  --ds-send-disabled-fg: rgba(255, 255, 255, 0.92);
+  --ds-elevation-stroke: 0 0 0 0.5px rgba(64, 104, 140, 0.14);
+
+  --ds-shadow-composer: 0 8px 24px rgba(24, 48, 70, 0.1), 0 0 0 1px rgba(64, 104, 140, 0.1);
+  --ds-shadow-dialog: 0 22px 60px rgba(24, 48, 70, 0.16), 0 0 0 1px rgba(64, 104, 140, 0.1), 0 0 44px rgba(56, 189, 248, 0.12);
+  --ds-shadow-model-menu: 0 18px 44px rgba(24, 48, 70, 0.14), 0 0 0 1px rgba(64, 104, 140, 0.1), 0 0 34px rgba(153, 246, 228, 0.12);
+}
+
+/* Canvas — ice-white page with five cold lobes. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .app-shell {
+  background-color: #f8fbff;
+  background-image:
+    radial-gradient(1100px 620px at 6% -12%, rgba(125, 211, 252, 0.26), transparent 64%),
+    radial-gradient(980px 560px at 98% -6%, rgba(56, 189, 248, 0.2), transparent 66%),
+    radial-gradient(900px 620px at 86% 108%, rgba(153, 246, 228, 0.22), transparent 68%),
+    radial-gradient(820px 520px at 8% 110%, rgba(96, 165, 250, 0.18), transparent 68%),
+    radial-gradient(760px 460px at 50% 48%, rgba(203, 213, 225, 0.28), transparent 70%);
+}
+
+/* Two-pixel cool hairline across the top of the window. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.8;
+  background: linear-gradient(90deg, #0ea5e9, #38bdf8 20%, #a5b4fc 42%, #67e8f9 64%, #99f6e4 82%, #cbd5e1);
+}
+
+/* Conversation pane — pure white with a cold glow along the top edge. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .main-pane {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(1100px 340px at 50% -18%, rgba(56, 189, 248, 0.13), transparent 70%),
+    radial-gradient(820px 300px at 100% -10%, rgba(125, 211, 252, 0.12), transparent 72%),
+    radial-gradient(820px 300px at 0% -10%, rgba(96, 165, 250, 0.11), transparent 72%),
+    radial-gradient(900px 320px at 82% 112%, rgba(153, 246, 228, 0.1), transparent 72%);
+}
+
+/* Title bars — frosted cold white. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .main-titlebar,
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .conversation-topbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(247, 251, 254, 0.66));
+  backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: 0 1px 0 rgba(64, 104, 140, 0.1);
+}
+
+/* Sidebar — frosted ice glass. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .sidebar-surface {
+  background-color: rgba(248, 252, 255, 0.78);
+  background-image:
+    radial-gradient(460px 300px at 0% 0%, rgba(56, 189, 248, 0.16), transparent 66%),
+    radial-gradient(420px 300px at 100% 46%, rgba(125, 211, 252, 0.14), transparent 70%),
+    radial-gradient(440px 340px at 60% 104%, rgba(153, 246, 228, 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), transparent 240px);
+  backdrop-filter: blur(26px) saturate(160%);
+  border-inline-end: 1px solid rgba(64, 104, 140, 0.12);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .sidebar-rail {
+  background-color: rgba(246, 251, 254, 0.9);
+}
+
+/* Composer — white field with a cool spectrum rim. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .composer-shell {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(152deg, #ffffff, #fcfdff),
+    linear-gradient(135deg, rgba(2, 132, 199, 0.8), rgba(56, 189, 248, 0.78) 30%, rgba(125, 211, 252, 0.8) 60%, rgba(153, 246, 228, 0.78));
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 10px 28px rgba(24, 48, 70, 0.1), 0 0 22px rgba(56, 189, 248, 0.12);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .composer-shell:focus-within {
+  background-image:
+    linear-gradient(152deg, #ffffff, #fdfeff),
+    linear-gradient(135deg, rgba(3, 105, 161, 0.95), rgba(14, 165, 233, 0.9) 30%, rgba(56, 189, 248, 0.92) 60%, rgba(45, 212, 191, 0.9));
+  box-shadow:
+    0 14px 36px rgba(24, 48, 70, 0.14),
+    0 0 30px rgba(56, 189, 248, 0.22),
+    0 0 18px rgba(153, 246, 228, 0.18);
+}
+
+/* User bubble — white card; assistant turns also carry .message-bubble in the host DOM. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .message-row.user .message-bubble {
+  background: #ffffff;
+  color: #16232e;
+  box-shadow:
+    inset 0 0 0 1px rgba(64, 104, 140, 0.12),
+    0 2px 6px rgba(24, 48, 70, 0.06);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .message-row.user .message-user-text {
+  color: #16232e;
+}
+
+/* Send button — ice in one disc. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .send-btn {
+  background: linear-gradient(135deg, #0369a1, #0ea5e9 40%, #67e8f9);
+  color: #062430;
+  box-shadow: 0 2px 10px rgba(3, 105, 161, 0.3);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .send-btn:hover {
+  box-shadow: 0 3px 16px rgba(14, 165, 233, 0.38);
+}
+
+/* Code — white inset panel with a cold header band. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .code-block {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(64, 104, 140, 0.1), 0 1px 2px rgba(24, 48, 70, 0.05);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] .code-block-head {
+  background-image: linear-gradient(90deg, rgba(56, 189, 248, 0.14), rgba(125, 211, 252, 0.12) 40%, rgba(153, 246, 228, 0.12));
+}
+
+/* Text selection. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-glacier"] ::selection {
+  background: rgba(56, 189, 248, 0.2);
+  color: #16232e;
+}

@@ -1,0 +1,11 @@
+{
+  "id": "pi.mobile-remote-control",
+  "repository": "https://github.com/CJLY-0915/pi-desktop-bot",
+  "branch": "HEAD",
+  "commit": "b1557892aca42004",
+  "version": "1.0.1",
+  "tarball": "https://api.github.com/repos/CJLY-0915/pi-desktop-bot/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:20:13.475Z",
+  "mode": "source-snapshot",
+  "sha256": "b1557892aca42004b1f28492f9d891ef7d735819420f35cbc50ec0e857f46eb2"
+}

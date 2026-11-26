@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.file-manager",
+  "name": "文件管理器",
+  "version": "0.13.0",
+  "description": "项目文件管理器：自动刷新的目录树、拖拽移动与文件预览编辑。底部 Git 入口支持初始化仓库、查看差异与历史、暂存、提交及远端同步。",
+  "i18n": {
+    "en": {
+      "name": "File Manager",
+      "description": "Browse, preview and edit project files. The bottom Git workspace offers repository setup, changes, history, staging, commits and remote synchronization.",
+      "safetyNotes": "Local file operations use Node fs outside the host permission gateway. Project paths are confined to the selected folder and credential paths are blocked; host-selected external files may also be edited. Saves are atomic and recursive deletion asks for confirmation. SQLite and workbook previews are read-only. Installed Git is used to initialize repositories, change the index and create local commits. Explicit fetch, pull/rebase and push actions can contact configured remotes; pulling changes the working tree, and confirmed force-with-lease can rewrite remote history. No arbitrary command entry. SSH workspaces are read-only via the Host SDK and do not use local Git."
+    },
+    "zh-CN": {
+      "name": "文件管理器",
+      "description": "项目文件管理器：自动刷新的目录树、拖拽移动与文件预览编辑。底部 Git 入口支持初始化仓库、查看差异与历史、暂存、提交及远端同步。",
+      "safetyNotes": "本地文件读写由插件通过 Node fs 执行，不经过宿主权限网关。限制路径范围并拒绝凭据路径；宿主指名的项目外文件也可读写。保存为原子操作，递归删除前确认。数据库和工作簿预览只读。通过本机 Git 初始化仓库、修改索引与提交；显式获取、拉取、变基拉取、推送可联系仓库已配置的远端。拉取可修改工作树，确认带租约强推可改写远端历史。不提供任意命令输入。SSH 工作区只读，不调用本地 Git。"
+    }
+  },
+  "author": "Tioit-Wang",
+  "categories": ["productivity", "community"],
+  "changelog": "0.13.0：首次加载显示低开销骨架屏，刷新时保留已有内容，支持减少动态效果。0.12.0：文件查看与编辑支持多标签、独立草稿及逐个保存和关闭。0.11.0：文件与 Git 切换移到底部常驻栏。新增初始化引导、改动与历史页、批量暂存和远端同步操作。",
+  "safetyNotes": "本地读写使用 Node fs，不经过宿主权限网关；限制在当前项目，宿主明确选择的外部文件除外。拒绝凭据路径，原子保存并记录写入审计，递归删除前确认。Git 远端操作仅由用户发起；拉取可能修改工作树，推送和带租约强推可能更新或改写已配置远端的历史。SSH 工作区只读。",
+  "main": "main.js",
+  "contributes": {
+    "views": [
+      {
+        "id": "manager",
+        "title": { "en": "File Manager", "zh-CN": "文件管理器" },
+        "icon": "folder",
+        "entry": "views/index.html",
+        "order": 40
+      }
+    ]
+  },
+  "permissions": ["ui.view", "fs.read"],
+  "fs": {
+    "read": {
+      "root": "workspace",
+      "scope": ["**"]
+    }
+  },
+  "engines": { "piDesktop": ">=0.9.0" },
+  "activationEvents": ["onStartup"]
+}

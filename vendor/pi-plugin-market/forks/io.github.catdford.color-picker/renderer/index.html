@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>色卡选择器</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="stack">
+      <section class="preview" aria-labelledby="preview-label">
+        <button class="swatch-large" id="preview" type="button"></button>
+        <div class="preview-meta">
+          <h2 id="preview-label" data-label="preview">当前颜色</h2>
+          <p class="hint" id="preview-hint"></p>
+        </div>
+      </section>
+
+      <section class="values" aria-label="Color values">
+        <button class="value-row" type="button" data-notation="hex">
+          <span class="notation">HEX</span>
+          <span class="value" id="value-hex"></span>
+          <span class="copy-hint" data-label="copy"></span>
+        </button>
+        <button class="value-row" type="button" data-notation="rgb">
+          <span class="notation">RGB</span>
+          <span class="value" id="value-rgb"></span>
+          <span class="copy-hint" data-label="copy"></span>
+        </button>
+        <button class="value-row" type="button" data-notation="hsl">
+          <span class="notation">HSL</span>
+          <span class="value" id="value-hsl"></span>
+          <span class="copy-hint" data-label="copy"></span>
+        </button>
+        <button class="value-row" type="button" data-notation="oklch">
+          <span class="notation">OKLCH</span>
+          <span class="value" id="value-oklch"></span>
+          <span class="copy-hint" data-label="copy"></span>
+        </button>
+      </section>
+
+      <section class="picker" aria-labelledby="picker-label">
+        <label class="picker-label" id="picker-label" for="native-picker" data-label="pick"></label>
+        <button class="pick-open" id="pick-open" type="button" data-label="pickImage"></button>
+        <input id="native-picker" type="color" value="#3b82f6" />
+      </section>
+
+      <nav class="tabs" role="tablist" aria-label="Sections">
+        <button class="tab" id="tab-palettes" type="button" role="tab" aria-selected="true" aria-controls="panel-palettes" data-tab="palettes" data-label="tabPalettes"></button>
+        <button class="tab" id="tab-harmony" type="button" role="tab" aria-selected="false" aria-controls="panel-harmony" data-tab="harmony" data-label="tabHarmony"></button>
+        <button class="tab" id="tab-contrast" type="button" role="tab" aria-selected="false" aria-controls="panel-contrast" data-tab="contrast" data-label="tabContrast"></button>
+        <button class="tab" id="tab-export" type="button" role="tab" aria-selected="false" aria-controls="panel-export" data-tab="export" data-label="tabExport"></button>
+      </nav>
+
+      <section class="panel" id="panel-palettes" role="tabpanel" aria-labelledby="tab-palettes">
+        <div class="segmented" id="source-tabs" role="tablist" aria-label="Palette source"></div>
+        <div class="palette-body" id="palette-body"></div>
+      </section>
+
+      <section class="panel" id="panel-harmony" role="tabpanel" aria-labelledby="tab-harmony" hidden>
+        <h3 data-label="shadesTitle"></h3>
+        <div id="shade-row"></div>
+        <div id="harmony-body"></div>
+
+        <h3 data-label="aiTitle"></h3>
+        <label class="field">
+          <span data-label="aiModel"></span>
+          <select id="ai-model"></select>
+        </label>
+        <textarea class="ai-style" id="ai-style" rows="2" data-placeholder="aiStyle"></textarea>
+        <div class="ai-actions">
+          <button class="action" id="ai-run" type="button" data-label="aiRun"></button>
+          <span class="hint" id="ai-status" role="status"></span>
+        </div>
+        <div id="ai-result"></div>
+      </section>
+
+      <section class="panel" id="panel-contrast" role="tabpanel" aria-labelledby="tab-contrast" hidden>
+        <h3 data-label="contrastTitle"></h3>
+        <div class="values" id="contrast-body"></div>
+        <h3 data-label="cvdTitle"></h3>
+        <div class="cvd-row" id="cvd-body"></div>
+      </section>
+
+      <section class="panel" id="panel-export" role="tabpanel" aria-labelledby="tab-export" hidden>
+        <label class="field">
+          <span data-label="exportScope"></span>
+          <select id="export-scope"></select>
+        </label>
+        <label class="field">
+          <span data-label="exportFormat"></span>
+          <select id="export-format"></select>
+        </label>
+        <pre class="code" id="export-preview"></pre>
+        <button class="action" id="export-copy" type="button" data-label="copyExport"></button>
+
+        <h3 data-label="themeTitle"></h3>
+        <p class="hint" id="theme-note"></p>
+        <label class="field theme-field">
+          <span data-label="themeBase"></span>
+          <select id="theme-base"></select>
+        </label>
+        <div class="theme-preview" id="theme-preview"></div>
+        <div class="theme-actions">
+          <button class="action" id="theme-apply" type="button" data-label="themeApply"></button>
+          <button class="link-button" id="theme-restore" type="button" data-label="themeRestore"></button>
+          <button class="link-button" id="theme-remove" type="button" data-label="themeRemove"></button>
+          <button class="link-button" id="theme-copy" type="button" data-label="themeCopyCss"></button>
+        </div>
+        <p class="theme-status" id="theme-status" role="status"></p>
+      </section>
+    </main>
+
+    <section class="pick-overlay" id="pick-overlay" hidden aria-labelledby="pick-title" tabindex="-1">
+      <header class="pick-head">
+        <h2 class="pick-title" id="pick-title" data-label="pickTitle"></h2>
+        <button class="link-button" id="pick-close" type="button" data-label="pickClose"></button>
+      </header>
+
+      <div class="segmented" id="pick-sources" role="tablist" aria-label="Image source"></div>
+
+      <p class="pick-status" id="pick-status" role="status"></p>
+      <button class="action" id="pick-folder" type="button" data-label="pickChooseFolder"></button>
+      <div class="pick-files" id="pick-files" hidden></div>
+
+      <div class="pick-stage" id="pick-stage" hidden>
+        <canvas class="pick-canvas" id="pick-canvas"></canvas>
+        <div class="pick-loupe" id="pick-loupe" hidden>
+          <canvas id="pick-loupe-canvas"></canvas>
+          <span class="pick-loupe-value" id="pick-loupe-value"></span>
+        </div>
+      </div>
+
+      <footer class="pick-foot">
+        <span class="hint" id="pick-hint"></span>
+        <button class="action" id="pick-use" type="button" data-label="pickUse" disabled></button>
+      </footer>
+    </section>
+
+    <script src="../lib/color.js"></script>
+    <script src="../lib/data/tailwind.js"></script>
+    <script src="../lib/data/material.js"></script>
+    <script src="../lib/data/presets.js"></script>
+    <script src="../lib/palette.js"></script>
+    <script src="../lib/generate.js"></script>
+    <script src="../lib/contrast.js"></script>
+    <script src="../lib/export.js"></script>
+    <script src="../lib/pick.js"></script>
+    <script src="../lib/ai.js"></script>
+    <script src="../lib/theme.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>

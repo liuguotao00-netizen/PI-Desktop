@@ -1,0 +1,13 @@
+{
+  "name": "pi-desktop-claude-theme",
+  "version": "1.2.0",
+  "private": true,
+  "description": "Unofficial Claude-inspired declarative themes for PI-Desktop",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  }
+}

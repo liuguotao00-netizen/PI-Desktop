@@ -1,0 +1,35 @@
+{
+  "name": "pi-agent-governance",
+  "version": "0.12.1",
+  "private": true,
+  "description": "Shared repository governance core, MCP/Skills and PI-Desktop adapter",
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "typecheck": "tsc --project tsconfig.json --noEmit && tsc --project plugin/renderer/tsconfig.json --noEmit",
+    "test": "node scripts/checks.cjs --unit",
+    "test:browser": "node scripts/checks.cjs --browser",
+    "check:behaviors": "npm run build && node scripts/check-behaviors.cjs",
+    "check": "node scripts/checks.cjs",
+    "check:plan": "node scripts/check-plan.cjs",
+    "update:plan": "node scripts/update-plan.cjs",
+    "release:auto": "node scripts/release-auto.cjs",
+    "mcp": "node build/mcp/server.js",
+    "web": "node build/web/server.js",
+    "collaboration": "node build/plugin/collaboration-cli.js",
+    "build:distributions": "node scripts/build-distributions.cjs",
+    "governance": "npm run build --silent && node build/scripts/governance.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "esbuild": "0.28.2",
+    "playwright": "1.64.1",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "ajv": "8.20.0"
+  }
+}

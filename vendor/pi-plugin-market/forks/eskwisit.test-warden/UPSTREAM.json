@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.test-warden",
+  "repository": "https://github.com/eskwisit/pi-test-warden",
+  "branch": "HEAD",
+  "commit": "cff6f72",
+  "version": "0.8.0",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-test-warden/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:42.734Z",
+  "mode": "source-snapshot",
+  "sha256": "8d7d915637baee91e40132dbdb3c50f382c92beb1dd56bb95549f9a10c6ae9cd"
+}

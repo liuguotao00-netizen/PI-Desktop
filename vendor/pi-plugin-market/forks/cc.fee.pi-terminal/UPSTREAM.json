@@ -1,0 +1,12 @@
+{
+  "id": "cc.fee.pi-terminal",
+  "repository": "https://github.com/yanecc/PI-Terminal",
+  "branch": "HEAD",
+  "commit": "9da5784407da3cde",
+  "version": "1.0.0",
+  "tarball": "https://api.github.com/repos/yanecc/PI-Terminal/tarball/HEAD",
+  "layout": "package",
+  "fetchedAt": "2026-11-25T18:30:27.749Z",
+  "mode": "source-snapshot",
+  "sha256": "9da5784407da3cde1601cd5e3df924aed53abeea42305ce6ed5c539ccc823f58"
+}

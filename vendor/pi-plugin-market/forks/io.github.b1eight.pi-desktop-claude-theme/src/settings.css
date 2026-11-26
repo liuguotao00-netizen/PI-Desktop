@@ -1,0 +1,191 @@
+/* Menus, settings, dialogs and PI-owned application surfaces. */
+__SCOPE__ :is(.sidebar-surface, .settings-nav) {
+  background: var(--ct-sidebar);
+  border-color: var(--ct-line-subtle);
+}
+__SCOPE__ :is(.thread-item, .sidebar-primary-item, .sidebar-session-group-header, .footer-settings, .settings-nav-item) {
+  border-radius: var(--ct-r-control);
+}
+__SCOPE__ :is(.thread-item, .sidebar-primary-item, .sidebar-session-group-header, .settings-nav-item):hover:not(.active, .selected, :disabled, [aria-disabled="true"]) {
+  background-color: var(--ct-ghost-hover);
+}
+__SCOPE__ :is(.thread-item.active, .thread-item.selected, .sidebar-primary-item.active, .footer-settings.active, .settings-nav-item.active) {
+  background-color: var(--ct-ghost-selected);
+  color: var(--ct-ink);
+}
+__SCOPE__ :is(.thread-item-meta, .thread-item-last-reply, .thread-item-worktree) { color: var(--ct-muted); }
+
+__SCOPE__ :is(.context-menu, .home-project-switcher-menu, .composer-model-menu, .composer-mode-menu, .composer-permission-menu, .composer-model-thinking-menu, .composer-autocomplete, .settings-theme-menu, .settings-menu-select-menu, .turn-usage-popover, .sidebar-floating-menu, .sidebar-submenu) {
+  background: var(--ct-elevated);
+  border-color: var(--ct-line);
+  border-radius: var(--ct-r-panel);
+  box-shadow: var(--ct-shadow-menu);
+}
+/* These two settings selectors retain their native surfaces and geometry. */
+__SCOPE__ :is(.settings-language-menu, .settings-font-menu) {
+  box-shadow: var(--ct-shadow-menu);
+}
+__SCOPE__ :is(.context-menu-item, .home-project-switcher-item, .composer-plus-item, .composer-model-option, .settings-menu-select-option) {
+  border-radius: var(--ct-r-control);
+}
+/* One state ladder for menu rows; native cursor and selection attributes still drive it. */
+__SCOPE__ :is(:where(.composer-model-menu) .composer-model-option, .settings-font-item):is(:hover, .kb-active):not(:disabled, [aria-disabled="true"]),
+__SCOPE__ :is(.settings-theme-option, .settings-language-option, .settings-menu-select-option):is(:hover, .is-active):not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--ct-ghost-hover);
+}
+__SCOPE__ :is(.composer-model-option[aria-checked="true"]:not(:where(.composer-model-menu .composer-model-option:has(.composer-model-check))), .settings-menu-select-option[aria-selected="true"], .settings-theme-option.is-current, .settings-language-option.is-current, .settings-font-item.active):not(:disabled, [aria-disabled="true"]) {
+  color: var(--ct-ink);
+  background-color: var(--ct-ghost-selected);
+}
+/* A checked model uses its native tick. Only hover or keyboard highlight fills the row. */
+__SCOPE__ .composer-model-menu .composer-model-check {
+  --ds-accent: var(--ct-focus-accent);
+}
+/* Keep the check legible on the raised dark highlight; do not change focus blue. */
+__SCOPE__ .composer-model-menu .composer-model-option:is(:hover, :focus-visible, .kb-active) .composer-model-check {
+  --ds-accent: var(--ct-model-check-highlight, var(--ct-focus-accent));
+}
+/* Let host-owned context and composer menu rows keep their keyboard/state rules. */
+__SCOPE__ :is(.context-menu-item, .home-project-switcher-item, .composer-plus-item, .composer-menu-entry, .composer-menu-back):not(.danger, :disabled, [aria-disabled="true"]) {
+  --ds-bg-hover: var(--ct-ghost-hover);
+  --ds-bg-active: var(--ct-ghost-selected);
+}
+
+__SCOPE__ :is(.settings-shell, .settings-shell-full, .work-panel, .plugins-page) {
+  background-color: var(--ct-canvas);
+}
+__SCOPE__ :is(.settings-page-heading, .settings-section-title) {
+  color: var(--ct-ink);
+}
+__SCOPE__ :is(.settings-page-heading > h1, .settings-section-title, .settings-card-heading, .composer-model-group-label, .composer-mode-menu-group) {
+  font-weight: var(--ct-weight-heading);
+}
+__SCOPE__ :is(.settings-panel, .settings-stack, .modes-settings-list, .modes-settings-editor) {
+  border-color: var(--ct-line);
+  border-radius: var(--ct-r-panel);
+}
+/* Preference sections and host-owned item lists share between-row dividers. */
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  .settings-panel:has(> .settings-row):not(:has(> :not(.settings-row))),
+  .shortcut-group, .model-provider-list, .agent-capability-list, .modes-settings-list,
+  .projects-group-rows, .projects-detail-tasks, .settings-config-sync-history, .settings-remote-host-list
+) {
+  gap: 0;
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  :is(.settings-panel, .settings-disclosure-body) > .settings-row,
+  .shortcut-group > .shortcut-row,
+  .model-provider-list > .model-provider-row:where(:not(.is-dragging)),
+  .agent-capability-list > .agent-capability-row,
+  .modes-settings-list .modes-settings-row:where(:not([aria-current="true"])),
+  .projects-group-rows > .projects-row-block:where(:not(.active, .open)),
+  .settings-config-sync-history > .settings-config-sync-history-row,
+  .settings-remote-host-list > .settings-remote-host-card
+) {
+  background-color: transparent;
+  border-radius: 0;
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  :is(.settings-panel, .settings-disclosure-body) > .settings-row + .settings-row,
+  .shortcut-group > .shortcut-row + .shortcut-row,
+  .model-provider-list > .model-provider-row + .model-provider-row:where(:not(.is-dragging)),
+  .agent-capability-list > .agent-capability-row + .agent-capability-row,
+  .modes-settings-list > [role="listitem"] + [role="listitem"],
+  .projects-group-rows > .projects-row-block + .projects-row-block,
+  .projects-detail-tasks > .projects-detail-task-row + .projects-detail-task-row,
+  .settings-config-sync-history > .settings-config-sync-history-row + .settings-config-sync-history-row,
+  .settings-remote-host-list > .settings-remote-host-card + .settings-remote-host-card
+) {
+  border-block-start: 1px solid var(--ct-line);
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  .shortcut-group > .shortcut-row:hover,
+  .model-provider-list > .model-provider-row:is(:hover, .menu-open):where(:not(.is-dragging)),
+  .agent-capability-list > .agent-capability-row:is(:hover, .menu-open),
+  .modes-settings-list .modes-settings-row:hover:where(:not([aria-current="true"], [aria-disabled="true"], :disabled)),
+  .projects-group-rows > .projects-row-block:is(:hover, :focus-within):where(:not(.active, .open))
+) {
+  background-color: var(--ct-ghost-hover);
+}
+/* Compact triggers, not form fields, primary actions, or state indicators. */
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  .settings-row-control :is(.settings-theme-trigger, .settings-language-trigger, .settings-font-trigger, .settings-menu-select-trigger, .settings-pill-select),
+  .agent-capability-project-picker .settings-menu-select-trigger
+) {
+  background-color: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) :is(
+  .settings-row-control :is(.settings-theme-trigger, .settings-language-trigger, .settings-font-trigger, .settings-menu-select-trigger, .settings-pill-select),
+  .agent-capability-project-picker .settings-menu-select-trigger
+):is(:hover, [aria-expanded="true"]):not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--ct-ghost-hover);
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) .shortcut-row .shortcut-recorder:not(.recording, :focus-visible) {
+  background-color: transparent;
+  box-shadow: none;
+}
+__SCOPE__ :is(.settings-shell, .settings-shell-full) .shortcut-row .shortcut-recorder:not(.recording, :focus-visible):hover:not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--ct-ghost-hover);
+}
+__SCOPE__ :is(.settings-card-caption, .settings-page-subtitle, .startup-guide-status) { color: var(--ct-secondary); }
+__SCOPE__ :is(.settings-segment, .plugins-sort) {
+  background-color: var(--ct-hover);
+  border-color: transparent;
+  border-radius: var(--ct-r-control);
+}
+__SCOPE__ :is(.settings-segment-item, .plugins-sort-btn).active {
+  color: var(--ct-ink);
+  background-color: var(--ct-segment-thumb);
+  box-shadow: var(--ct-segment-thumb-shadow);
+}
+
+__SCOPE__ :is(.dialog, .plugins-modal, .p-dialog) {
+  border-radius: var(--ct-r-panel);
+  border-color: var(--ct-line);
+  box-shadow: var(--ct-shadow-dialog);
+}
+
+/* Keep risk/meaning owned by the host; tie surface treatment to its own state. */
+__SCOPE__ :is(.chat-error-notice, .toast) {
+  background: var(--ct-elevated);
+  border: 1px solid var(--ct-line);
+  border-radius: var(--ct-r-panel);
+  box-shadow: var(--ct-shadow-card);
+}
+__SCOPE__ .chat-error-notice {
+  border-inline-start: 3px solid var(--ct-bad);
+  color: var(--ct-ink);
+}
+__SCOPE__ .message-output-notice {
+  border-radius: var(--ct-r-control);
+  border-color: var(--ct-line);
+}
+__SCOPE__ :is(.dock, .todo-dock, .asktool-card, .turn-changes-card, .mode-run-bar) {
+  background-color: var(--ct-panel);
+  border-color: var(--ct-line);
+  border-radius: var(--ct-r-panel);
+}
+__SCOPE__ :is(.permission-card, .tool-row, .review-change-card, .subagent-topology-node) {
+  border-color: var(--ct-line);
+  border-radius: var(--ct-r-control);
+}
+__SCOPE__ .permission-card {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-warn) 30%, transparent);
+}
+__SCOPE__ .permission-card.risk-high {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ct-bad) 48%, transparent);
+}
+/* Match the brand tint without inheriting the send button's action colors. */
+__SCOPE__ :is(.task-row[data-state="running"] .task-state, .dock-live-dot, .tool-row-state.is-running .tool-row-state-dot, .project-run-badge.running .project-run-badge-dot),
+__SCOPE__ .project-run-pip.running::before {
+  background-color: var(--ct-brand);
+}
+__SCOPE__ .thread-item-status.running::before {
+  background: var(--ct-brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ct-brand) 16%, transparent);
+}
+__SCOPE__ :is(.turn-usage-popover, .mode-run-rounds, .mode-run-elapsed, .diff-counts) {
+  font-variant-numeric: tabular-nums;
+}

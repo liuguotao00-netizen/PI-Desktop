@@ -1,0 +1,10 @@
+{
+  "id": "local.pi-markdown",
+  "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown",
+  "branch": "main",
+  "commit": "ca09c64",
+  "version": "0.6.0",
+  "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-pi-markdown/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:32:46Z",
+  "mode": "source-snapshot"
+}

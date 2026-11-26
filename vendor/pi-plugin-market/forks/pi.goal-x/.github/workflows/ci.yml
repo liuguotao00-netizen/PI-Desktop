@@ -1,0 +1,227 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CI_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+
+# A new push stops the run for the commit it replaces.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# Every job starts at once. The setup step works out from the changed files
+# whether the job has anything to do, and the steps after it only run if so.
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+      - name: Ranking updater tests
+        run: python3 -B scripts/test-update-ranking.py
+      - if: steps.setup.outputs.run == 'true'
+        name: Publication workflow tests
+        run: node --test scripts/test-publish-workflow.mjs scripts/test-ci.mjs
+      # The type check, lint and audit do not depend on each other, so they run together.
+      - if: steps.setup.outputs.run == 'true'
+        name: Type check, lint and dependency audit
+        run: |
+          npm run check & check=$!
+          npm run lint & lint=$!
+          npm audit --omit=dev & audit=$!
+          status=0
+          for job in $check $lint $audit; do wait "$job" || status=1; done
+          exit $status
+
+  # The unit, integration and end-to-end suite, in four parts.
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ['1/6', '2/6', '3/6', '4/6', '5/6', '6/6']
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+      - if: steps.setup.outputs.run == 'true'
+        name: Tests (part ${{ matrix.shard }})
+        env:
+          PI_GOAL_CI_LOG_DIR: ${{ runner.temp }}/pi-goal-validation
+        # A pull request runs the test files its changes can reach. Every push to main runs them all.
+        run: node scripts/ci-checks.mjs --only tests --shard ${{ matrix.shard }} ${{ github.event_name == 'pull_request' && format('--affected {0}', env.CI_BASE_SHA) || '' }}
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tests-${{ strategy.job-index }}
+          path: ${{ runner.temp }}/pi-goal-validation/
+          retention-days: 5
+          if-no-files-found: ignore
+
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+      # The package check installs the packed tarball into a clean folder. npm's own download
+      # cache makes that install quicker; anything missing from it is fetched as before.
+      - if: steps.setup.outputs.run == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-downloads-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - if: steps.setup.outputs.run == 'true'
+        name: Installed package
+        env:
+          PI_GOAL_CI_LOG_DIR: ${{ runner.temp }}/pi-goal-validation
+        run: node scripts/ci-checks.mjs --only package
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: ${{ runner.temp }}/pi-goal-validation/
+          retention-days: 5
+          if-no-files-found: ignore
+
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+      - if: steps.setup.outputs.run == 'true'
+        name: Live session, context, provider, cache and retention gates
+        env:
+          PI_GOAL_CI_LOG_DIR: ${{ runner.temp }}/pi-goal-validation
+        run: node scripts/ci-checks.mjs --only lifecycle-cli --only context --only provider --only cache --only retention
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gates
+          path: ${{ runner.temp }}/pi-goal-validation/
+          retention-days: 5
+          if-no-files-found: ignore
+
+  # The walkthrough cases are independent, so they run in five groups.
+  # scripts/test-ci.mjs checks that every case is in exactly one group.
+  controls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        cases:
+          - controls-run settings-keys foreign-focus
+          - together editor-controls command-shortcuts
+          - goal-first goal-first-finish
+          - native-interrupt dialog-keys answer-editing
+          - controls-ui settings-paths
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+        with:
+          need: controls
+      - if: steps.setup.outputs.run == 'true'
+        name: Controls walkthrough in the Pi CLI
+        run: node experiments/controls/cli-walkthrough.mjs ${{ matrix.cases }}
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: controls-${{ strategy.job-index }}
+          path: experiments/runs/goal-controls/
+          retention-days: 5
+          if-no-files-found: ignore
+
+  bench:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - id: setup
+        uses: ./.github/actions/setup
+        with:
+          need: bench
+      # Every push to main saves its benchmark result. A pull request on that commit reuses it
+      # instead of measuring the base again. If the gate fails against it, the base is measured
+      # again on this machine before the check can fail.
+      - if: steps.setup.outputs.run == 'true' && github.event_name == 'pull_request'
+        uses: actions/cache/restore@v4
+        with:
+          path: .bench-saved
+          key: bench-${{ env.CI_BASE_SHA }}
+      - if: steps.setup.outputs.run == 'true'
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.CI_BASE_SHA }}
+          path: .benchmark-base
+      - if: steps.setup.outputs.run == 'true'
+        name: Runtime benchmark regression gate
+        run: |
+          ln -s "$GITHUB_WORKSPACE/node_modules" .benchmark-base/node_modules
+          # Main preserves compact historical checkpoints; use the corrected fixture for both runs.
+          cp experiments/bench/b10-checkpoint-growth.mjs .benchmark-base/experiments/bench/b10-checkpoint-growth.mjs
+          measure_base() { npm --prefix .benchmark-base run bench:naf -- after naf; }
+          saved="$GITHUB_WORKSPACE/.bench-saved/baseline-naf-after.json"
+          if [ -f "$saved" ]; then
+            npm run bench:naf -- after naf
+            if PI_GOAL_BENCH_REFERENCE="$saved" npm run bench:gate:naf; then exit 0; fi
+            echo "The gate failed against the saved base result. Measuring the base again on this machine."
+            measure_base
+          else
+            # One after the other: timings taken while another run competes for the CPU are not reliable.
+            measure_base
+            npm run bench:naf -- after naf
+          fi
+          export PI_GOAL_BENCH_REFERENCE="$GITHUB_WORKSPACE/.benchmark-base/experiments/bench/baseline-naf-after.json"
+          # A single slow sample can fail a row that is normally fast. Measure the branch once more
+          # before failing; a real slowdown shows up again, with the same limits.
+          if ! npm run bench:gate:naf; then
+            echo "The gate failed. Measuring the branch once more before failing."
+            npm run bench:naf -- after naf
+            npm run bench:gate:naf
+          fi
+          mkdir -p .bench-saved && cp experiments/bench/baseline-naf-after.json .bench-saved/
+      - if: steps.setup.outputs.run == 'true' && github.event_name == 'push'
+        uses: actions/cache/save@v4
+        with:
+          path: .bench-saved
+          key: bench-${{ github.sha }}
+
+  # The one check branch protection needs. It starts with the others and watches them, so it
+  # finishes a moment after the last one instead of waiting for a new runner to start.
+  # It passes when every other job passed or had nothing to do.
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      actions: read
+    steps:
+      - name: Wait for the other jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url="repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100"
+          while true; do
+            # Right after the run starts the jobs list can answer 404. Ask again.
+            jobs=$(gh api "$url" --jq '[.jobs[] | select(.name != "validate")]') || { sleep 2; continue; }
+            bad=$(jq -r '[.[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped") | .name] | join(", ")' <<<"$jobs")
+            if [ -n "$bad" ]; then echo "Failed: $bad"; exit 1; fi
+            open=$(jq '[.[] | select(.status != "completed")] | length' <<<"$jobs")
+            total=$(jq 'length' <<<"$jobs")
+            if [ "$total" -gt 0 ] && [ "$open" -eq 0 ]; then echo "All $total jobs passed or had nothing to do."; exit 0; fi
+            sleep 2
+          done

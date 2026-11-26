@@ -1,0 +1,11 @@
+{
+  "id": "io.github.eureka-0x01.open-with",
+  "repository": "https://github.com/Eureka-0x01/open-with",
+  "branch": "HEAD",
+  "commit": "15d22f9",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/Eureka-0x01/open-with/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:55.588Z",
+  "mode": "source-snapshot",
+  "sha256": "7876b0f45334171eb4b57cb893f5bc0ed4c7454d17a400ec73a84c6a78e38de6"
+}

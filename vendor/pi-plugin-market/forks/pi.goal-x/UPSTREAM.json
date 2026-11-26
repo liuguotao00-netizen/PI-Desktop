@@ -1,0 +1,12 @@
+{
+  "id": "pi.goal-x",
+  "repository": "https://github.com/tmonk/pi-goal-x",
+  "branch": "HEAD",
+  "commit": "be6619bf4b07945d",
+  "version": "0.35.1",
+  "tarball": "https://api.github.com/repos/tmonk/pi-goal-x/tarball/HEAD",
+  "layout": "package",
+  "fetchedAt": "2026-11-25T18:09:49.154Z",
+  "mode": "source-snapshot",
+  "sha256": "be6619bf4b07945d971b3b16d02440dd725a405f90da4ccd8c88f1ad89d7d186"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "local.mi-note",
+  "repository": "https://github.com/sucjs/mi-note-for-pi",
+  "branch": "HEAD",
+  "commit": "efec333",
+  "version": "0.2.7",
+  "tarball": "https://api.github.com/repos/sucjs/mi-note-for-pi/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:01:21.930Z",
+  "mode": "source-snapshot",
+  "sha256": "86e418f2db187c2895d3455dacb7d95af2c40c6c2c31bb55b056687eca5eb97b"
+}

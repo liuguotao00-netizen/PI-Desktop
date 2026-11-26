@@ -1,0 +1,12 @@
+{
+  "id": "local.git-workbench",
+  "repository": "https://github.com/itzhoujun/pi-desktop-plugin",
+  "branch": "HEAD",
+  "commit": "75a9ff1157b91b32",
+  "version": "0.2.0",
+  "tarball": "https://api.github.com/repos/itzhoujun/pi-desktop-plugin/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:40:50.242Z",
+  "mode": "source-snapshot",
+  "sourceRoot": "git-workbench",
+  "sha256": "75a9ff1157b91b320c035c716cc34c3f3774b39dbdf3e7e80ced2aaa30f78d33"
+}

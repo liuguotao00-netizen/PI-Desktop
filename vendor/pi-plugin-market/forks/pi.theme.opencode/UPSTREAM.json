@@ -1,0 +1,12 @@
+{
+  "id": "pi.theme.opencode",
+  "repository": "https://github.com/hzz12138/pi-desktop-plugins",
+  "branch": "HEAD",
+  "commit": "df3096f9e53dad4d",
+  "version": "1.2.0",
+  "tarball": "https://api.github.com/repos/hzz12138/pi-desktop-plugins/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:44:45.002Z",
+  "mode": "source-snapshot",
+  "sourceRoot": "plugins/pi.theme.opencode",
+  "sha256": "df3096f9e53dad4d3cae5ca155a4696d43ee9c5142c04cf017564a834dbeb980"
+}

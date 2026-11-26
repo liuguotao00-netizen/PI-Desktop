@@ -1,0 +1,11 @@
+{
+  "id": "local.chrome-cdp",
+  "repository": "https://github.com/nnda152-prog/chrome-cdp",
+  "branch": "HEAD",
+  "commit": "e0ce7c9a753bc394",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/nnda152-prog/chrome-cdp/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:40:50.174Z",
+  "mode": "source-snapshot",
+  "sha256": "e0ce7c9a753bc394dd6a43a5c49bf2f4f9e8082f79cf5fd0082b0caf0edd5b78"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "local.pi-session-filter",
+  "repository": "https://github.com/mai-ming/pi-desktop-session-filter",
+  "branch": "HEAD",
+  "commit": "2e6c07a",
+  "version": "0.4.0",
+  "tarball": "https://api.github.com/repos/mai-ming/pi-desktop-session-filter/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:59:59.054Z",
+  "mode": "source-snapshot",
+  "sha256": "2728d048c7a1872c33f5346d057af3a0f1fa9e9cbef32e4eb3fd3afd1463cc82"
+}

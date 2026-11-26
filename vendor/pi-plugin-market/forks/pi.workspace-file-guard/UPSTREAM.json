@@ -1,0 +1,12 @@
+{
+  "id": "pi.workspace-file-guard",
+  "repository": "https://github.com/ily55421/pi-desktop-plugins",
+  "branch": "HEAD",
+  "commit": "2a84b8d08e0016e6",
+  "version": "0.2.7",
+  "tarball": "https://api.github.com/repos/ily55421/pi-desktop-plugins/tarball/HEAD",
+  "sourceRoot": "plugins/pi.workspace-file-guard",
+  "fetchedAt": "2026-11-25T18:21:01.312Z",
+  "mode": "source-snapshot",
+  "sha256": "2a84b8d08e0016e6403fa9aa6ec663a2f8f5a5d582e78ec658cef27f7be3f441"
+}

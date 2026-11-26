@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.terminal",
+  "name": "终端",
+  "version": "0.2.2",
+  "description": "在右侧工作面板中打开当前项目的本地终端：多个独立终端标签，每个标签可选 shell（zsh/bash/fish 等已安装的 shell），以项目根目录为工作目录，完整 ANSI 颜色与 TUI 支持（vim/htop），支持复制粘贴、面板尺寸变化时自动重排，会话在面板关闭后继续保持。",
+  "i18n": {
+    "en": {
+      "name": "Terminal",
+      "description": "Open a local terminal for the current project in the right work panel: multiple independent terminal tabs, each with a selectable shell (any installed shell such as zsh/bash/fish), starting at the project root, with full ANSI colors and TUI support (vim/htop), copy/paste, automatic reflow on panel resize, and sessions that keep running while the panel is closed.",
+      "safetyNotes": "The plugin spawns local shells (the user's login shell by default, or another installed shell chosen in the toolbar dropdown, validated to exist and be executable) as child processes of the plugin process, rooted at the open project directory. A PTY is provided by a small bundled python script using the standard library's pty.fork — no third-party dependencies. Terminal I/O is streamed through a loopback-only (127.0.0.1, random port) HTTP server that the plugin starts; every request must carry a random per-launch token that is handed only to the plugin's own sandboxed view via the host bridge, so other local processes or pages cannot attach. The plugin itself reads no project files and declares no fs permissions."
+    },
+    "zh-CN": {
+      "name": "终端",
+      "description": "在右侧工作面板中打开当前项目的本地终端：多个独立终端标签，每个标签可选 shell（zsh/bash/fish 等已安装的 shell），以项目根目录为工作目录，完整 ANSI 颜色与 TUI 支持（vim/htop），支持复制粘贴、面板尺寸变化时自动重排，会话在面板关闭后继续保持。",
+      "safetyNotes": "插件会以打开的项目根目录为工作目录，在插件进程里启动本地 shell（默认用户登录 shell，也可在工具栏下拉框选择其它已安装的 shell——路径必须真实存在且可执行）。PTY 由插件自带的一小段 python 脚本提供（标准库 pty.fork），无任何第三方依赖。终端输入输出通过插件自带的仅回环（127.0.0.1、随机端口）HTTP 服务流转，每个请求都必须携带每次启动随机生成的 token，该 token 只经宿主桥交给本插件自己的沙箱视图，本机其它进程或页面无法接入。插件自身不读写项目内文件，不声明任何 fs 权限。"
+    }
+  },
+  "author": "local",
+  "main": "main.js",
+  "contributes": {
+    "views": [
+      {
+        "id": "terminal",
+        "title": { "en": "Terminal", "zh-CN": "终端" },
+        "icon": "terminal",
+        "entry": "renderer/index.html",
+        "order": 20
+      }
+    ]
+  },
+  "permissions": ["ui.view"],
+  "engines": { "piDesktop": ">=0.9.0" },
+  "activationEvents": ["onStartup"]
+}

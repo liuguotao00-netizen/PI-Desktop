@@ -1,0 +1,11 @@
+{
+  "id": "cn.star.grok-enhance",
+  "repository": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance",
+  "branch": "HEAD",
+  "commit": "e4d54c7fe912b7e9",
+  "version": "0.2.0",
+  "tarball": "https://api.github.com/repos/TheFlareStar-Re/PI-Grok-Enhance/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:44:34.026Z",
+  "mode": "source-snapshot",
+  "sha256": "e4d54c7fe912b7e95f09719e65eceaef69d4aacaa9752eb0337eca85806c8256"
+}

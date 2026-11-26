@@ -1,0 +1,11 @@
+{
+  "id": "cc.mcii.session-usage",
+  "repository": "https://github.com/LectWolf/pi-session-usage",
+  "branch": "HEAD",
+  "commit": "fdd1783",
+  "version": "1.0.1",
+  "tarball": "https://api.github.com/repos/LectWolf/pi-session-usage/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:20.755Z",
+  "mode": "source-snapshot",
+  "sha256": "a4cbdf0c16fae333e32f451db2978dddf90317c661d25120aedc2baf5991c74b"
+}

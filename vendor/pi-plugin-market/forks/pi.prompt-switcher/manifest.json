@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.prompt-switcher",
+  "name": "提示词切换器",
+  "version": "1.0.1",
+  "description": "管理本地目录 .md 提示词，在对话首轮输入 / 快速选择并应用（类似 agents.md），历史对话自动无视。",
+  "author": "mikulo",
+  "categories": [
+    "productivity",
+    "chat"
+  ],
+  "main": "main.js",
+  "ui": {
+    "panel": "renderer/index.html",
+    "title": {
+      "zh-CN": "提示词切换设置",
+      "en": "Prompt Switcher Settings"
+    },
+    "width": 720,
+    "height": 660
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "open-prompt-switcher",
+        "title": "提示词切换: 打开设置面板",
+        "keywords": [
+          "prompt",
+          "switcher",
+          "提示词",
+          "切换",
+          "设置",
+          "面板"
+        ],
+        "category": "Chat"
+      },
+      {
+        "id": "sync-prompt-switcher",
+        "title": "提示词切换: 立即同步已启用提示词",
+        "keywords": [
+          "prompt",
+          "sync",
+          "同步",
+          "刷新"
+        ],
+        "category": "Chat"
+      }
+    ],
+    "settings": [
+      {
+        "key": "directory",
+        "type": "string",
+        "title": "提示词本地目录",
+        "description": "存放 .md 提示词的本地文件夹路径（留空则默认使用当前工作区 prompts 目录）",
+        "default": "prompts"
+      }
+    ]
+  },
+  "permissions": [
+    "ui.panel",
+    "fs.read"
+  ],
+  "fs": {
+    "read": {
+      "root": "workspace",
+      "scope": [
+        "**/*"
+      ]
+    }
+  },
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:open-prompt-switcher",
+    "onCommand:sync-prompt-switcher"
+  ],
+  "i18n": {
+    "zh-CN": {
+      "name": "提示词切换器",
+      "description": "管理本地目录 .md 提示词，在对话首轮输入 / 快速选择并应用（类似 agents.md），历史对话自动无视。"
+    },
+    "en": {
+      "name": "Prompt Switcher",
+      "description": "Manage .md prompts from a local folder, switch quickly with / in the initial turn, ignored on sessions with history."
+    }
+  }
+}

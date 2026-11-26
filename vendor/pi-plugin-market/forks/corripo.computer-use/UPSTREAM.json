@@ -1,0 +1,11 @@
+{
+  "id": "corripo.computer-use",
+  "repository": "https://github.com/ProgramerLiang/pi-computer-use",
+  "branch": "HEAD",
+  "commit": "fd1b5edc1f7b8b7d",
+  "version": "0.1.2",
+  "tarball": "https://api.github.com/repos/ProgramerLiang/pi-computer-use/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:58:41.694Z",
+  "mode": "source-snapshot",
+  "sha256": "fd1b5edc1f7b8b7dca5f55ec308ac787f839959c6567c234a5d2cdfb113d74a1"
+}

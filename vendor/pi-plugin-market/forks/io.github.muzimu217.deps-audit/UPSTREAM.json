@@ -1,0 +1,11 @@
+{
+  "id": "io.github.muzimu217.deps-audit",
+  "repository": "https://github.com/muzimu217/pi-desktop-plugins",
+  "branch": "HEAD",
+  "commit": "1270dae61f0c0101",
+  "version": "0.2.0",
+  "tarball": "https://api.github.com/repos/muzimu217/pi-desktop-plugins/tarball/HEAD",
+  "fetchedAt": "2026-11-25T18:45:34.724Z",
+  "mode": "source-snapshot",
+  "sha256": "1270dae61f0c010185a4a26d18c961273f2a73541d32380f240241e8a07561ff"
+}

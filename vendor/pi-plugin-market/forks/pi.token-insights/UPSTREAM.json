@@ -1,0 +1,11 @@
+{
+  "id": "pi.token-insights",
+  "repository": "https://github.com/vastsa/pi-plugin-token-insights",
+  "branch": "HEAD",
+  "commit": "a66a761a232d572f",
+  "version": "0.4.8",
+  "tarball": "https://api.github.com/repos/vastsa/pi-plugin-token-insights/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:52.357Z",
+  "mode": "source-snapshot",
+  "sha256": "a66a761a232d572fd2e9537b61e6456349d0d4852f070167f60cdaa0e1184dfb"
+}

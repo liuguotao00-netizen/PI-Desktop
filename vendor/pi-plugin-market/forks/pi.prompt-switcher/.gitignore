@@ -1,0 +1,15 @@
+# Build & packages
+dist/
+*.piplug
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local cache & workspace prompts
+prompts/
+.pi/
+*.log
+*.tmp

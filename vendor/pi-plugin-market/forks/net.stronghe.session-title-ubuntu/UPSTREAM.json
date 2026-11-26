@@ -1,0 +1,11 @@
+{
+  "id": "net.stronghe.session-title-ubuntu",
+  "repository": "https://github.com/strongxp/pi-session-title-ubuntu",
+  "branch": "HEAD",
+  "commit": "a1dfef7",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/strongxp/pi-session-title-ubuntu/tarball/HEAD",
+  "fetchedAt": "2026-11-25T17:00:12.767Z",
+  "mode": "source-snapshot",
+  "sha256": "0bb9ddc70a8c820d765bb04b5f45d18f8512b5cc4eedbebd43c1ec67ad834977"
+}

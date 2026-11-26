@@ -1,0 +1,11 @@
+{
+  "id": "local.nebula-spectrum",
+  "repository": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum",
+  "branch": "HEAD",
+  "commit": "1a90bf2",
+  "version": "0.9.0",
+  "tarball": "https://api.github.com/repos/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:59:57.896Z",
+  "mode": "source-snapshot",
+  "sha256": "82ec4b5c3a48981830a58f77fba6279f0ce5fa372b1de5a4ad8e31c6e7f1c6cc"
+}

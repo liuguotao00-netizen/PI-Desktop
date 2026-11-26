@@ -1,0 +1,11 @@
+{
+  "id": "local.sidebar-labels",
+  "repository": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels",
+  "branch": "HEAD",
+  "commit": "4613a8f",
+  "version": "0.1.1",
+  "tarball": "https://api.github.com/repos/RugkeyPro/pi-desktop-sidebar-labels/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:59:59.927Z",
+  "mode": "source-snapshot",
+  "sha256": "acb04da566b6393bc3d75f80c41c88017d8eda2a7d99733b1bd536167fb32889"
+}

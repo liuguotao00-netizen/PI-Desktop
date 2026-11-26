@@ -1,0 +1,494 @@
+{
+  "generatedAt": "2026-11-25T17:50:07.444Z",
+  "count": 122,
+  "matches": [
+    {
+      "id": "adoin.panel.anywhere",
+      "repository": "https://github.com/adoin/pi-desktop-plugins"
+    },
+    {
+      "id": "adoin.sax-design-theme",
+      "repository": "https://github.com/adoin/pi-desktop-plugin-monorepo"
+    },
+    {
+      "id": "axc00.project-knowledge",
+      "repository": "https://github.com/new-Beginner/KnowStack"
+    },
+    {
+      "id": "bone.aimedia.services",
+      "repository": "https://github.com/taokoplay/bone-aimedia-services"
+    },
+    {
+      "id": "bone.openpencil",
+      "repository": "https://github.com/taokoplay/bone-openpencil-plugin"
+    },
+    {
+      "id": "bone.project-wiki",
+      "repository": "https://github.com/taokoplay/bone-project-wiki"
+    },
+    {
+      "id": "bone.token.statistics",
+      "repository": "https://github.com/taokoplay/bone-token-statistics"
+    },
+    {
+      "id": "cc.fee.pi-terminal",
+      "repository": "https://github.com/yanecc/PI-Terminal"
+    },
+    {
+      "id": "cc.mcii.session-notify",
+      "repository": "https://github.com/LectWolf/pi-session-notify"
+    },
+    {
+      "id": "cc.mcii.session-usage",
+      "repository": "https://github.com/LectWolf/pi-session-usage"
+    },
+    {
+      "id": "cn.star.computer-use",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Computer-Use"
+    },
+    {
+      "id": "cn.star.grok-enhance",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance"
+    },
+    {
+      "id": "cn.star.jianying-assistant",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant"
+    },
+    {
+      "id": "cn.star.skill-learning",
+      "repository": "https://github.com/TheFlareStar-Re/PI-Skill-Learning"
+    },
+    {
+      "id": "cn.star.user-profile",
+      "repository": "https://github.com/TheFlareStar-Re/PI-User-Profile"
+    },
+    {
+      "id": "com.dragonnahs.session-usage-toolbar",
+      "repository": "https://github.com/dragonnahs/session-usage-toolbar"
+    },
+    {
+      "id": "com.opencode2pi",
+      "repository": "https://github.com/JasonYu0822/opencode2pi-desktop"
+    },
+    {
+      "id": "com.vastsa.side-chat",
+      "repository": "https://github.com/vastsa/pi-desktop-side-chat"
+    },
+    {
+      "id": "community.cloudflare-workers-ai",
+      "repository": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop"
+    },
+    {
+      "id": "community.workbuddy-connect",
+      "repository": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect"
+    },
+    {
+      "id": "corripo.computer-use",
+      "repository": "https://github.com/ProgramerLiang/pi-computer-use"
+    },
+    {
+      "id": "corripo.superagent-orchestrator",
+      "repository": "https://github.com/ProgramerLiang/piD-super-agent"
+    },
+    {
+      "id": "demo.hello",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "demo.workspace-notes",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "demo.workspace-summary",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "eskwisit.ast-lens",
+      "repository": "https://github.com/eskwisit/pi-ast-lens"
+    },
+    {
+      "id": "eskwisit.llm-council",
+      "repository": "https://github.com/eskwisit/pi-llm-council"
+    },
+    {
+      "id": "eskwisit.llm-superagent",
+      "repository": "https://github.com/eskwisit/pi-llm-superagent"
+    },
+    {
+      "id": "eskwisit.mumble",
+      "repository": "https://github.com/eskwisit/pi-mumble"
+    },
+    {
+      "id": "eskwisit.neural-radar",
+      "repository": "https://github.com/eskwisit/pi-neural-radar"
+    },
+    {
+      "id": "eskwisit.test-warden",
+      "repository": "https://github.com/eskwisit/pi-test-warden"
+    },
+    {
+      "id": "eskwisit.world-model-hjepa",
+      "repository": "https://github.com/eskwisit/pi-world-model-hjepa"
+    },
+    {
+      "id": "hawchou.mumu-player",
+      "repository": "https://github.com/hawchou1995/pi-mumu-player"
+    },
+    {
+      "id": "icedly.moyu-games",
+      "repository": "https://github.com/CJLY-0915/pi-timer-killer-games"
+    },
+    {
+      "id": "in.memcode.memory",
+      "repository": "https://github.com/vivekgupta-memcode/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.akshayxkill.nexus-scenic-themes",
+      "repository": "https://github.com/alphalaughs2024-netizen/nexus-scenic-themes"
+    },
+    {
+      "id": "io.github.b1eight.pi-desktop-claude-theme",
+      "repository": "https://github.com/B1eight/pi-desktop-claude-theme"
+    },
+    {
+      "id": "io.github.caopengfei.opencode-quota",
+      "repository": "https://github.com/caopengfei/pi-desktop-opencode-quota"
+    },
+    {
+      "id": "io.github.catdford.color-picker",
+      "repository": "https://github.com/catDforD/pi-desktop-color-picker"
+    },
+    {
+      "id": "io.github.chengzhi-c.pi-desktop-wtq-pool",
+      "repository": "https://github.com/chengzhi-c/pi-desktop-wtq-pool"
+    },
+    {
+      "id": "io.github.cydione.prompt-injector",
+      "repository": "https://github.com/cyDione/pi-prompt-injector"
+    },
+    {
+      "id": "io.github.czp0312.subscription-quota",
+      "repository": "https://github.com/czp0312/pi-desktop-quota-visualizer"
+    },
+    {
+      "id": "io.github.eonova.theme-dracula",
+      "repository": "https://github.com/eonova/pi-theme-dracula"
+    },
+    {
+      "id": "io.github.eureka-0x01.open-with",
+      "repository": "https://github.com/Eureka-0x01/open-with"
+    },
+    {
+      "id": "io.github.g1oow.sidebar-note",
+      "repository": "https://github.com/G1oow/PI-desktop-Note"
+    },
+    {
+      "id": "io.github.gzxingr.genui",
+      "repository": "https://github.com/GzxingR/pi-desktop-genui"
+    },
+    {
+      "id": "io.github.hufangyuan460-blip.windows-terminal",
+      "repository": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop"
+    },
+    {
+      "id": "io.github.jeasonloop.theme-craftdesk",
+      "repository": "https://github.com/JeasonLoop/pi-theme-craftdesk"
+    },
+    {
+      "id": "io.github.ldzhouquan.fast-browser",
+      "repository": "https://github.com/ldzhouquan/pi-fast-browser"
+    },
+    {
+      "id": "io.github.linuxdazhao.side-questions",
+      "repository": "https://github.com/Linuxdazhao/pi-side-questions"
+    },
+    {
+      "id": "io.github.liushunqiu.pi-idea-git",
+      "repository": "https://github.com/liushunqiu/pi-idea-git"
+    },
+    {
+      "id": "io.github.mafeis.layout-control",
+      "repository": "https://github.com/mafeis/pi-desktop-layout-control"
+    },
+    {
+      "id": "io.github.moyunliuyin.cline-upstream",
+      "repository": "https://github.com/moyunliuyin/pi-desktop-cline-upstream"
+    },
+    {
+      "id": "io.github.muzimu217.deps-audit",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.muzimu217.session-import",
+      "repository": "https://github.com/ily55421/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.muzimu217.theme-forge",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.muzimu217.usage-dashboard",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.muzimu217.vision-kit",
+      "repository": "https://github.com/muzimu217/pi-desktop-plugins"
+    },
+    {
+      "id": "io.github.new-beginner.session-usage",
+      "repository": "https://github.com/new-Beginner/pi-session-usage"
+    },
+    {
+      "id": "io.github.readon.deepseek-web",
+      "repository": "https://github.com/Readon/pi-deepseek-web"
+    },
+    {
+      "id": "io.github.realzsy.opencode-quota-bubble",
+      "repository": "https://github.com/realzsy/opencode-quota-bubble"
+    },
+    {
+      "id": "io.github.techd81.pi-desktop-usage",
+      "repository": "https://github.com/Techd81/pi-desktop-usage"
+    },
+    {
+      "id": "io.github.techd81.stop-that-shit",
+      "repository": "https://github.com/Techd81/pi-desktop-stop-that-shit"
+    },
+    {
+      "id": "io.github.tonkic.agent-governance",
+      "repository": "https://github.com/Tonkic/pi-agent-governance"
+    },
+    {
+      "id": "io.github.w1ndys.pi-open-git-web",
+      "repository": "https://github.com/w1ndys/pi-open-git-web"
+    },
+    {
+      "id": "io.github.w1ndys.pi-open-in-vscode",
+      "repository": "https://github.com/w1ndys/pi-open-in-vscode"
+    },
+    {
+      "id": "io.github.wenziji-hub.market-translator",
+      "repository": "https://github.com/wenziji-hub/pi-market-translator"
+    },
+    {
+      "id": "io.github.xelzsss.macos-classic-theme",
+      "repository": "https://github.com/XELZSSS/PI-Mac-OS-Classic-Theme"
+    },
+    {
+      "id": "io.github.xideadev.pi-wechatbot",
+      "repository": "https://github.com/XideaDev/Pi-WechatBot"
+    },
+    {
+      "id": "io.github.xideadev.skill-hub",
+      "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub"
+    },
+    {
+      "id": "io.github.xideadev.task-dida",
+      "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida"
+    },
+    {
+      "id": "io.github.xinzhihong.group-rooms",
+      "repository": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms"
+    },
+    {
+      "id": "local.chrome-cdp",
+      "repository": "https://github.com/nnda152-prog/chrome-cdp"
+    },
+    {
+      "id": "local.context-guard",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-context-guard"
+    },
+    {
+      "id": "local.git-workbench",
+      "repository": "https://github.com/itzhoujun/pi-desktop-plugin"
+    },
+    {
+      "id": "local.hindsight.memory",
+      "repository": "https://github.com/zwwangoo/pi-hindsight-memory"
+    },
+    {
+      "id": "local.igniter",
+      "repository": "https://github.com/zwwangoo/pi-igniter"
+    },
+    {
+      "id": "local.image-budget",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-image-budget"
+    },
+    {
+      "id": "local.mi-note",
+      "repository": "https://github.com/sucjs/mi-note-for-pi"
+    },
+    {
+      "id": "local.miku-theme",
+      "repository": "https://github.com/cainiao0502/pi-desktop-skin"
+    },
+    {
+      "id": "local.nebula-spectrum",
+      "repository": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum"
+    },
+    {
+      "id": "local.pi-bot",
+      "repository": "https://github.com/vsd269/PI-Bot"
+    },
+    {
+      "id": "local.pi-commandcode-desktop",
+      "repository": "https://github.com/eric8bit/pi-commandcode-desktop"
+    },
+    {
+      "id": "local.pi-desktop-install-guard",
+      "repository": "https://github.com/ily55421/pi-desktop-plugins"
+    },
+    {
+      "id": "local.pi-desktop-workbuddy",
+      "repository": "https://github.com/eric8bit/pi-desktop-workbuddy"
+    },
+    {
+      "id": "local.pi-markdown",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown"
+    },
+    {
+      "id": "local.pi-matt-workflow",
+      "repository": "https://github.com/ily55421/pi-desktop-plugins"
+    },
+    {
+      "id": "local.pi-session-filter",
+      "repository": "https://github.com/mai-ming/pi-desktop-session-filter"
+    },
+    {
+      "id": "local.project-memory-api-probe",
+      "repository": "https://github.com/new-Beginner/KnowStack"
+    },
+    {
+      "id": "local.sidebar-labels",
+      "repository": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels"
+    },
+    {
+      "id": "local.source-code-mgmt",
+      "repository": "https://github.com/ysanjin1/pi-desktop-source-code-mgmt"
+    },
+    {
+      "id": "local.starry-bus-theme",
+      "repository": "https://github.com/yuehan1228/starry-bus-theme"
+    },
+    {
+      "id": "local.terminal",
+      "repository": "https://github.com/zwwangoo/pi-terminal"
+    },
+    {
+      "id": "local.unipi",
+      "repository": "https://github.com/vsd269/UniPi"
+    },
+    {
+      "id": "mfy.pi-desktop-open-tools",
+      "repository": "https://github.com/mfy/pi-desktop-plugin-open-tools"
+    },
+    {
+      "id": "net.aiuo.session-title",
+      "repository": "https://github.com/vastsa/pi-session-title-plugin"
+    },
+    {
+      "id": "net.stronghe.session-title-ubuntu",
+      "repository": "https://github.com/strongxp/pi-session-title-ubuntu"
+    },
+    {
+      "id": "pi.bianqian",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.clinepass",
+      "repository": "https://github.com/banned104/Cline-Pi-Desktop"
+    },
+    {
+      "id": "pi.clipboard-history",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history"
+    },
+    {
+      "id": "pi.file-manager",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager"
+    },
+    {
+      "id": "pi.gitlens",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.goal-x",
+      "repository": "https://github.com/tmonk/pi-goal-x"
+    },
+    {
+      "id": "pi.log-viewer",
+      "repository": "https://github.com/Tioit-Wang/pi-plugin-log-viewer"
+    },
+    {
+      "id": "pi.mobile-remote-control",
+      "repository": "https://github.com/CJLY-0915/pi-desktop-bot"
+    },
+    {
+      "id": "pi.obsidian-theme",
+      "repository": "https://github.com/adoin/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.parchment",
+      "repository": "https://github.com/ily55421/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.piopt",
+      "repository": "https://github.com/Lu-Mine/PiOpt"
+    },
+    {
+      "id": "pi.prompt-enhancement",
+      "repository": "https://github.com/vastsa/pi-prompt-enhancement"
+    },
+    {
+      "id": "pi.prompt-switcher",
+      "repository": "https://github.com/mikulo/pi-prompt-switcher"
+    },
+    {
+      "id": "pi.scratch-calc",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc"
+    },
+    {
+      "id": "pi.session-orchestrator",
+      "repository": "https://github.com/vastsa/pi-plugin-session-orchestrator"
+    },
+    {
+      "id": "pi.ssh-manager",
+      "repository": "https://github.com/niansi1/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.super-domain-man",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man"
+    },
+    {
+      "id": "pi.terminal",
+      "repository": "https://github.com/WnJee/pi-desktop-plugin-terminal"
+    },
+    {
+      "id": "pi.theme.opencode",
+      "repository": "https://github.com/hzz12138/pi-desktop-plugins"
+    },
+    {
+      "id": "pi.theme.studio",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio"
+    },
+    {
+      "id": "pi.thinkrail",
+      "repository": "https://github.com/andrewliu83/pideskthinkrails"
+    },
+    {
+      "id": "pi.todo",
+      "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo"
+    },
+    {
+      "id": "pi.token-insights",
+      "repository": "https://github.com/vastsa/pi-plugin-token-insights"
+    },
+    {
+      "id": "pi.web-access",
+      "repository": "https://github.com/Techd81/pi-desktop-web-access"
+    },
+    {
+      "id": "pi.workspace-file-guard",
+      "repository": "https://github.com/ily55421/pi-desktop-plugins"
+    }
+  ]
+}

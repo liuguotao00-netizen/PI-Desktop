@@ -1,0 +1,11 @@
+{
+  "id": "bone.token.statistics",
+  "repository": "https://github.com/taokoplay/bone-token-statistics",
+  "branch": "HEAD",
+  "commit": "16cd190",
+  "version": "0.1.0",
+  "tarball": "https://api.github.com/repos/taokoplay/bone-token-statistics/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:17.542Z",
+  "mode": "source-snapshot",
+  "sha256": "4abcd25c5722d39625a828f6cbdbacd78dbe26221f3153bc9b99e8dbb1fe8726"
+}

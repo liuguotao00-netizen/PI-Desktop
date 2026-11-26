@@ -1,0 +1,11 @@
+{
+  "id": "eskwisit.llm-superagent",
+  "repository": "https://github.com/eskwisit/pi-llm-superagent",
+  "branch": "HEAD",
+  "commit": "1757a0a",
+  "version": "0.25.1",
+  "tarball": "https://api.github.com/repos/eskwisit/pi-llm-superagent/tarball/HEAD",
+  "fetchedAt": "2026-11-25T16:42:41.307Z",
+  "mode": "source-snapshot",
+  "sha256": "bcce9cce39f17d1300c0c00e6ae7775df9b9beab23e56c77680f4315fe8aeda8"
+}
