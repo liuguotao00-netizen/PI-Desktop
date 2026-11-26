@@ -2,11 +2,12 @@
   "id": "in.memcode.memory",
   "repository": "https://github.com/vivekgupta-memcode/pi-desktop-plugins",
   "branch": "feat/memcode",
-  "commit": "7ad98896753aca31",
+  "commit": "6dab161f63a510714fdec978a04a2a74cb9ef0c5",
   "version": "0.1.0",
   "tarball": "https://codeload.github.com/vivekgupta-memcode/pi-desktop-plugins/tar.gz/refs/heads/feat/memcode",
   "sourceRoot": "plugins/in.memcode.memory",
-  "fetchedAt": "2026-11-25T18:58:01.835Z",
+  "fetchedAt": "2026-11-26T02:52:18.016Z",
   "mode": "source-snapshot",
-  "sha256": "7ad98896753aca314b67e4639b1e663e39168b685b7681d5f50d337bbb267455"
+  "sha256": "7ad98896753aca314b67e4639b1e663e39168b685b7681d5f50d337bbb267455",
+  "syncMode": "independent-fork"
 }

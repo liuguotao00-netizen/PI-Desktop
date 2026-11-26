@@ -1,11 +1,12 @@
 {
   "id": "mfy.pi-desktop-open-tools",
   "repository": "https://github.com/mfy/pi-desktop-plugin-open-tools",
-  "branch": "HEAD",
-  "commit": "f283170cf60b1c6a",
+  "branch": "main",
+  "commit": "638c0b4b4e01b65dcd53e9137bd822ec7b7060e2",
   "version": "0.5.0",
   "tarball": "https://api.github.com/repos/mfy/pi-desktop-plugin-open-tools/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:28:43.865Z",
+  "fetchedAt": "2026-11-26T04:52:01.250Z",
   "mode": "source-snapshot",
-  "sha256": "f283170cf60b1c6a13c0dc2875ceb713d26a14f60292a2352066ffd8e0d8bcaa"
+  "sha256": "f283170cf60b1c6a13c0dc2875ceb713d26a14f60292a2352066ffd8e0d8bcaa",
+  "syncMode": "independent-fork"
 }

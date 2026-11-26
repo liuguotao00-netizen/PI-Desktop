@@ -1,11 +1,12 @@
 {
   "id": "io.github.w1ndys.pi-open-git-web",
   "repository": "https://github.com/w1ndys/pi-open-git-web",
-  "branch": "HEAD",
-  "commit": "d9a71bd",
+  "branch": "main",
+  "commit": "d9a71bdb41d4e0d827c323a7ca63e11958b6cfa4",
   "version": "0.2.0",
   "tarball": "https://api.github.com/repos/w1ndys/pi-open-git-web/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:49.254Z",
+  "fetchedAt": "2026-11-26T04:25:41.282Z",
   "mode": "source-snapshot",
-  "sha256": "d43eb2ad8822512e3f5b8a845db918cf2b5e41048ed881348ea7548cebc2fd61"
+  "sha256": "d43eb2ad8822512e3f5b8a845db918cf2b5e41048ed881348ea7548cebc2fd61",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "pi.session-orchestrator",
   "repository": "https://github.com/vastsa/pi-plugin-session-orchestrator",
-  "branch": "HEAD",
-  "commit": "e3b451d30e30791d",
+  "branch": "main",
+  "commit": "cb9037a90218721345e3a7cd9704d8621acf0289",
   "version": "0.7.1",
   "tarball": "https://api.github.com/repos/vastsa/pi-plugin-session-orchestrator/tarball/HEAD",
-  "fetchedAt": "2026-11-25T17:00:49.395Z",
+  "fetchedAt": "2026-11-26T05:17:51.084Z",
   "mode": "source-snapshot",
-  "sha256": "e3b451d30e30791df97bf9e48754aaaae79d25e78134784f91a03a1e54b26c0c"
+  "sha256": "e3b451d30e30791df97bf9e48754aaaae79d25e78134784f91a03a1e54b26c0c",
+  "syncMode": "independent-fork"
 }

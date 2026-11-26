@@ -1,11 +1,12 @@
 {
   "id": "pi.clipboard-history",
   "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history",
-  "branch": "HEAD",
-  "commit": "f75f1c12b9468f95",
+  "branch": "master",
+  "commit": "08e8918ced02b5d1af5153eb59c2477b880060fa",
   "version": "0.2.0",
   "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:15:56.899Z",
+  "fetchedAt": "2026-11-26T05:57:13.746Z",
   "mode": "source-snapshot",
-  "sha256": "f75f1c12b9468f950d4c2b9edbacb3fe6462bcb6b4beccc56afd8b703cdfd71b"
+  "sha256": "f75f1c12b9468f950d4c2b9edbacb3fe6462bcb6b4beccc56afd8b703cdfd71b",
+  "syncMode": "independent-fork"
 }

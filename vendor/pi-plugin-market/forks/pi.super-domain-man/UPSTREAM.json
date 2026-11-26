@@ -1,11 +1,12 @@
 {
   "id": "pi.super-domain-man",
   "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man",
-  "branch": "HEAD",
-  "commit": "1f5aa58a7f165663",
+  "branch": "master",
+  "commit": "80bfc46640c260b9313c000a07ccac3634f561e0",
   "version": "0.4.4",
   "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:15:44.496Z",
+  "fetchedAt": "2026-11-26T05:18:19.047Z",
   "mode": "source-snapshot",
-  "sha256": "1f5aa58a7f165663b40799c70331eae31c2f60ec3b3781be5186a601d7aa580f"
+  "sha256": "1f5aa58a7f165663b40799c70331eae31c2f60ec3b3781be5186a601d7aa580f",
+  "syncMode": "independent-fork"
 }

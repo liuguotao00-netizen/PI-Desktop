@@ -1,11 +1,12 @@
 {
   "id": "local.pi-commandcode-desktop",
   "repository": "https://github.com/eric8bit/pi-commandcode-desktop",
-  "branch": "HEAD",
-  "commit": "6bc16ba9d1baf8e9",
+  "branch": "main",
+  "commit": "f234928dd795ca5b98c7183b74bc988dd204412d",
   "version": "0.2.0",
   "tarball": "https://api.github.com/repos/eric8bit/pi-commandcode-desktop/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:45:13.074Z",
+  "fetchedAt": "2026-11-26T04:47:59.556Z",
   "mode": "source-snapshot",
-  "sha256": "6bc16ba9d1baf8e9835c3c2eb7834cf42f36f6c68212dacce94cb87b0ee5e217"
+  "sha256": "6bc16ba9d1baf8e9835c3c2eb7834cf42f36f6c68212dacce94cb87b0ee5e217",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "cn.star.user-profile",
   "repository": "https://github.com/TheFlareStar-Re/PI-User-Profile",
-  "branch": "HEAD",
-  "commit": "41cd72c496efc609",
+  "branch": "main",
+  "commit": "39cdee2f96dcced7f5628c520c014b0e4b063b51",
   "version": "0.1.7",
   "tarball": "https://api.github.com/repos/TheFlareStar-Re/PI-User-Profile/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:44:34.417Z",
+  "fetchedAt": "2026-11-26T02:31:30.725Z",
   "mode": "source-snapshot",
-  "sha256": "41cd72c496efc609f495e63a8728df94c7e1bdd064b0269041a015a9480030d0"
+  "sha256": "41cd72c496efc609f495e63a8728df94c7e1bdd064b0269041a015a9480030d0",
+  "syncMode": "independent-fork"
 }

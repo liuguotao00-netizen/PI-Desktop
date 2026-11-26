@@ -1,11 +1,12 @@
 {
   "id": "com.vastsa.side-chat",
   "repository": "https://github.com/vastsa/pi-desktop-side-chat",
-  "branch": "HEAD",
-  "commit": "cdceac3",
+  "branch": "main",
+  "commit": "cdceac39fda13710f980c8b793966709b1fe0e07",
   "version": "0.1.15",
   "tarball": "https://api.github.com/repos/vastsa/pi-desktop-side-chat/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:44.599Z",
+  "fetchedAt": "2026-11-26T02:51:43.667Z",
   "mode": "source-snapshot",
-  "sha256": "777742287dd828b8732c72dc1bc38943218f01b58dc648146d24ac9fb02b70b2"
+  "sha256": "777742287dd828b8732c72dc1bc38943218f01b58dc648146d24ac9fb02b70b2",
+  "syncMode": "independent-fork"
 }

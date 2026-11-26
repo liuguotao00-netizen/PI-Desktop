@@ -1,11 +1,12 @@
 {
   "id": "io.github.realzsy.opencode-quota-bubble",
   "repository": "https://github.com/realzsy/opencode-quota-bubble",
-  "branch": "HEAD",
-  "commit": "f362775",
+  "branch": "main",
+  "commit": "f362775a5228d0d35f3720903134571bd0474e84",
   "version": "0.5.0",
   "tarball": "https://api.github.com/repos/realzsy/opencode-quota-bubble/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:43.021Z",
+  "fetchedAt": "2026-11-26T05:56:58.861Z",
   "mode": "source-snapshot",
-  "sha256": "5b4c9cc681157834e8929f58c5cf56fc0f5af9893b3929791be30149a544b783"
+  "sha256": "5b4c9cc681157834e8929f58c5cf56fc0f5af9893b3929791be30149a544b783",
+  "syncMode": "independent-fork"
 }

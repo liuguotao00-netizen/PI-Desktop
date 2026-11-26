@@ -1,11 +1,12 @@
 {
   "id": "local.context-guard",
   "repository": "https://github.com/RugkeyPro/pi-desktop-context-guard",
-  "branch": "HEAD",
-  "commit": "262418139b3ed797",
+  "branch": "main",
+  "commit": "a12b3c0b0842d6e6c556d46d1547987922aee4c5",
   "version": "0.1.0",
   "tarball": "https://api.github.com/repos/RugkeyPro/pi-desktop-context-guard/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:15:00.401Z",
+  "fetchedAt": "2026-11-26T05:34:47.490Z",
   "mode": "source-snapshot",
-  "sha256": "262418139b3ed797a74f53bd1e7309098586c673a37832ad7d4763f8c7275e24"
+  "sha256": "262418139b3ed797a74f53bd1e7309098586c673a37832ad7d4763f8c7275e24",
+  "syncMode": "independent-fork"
 }

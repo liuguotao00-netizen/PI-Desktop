@@ -1,11 +1,12 @@
 {
   "id": "io.github.ldzhouquan.fast-browser",
   "repository": "https://github.com/ldzhouquan/pi-fast-browser",
-  "branch": "HEAD",
-  "commit": "fe076af",
+  "branch": "main",
+  "commit": "fe076af7d33370b13201acbafa0928ae10dd315b",
   "version": "0.2.1",
   "tarball": "https://api.github.com/repos/ldzhouquan/pi-fast-browser/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:36.635Z",
+  "fetchedAt": "2026-11-26T03:23:15.341Z",
   "mode": "source-snapshot",
-  "sha256": "6677a8062a783e2ec385bce6f4ef7198f5caf4e25e0b3d8a04d2430e03b7f11f"
+  "sha256": "6677a8062a783e2ec385bce6f4ef7198f5caf4e25e0b3d8a04d2430e03b7f11f",
+  "syncMode": "independent-fork"
 }

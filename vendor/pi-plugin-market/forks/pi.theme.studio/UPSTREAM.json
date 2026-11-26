@@ -1,11 +1,12 @@
 {
   "id": "pi.theme.studio",
   "repository": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio",
-  "branch": "HEAD",
-  "commit": "0fad835cd6bf5850",
+  "branch": "main",
+  "commit": "0757d5d7e0f20315307170a4ea06e081763452d5",
   "version": "1.5.0",
   "tarball": "https://api.github.com/repos/Tioit-Wang/pi-desktop-plugin-theme-studio/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:15:00.748Z",
+  "fetchedAt": "2026-11-26T05:20:05.180Z",
   "mode": "source-snapshot",
-  "sha256": "0fad835cd6bf5850e054c369d12d272c81cc60a8ebf98819e92d326bb3bf05d4"
+  "sha256": "0fad835cd6bf5850e054c369d12d272c81cc60a8ebf98819e92d326bb3bf05d4",
+  "syncMode": "independent-fork"
 }

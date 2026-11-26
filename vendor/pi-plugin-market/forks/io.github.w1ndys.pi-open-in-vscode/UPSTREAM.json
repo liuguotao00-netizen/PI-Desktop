@@ -1,11 +1,12 @@
 {
   "id": "io.github.w1ndys.pi-open-in-vscode",
   "repository": "https://github.com/w1ndys/pi-open-in-vscode",
-  "branch": "HEAD",
-  "commit": "d959385",
+  "branch": "main",
+  "commit": "d9593856a7bb55fcedbd9c645689ab3f61463e84",
   "version": "0.6.1",
   "tarball": "https://api.github.com/repos/w1ndys/pi-open-in-vscode/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:48.892Z",
+  "fetchedAt": "2026-11-26T04:25:41.283Z",
   "mode": "source-snapshot",
-  "sha256": "45a7a46e12eab731af39d6043c6fcdbec2c07b7d88f6b8b74f2cead98c44127d"
+  "sha256": "45a7a46e12eab731af39d6043c6fcdbec2c07b7d88f6b8b74f2cead98c44127d",
+  "syncMode": "independent-fork"
 }

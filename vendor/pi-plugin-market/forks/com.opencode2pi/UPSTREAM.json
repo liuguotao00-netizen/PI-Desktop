@@ -1,11 +1,12 @@
 {
   "id": "com.opencode2pi",
   "repository": "https://github.com/JasonYu0822/opencode2pi-desktop",
-  "branch": "HEAD",
-  "commit": "7b1165ef2df502ba",
+  "branch": "main",
+  "commit": "a07a3dfff4cc8d72b6fe90f5704f0b91ff6d827a",
   "version": "0.5.5",
   "tarball": "https://api.github.com/repos/JasonYu0822/opencode2pi-desktop/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:44:50.869Z",
+  "fetchedAt": "2026-11-26T02:31:40.776Z",
   "mode": "source-snapshot",
-  "sha256": "7b1165ef2df502bacfe3ecf848b2802ca53bd30566f2936902d37dc5d0c210c0"
+  "sha256": "7b1165ef2df502bacfe3ecf848b2802ca53bd30566f2936902d37dc5d0c210c0",
+  "syncMode": "independent-fork"
 }

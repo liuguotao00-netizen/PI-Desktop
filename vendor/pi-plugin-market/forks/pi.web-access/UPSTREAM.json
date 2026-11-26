@@ -1,11 +1,12 @@
 {
   "id": "pi.web-access",
   "repository": "https://github.com/Techd81/pi-desktop-web-access",
-  "branch": "HEAD",
-  "commit": "b6eedf7b0de0658e",
+  "branch": "main",
+  "commit": "23c6436bf40b7e0c17433a2fbfd1195bfe41f04a",
   "version": "0.2.1",
   "tarball": "https://api.github.com/repos/Techd81/pi-desktop-web-access/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:45:16.860Z",
+  "fetchedAt": "2026-11-26T05:20:05.326Z",
   "mode": "source-snapshot",
-  "sha256": "b6eedf7b0de0658eb83bd01f95dec680f1191f49a6e1bb8c0af26aedd8715b8b"
+  "sha256": "b6eedf7b0de0658eb83bd01f95dec680f1191f49a6e1bb8c0af26aedd8715b8b",
+  "syncMode": "independent-fork"
 }

@@ -1,12 +1,13 @@
 {
   "id": "pi.obsidian-theme",
   "repository": "https://github.com/adoin/pi-desktop-plugins",
-  "branch": "HEAD",
-  "commit": "0b808db8852cc437",
+  "branch": "main",
+  "commit": "c35605a5ed31bd4c899683d5fd0064bd632775cb",
   "version": "3.0.0",
   "tarball": "https://api.github.com/repos/adoin/pi-desktop-plugins/tarball/HEAD",
   "sourceRoot": "plugins/pi.obsidian-theme",
-  "fetchedAt": "2026-11-25T18:29:54.358Z",
+  "fetchedAt": "2026-11-26T05:11:02.999Z",
   "mode": "source-snapshot",
-  "sha256": "0b808db8852cc437ece8f4ddef8e52336ca56cf06397875349db7ce862d72500"
+  "sha256": "0b808db8852cc437ece8f4ddef8e52336ca56cf06397875349db7ce862d72500",
+  "syncMode": "independent-fork"
 }

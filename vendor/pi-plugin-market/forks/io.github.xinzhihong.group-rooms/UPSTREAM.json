@@ -1,11 +1,12 @@
 {
   "id": "io.github.xinzhihong.group-rooms",
   "repository": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms",
-  "branch": "HEAD",
-  "commit": "cbee7ba",
+  "branch": "main",
+  "commit": "cbee7baded9f0825dab8732e29e6348f1cc9b32b",
   "version": "0.1.1",
   "tarball": "https://api.github.com/repos/xinzhihong-ship-it/pi-plugin-group-rooms/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:50.811Z",
+  "fetchedAt": "2026-11-26T04:30:42.101Z",
   "mode": "source-snapshot",
-  "sha256": "019b79bbfc386abbfb726ef5d95225cf92a7db6ad1600b5fb7f799d7d66fc86c"
+  "sha256": "019b79bbfc386abbfb726ef5d95225cf92a7db6ad1600b5fb7f799d7d66fc86c",
+  "syncMode": "independent-fork"
 }

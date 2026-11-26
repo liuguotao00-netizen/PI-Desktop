@@ -1,11 +1,12 @@
 {
   "id": "com.dragonnahs.session-usage-toolbar",
   "repository": "https://github.com/dragonnahs/session-usage-toolbar",
-  "branch": "HEAD",
-  "commit": "994be49",
+  "branch": "main",
+  "commit": "994be4968d597ab1ecb7f261ce109eaeea96fcf8",
   "version": "0.3.0",
   "tarball": "https://api.github.com/repos/dragonnahs/session-usage-toolbar/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:21.386Z",
+  "fetchedAt": "2026-11-26T02:31:36.458Z",
   "mode": "source-snapshot",
-  "sha256": "9bdc4f228cb6d021e2e3f7926f3f91239712d6751ccece04c42b69b660331d62"
+  "sha256": "9bdc4f228cb6d021e2e3f7926f3f91239712d6751ccece04c42b69b660331d62",
+  "syncMode": "independent-fork"
 }

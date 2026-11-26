@@ -1,11 +1,12 @@
 {
   "id": "pi.terminal",
   "repository": "https://github.com/WnJee/pi-desktop-plugin-terminal",
-  "branch": "HEAD",
-  "commit": "5592589a8e384f7a",
+  "branch": "main",
+  "commit": "958f6a21d69d7fbd8f97741cedba6035328385b8",
   "version": "0.2.2",
   "tarball": "https://api.github.com/repos/WnJee/pi-desktop-plugin-terminal/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:25:14.747Z",
+  "fetchedAt": "2026-11-26T05:17:51.084Z",
   "mode": "source-snapshot",
-  "sha256": "5592589a8e384f7a795d7722daccfd9e5c4eb6e2f81352d8030a04f0b6a71666"
+  "sha256": "5592589a8e384f7a795d7722daccfd9e5c4eb6e2f81352d8030a04f0b6a71666",
+  "syncMode": "independent-fork"
 }

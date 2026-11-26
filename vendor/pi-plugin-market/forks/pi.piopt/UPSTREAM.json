@@ -1,11 +1,12 @@
 {
   "id": "pi.piopt",
   "repository": "https://github.com/Lu-Mine/PiOpt",
-  "branch": "HEAD",
-  "commit": "75b1b5b",
+  "branch": "main",
+  "commit": "75b1b5bfbd7b139d11b333fddb843ce5539b8195",
   "version": "2.0.0",
   "tarball": "https://api.github.com/repos/Lu-Mine/PiOpt/tarball/HEAD",
-  "fetchedAt": "2026-11-25T17:00:26.970Z",
+  "fetchedAt": "2026-11-26T05:17:51.083Z",
   "mode": "source-snapshot",
-  "sha256": "9c35dc63a0c72ce175f4c4e896693ecec415f82424245ce2236c8e959c42d955"
+  "sha256": "9c35dc63a0c72ce175f4c4e896693ecec415f82424245ce2236c8e959c42d955",
+  "syncMode": "independent-fork"
 }

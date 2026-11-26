@@ -1,11 +1,12 @@
 {
   "id": "local.image-budget",
   "repository": "https://github.com/RugkeyPro/pi-desktop-image-budget",
-  "branch": "HEAD",
-  "commit": "8112c52",
+  "branch": "main",
+  "commit": "8112c52665ced779d34e9839d486df832289b8bd",
   "version": "0.1.0",
   "tarball": "https://api.github.com/repos/RugkeyPro/pi-desktop-image-budget/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:56.967Z",
+  "fetchedAt": "2026-11-26T04:39:34.901Z",
   "mode": "source-snapshot",
-  "sha256": "ba94f9ae454dbc429055b4ffd43634d6c77c9f966ab424b595642acdd76919d8"
+  "sha256": "ba94f9ae454dbc429055b4ffd43634d6c77c9f966ab424b595642acdd76919d8",
+  "syncMode": "independent-fork"
 }

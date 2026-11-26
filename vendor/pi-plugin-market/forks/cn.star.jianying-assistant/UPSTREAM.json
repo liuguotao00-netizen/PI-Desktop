@@ -1,11 +1,12 @@
 {
   "id": "cn.star.jianying-assistant",
   "repository": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant",
-  "branch": "HEAD",
-  "commit": "1e867e3871081d14",
+  "branch": "main",
+  "commit": "801fb63c092214b4e415055a36561cd3c8cf31b5",
   "version": "0.1.1",
   "tarball": "https://api.github.com/repos/TheFlareStar-Re/PI-Jianying-Assistant/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:44:34.029Z",
+  "fetchedAt": "2026-11-26T02:31:25.625Z",
   "mode": "source-snapshot",
-  "sha256": "1e867e3871081d14a7a78c819bcacb1ec48c01a2ae0af9c9a1a58fe9d8c8d4a1"
+  "sha256": "1e867e3871081d14a7a78c819bcacb1ec48c01a2ae0af9c9a1a58fe9d8c8d4a1",
+  "syncMode": "independent-fork"
 }

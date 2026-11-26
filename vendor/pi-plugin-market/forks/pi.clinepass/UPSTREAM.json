@@ -1,11 +1,12 @@
 {
   "id": "pi.clinepass",
   "repository": "https://github.com/banned104/Cline-Pi-Desktop",
-  "branch": "HEAD",
-  "commit": "a1c65c75c2e439ae",
+  "branch": "main",
+  "commit": "e852c66c49a526add7cb5858644d959a9acc75b6",
   "version": "2.3.0",
   "tarball": "https://api.github.com/repos/banned104/Cline-Pi-Desktop/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:45:15.696Z",
+  "fetchedAt": "2026-11-26T05:45:03.203Z",
   "mode": "source-snapshot",
-  "sha256": "a1c65c75c2e439aed8d6d80964ea54cde5e4691807ce0b11193293a0fcadb583"
+  "sha256": "a1c65c75c2e439aed8d6d80964ea54cde5e4691807ce0b11193293a0fcadb583",
+  "syncMode": "independent-fork"
 }

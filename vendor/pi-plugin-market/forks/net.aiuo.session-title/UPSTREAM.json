@@ -1,11 +1,12 @@
 {
   "id": "net.aiuo.session-title",
   "repository": "https://github.com/vastsa/pi-session-title-plugin",
-  "branch": "HEAD",
-  "commit": "d3ecd1d",
+  "branch": "main",
+  "commit": "d3ecd1de59c4e96d60047a575b87a8cdf144ec76",
   "version": "0.1.0",
   "tarball": "https://api.github.com/repos/vastsa/pi-session-title-plugin/tarball/HEAD",
-  "fetchedAt": "2026-11-25T17:00:11.267Z",
+  "fetchedAt": "2026-11-26T04:52:01.250Z",
   "mode": "source-snapshot",
-  "sha256": "df722fbc90b25fa3d72ee498a22d0630b68001b9030ccaa55ccf5b624d8eaa36"
+  "sha256": "df722fbc90b25fa3d72ee498a22d0630b68001b9030ccaa55ccf5b624d8eaa36",
+  "syncMode": "independent-fork"
 }

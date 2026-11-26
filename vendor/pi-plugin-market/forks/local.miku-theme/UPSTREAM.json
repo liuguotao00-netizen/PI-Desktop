@@ -1,12 +1,13 @@
 {
   "id": "local.miku-theme",
   "repository": "https://github.com/cainiao0502/pi-desktop-skin",
-  "branch": "HEAD",
-  "commit": "7abd8d934251cb42",
+  "branch": "main",
+  "commit": "aec77f584b778155c7c96e5801c0f6755366baad",
   "version": "1.0.1",
   "tarball": "https://api.github.com/repos/cainiao0502/pi-desktop-skin/tarball/HEAD",
   "sourceRoot": "miku-theme",
-  "fetchedAt": "2026-11-25T17:28:18.611Z",
+  "fetchedAt": "2026-11-26T05:34:54.470Z",
   "mode": "source-snapshot",
-  "sha256": "7abd8d934251cb42ce17960e03d172eae3a2d931855ee6147093ade796057c45"
+  "sha256": "7abd8d934251cb42ce17960e03d172eae3a2d931855ee6147093ade796057c45",
+  "syncMode": "independent-fork"
 }

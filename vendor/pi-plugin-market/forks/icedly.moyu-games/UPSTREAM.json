@@ -1,11 +1,12 @@
 {
   "id": "icedly.moyu-games",
   "repository": "https://github.com/CJLY-0915/pi-timer-killer-games",
-  "branch": "HEAD",
-  "commit": "a190420",
+  "branch": "main",
+  "commit": "a1904204d29f6e3b1c36c218e5f28c9d098a6b33",
   "version": "0.5.0",
   "tarball": "https://api.github.com/repos/CJLY-0915/pi-timer-killer-games/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:47.338Z",
+  "fetchedAt": "2026-11-26T03:10:56.684Z",
   "mode": "source-snapshot",
-  "sha256": "b7683aa465fa09d905e6cee6e5d28980a931be117b6f14f5661f6eba1e1c9492"
+  "sha256": "b7683aa465fa09d905e6cee6e5d28980a931be117b6f14f5661f6eba1e1c9492",
+  "syncMode": "independent-fork"
 }

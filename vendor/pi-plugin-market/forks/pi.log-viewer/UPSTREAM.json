@@ -1,11 +1,12 @@
 {
   "id": "pi.log-viewer",
   "repository": "https://github.com/Tioit-Wang/pi-plugin-log-viewer",
-  "branch": "HEAD",
-  "commit": "11f528b0864ab1c2",
+  "branch": "main",
+  "commit": "549fb853c67decf645f769f3743e03656584547b",
   "version": "0.2.1",
   "tarball": "https://api.github.com/repos/Tioit-Wang/pi-plugin-log-viewer/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:15:57.527Z",
+  "fetchedAt": "2026-11-26T05:47:03.563Z",
   "mode": "source-snapshot",
-  "sha256": "11f528b0864ab1c2c365903ac9e00569d94805033db9a2e227a7ad18d8171c62"
+  "sha256": "11f528b0864ab1c2c365903ac9e00569d94805033db9a2e227a7ad18d8171c62",
+  "syncMode": "independent-fork"
 }

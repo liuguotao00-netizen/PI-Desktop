@@ -1,12 +1,13 @@
 {
   "id": "pi.gitlens",
   "repository": "https://github.com/niansi1/pi-desktop-plugins",
-  "branch": "HEAD",
-  "commit": "37caf38416e6c6cd",
+  "branch": "main",
+  "commit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42",
   "version": "0.2.7",
   "tarball": "https://api.github.com/repos/niansi1/pi-desktop-plugins/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:06:56.111Z",
+  "fetchedAt": "2026-11-26T05:42:51.880Z",
   "mode": "source-snapshot",
   "sourceRoot": "plugins/pi.gitlens",
-  "sha256": "37caf38416e6c6cd117cf13fddb496522c9fe51fcfa99eb0da3d10b62f26d41a"
+  "sha256": "37caf38416e6c6cd117cf13fddb496522c9fe51fcfa99eb0da3d10b62f26d41a",
+  "syncMode": "independent-fork"
 }

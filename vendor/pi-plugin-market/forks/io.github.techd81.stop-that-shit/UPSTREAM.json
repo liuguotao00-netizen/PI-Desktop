@@ -1,11 +1,12 @@
 {
   "id": "io.github.techd81.stop-that-shit",
   "repository": "https://github.com/Techd81/pi-desktop-stop-that-shit",
-  "branch": "HEAD",
-  "commit": "a899f70",
+  "branch": "main",
+  "commit": "a899f703236030e9561b34a687a6d1256b136a08",
   "version": "0.2.7",
   "tarball": "https://api.github.com/repos/Techd81/pi-desktop-stop-that-shit/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:49.394Z",
+  "fetchedAt": "2026-11-26T04:26:02.402Z",
   "mode": "source-snapshot",
-  "sha256": "de00288d4338b6e711b3d25783e345299bfb18ed70305597a56736c4f16e7a90"
+  "sha256": "de00288d4338b6e711b3d25783e345299bfb18ed70305597a56736c4f16e7a90",
+  "syncMode": "independent-fork"
 }

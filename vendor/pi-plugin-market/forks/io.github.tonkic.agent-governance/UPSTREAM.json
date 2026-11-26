@@ -1,12 +1,13 @@
 {
   "id": "io.github.tonkic.agent-governance",
   "repository": "https://github.com/Tonkic/pi-agent-governance",
-  "branch": "HEAD",
-  "commit": "4c2d9f446ce60cdd",
+  "branch": "main",
+  "commit": "662657987a16fe8ca70816d8997628021619a382",
   "version": "0.12.1",
   "tarball": "https://api.github.com/repos/Tonkic/pi-agent-governance/tarball/HEAD",
   "layout": "package",
-  "fetchedAt": "2026-11-25T17:55:34.008Z",
+  "fetchedAt": "2026-11-26T04:27:31.880Z",
   "mode": "source-snapshot",
-  "sha256": "4c2d9f446ce60cddd5770d677fff2817bf0287624f7b50273cd47eec683a3900"
+  "sha256": "4c2d9f446ce60cddd5770d677fff2817bf0287624f7b50273cd47eec683a3900",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "local.igniter",
   "repository": "https://github.com/zwwangoo/pi-igniter",
-  "branch": "HEAD",
-  "commit": "0ac63d80f4f26d7b",
+  "branch": "main",
+  "commit": "578a203b0d0a92259cdd77354bfd5b903e7cd8b1",
   "version": "0.1.0",
   "tarball": "https://api.github.com/repos/zwwangoo/pi-igniter/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:20:41.808Z",
+  "fetchedAt": "2026-11-26T04:32:36.886Z",
   "mode": "source-snapshot",
-  "sha256": "0ac63d80f4f26d7b54ad3603071e55fbdd187da7b50c1ffec80e4a5900eb7a7b"
+  "sha256": "0ac63d80f4f26d7b54ad3603071e55fbdd187da7b50c1ffec80e4a5900eb7a7b",
+  "syncMode": "independent-fork"
 }

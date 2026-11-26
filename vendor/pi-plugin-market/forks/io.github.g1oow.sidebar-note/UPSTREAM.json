@@ -1,11 +1,12 @@
 {
   "id": "io.github.g1oow.sidebar-note",
   "repository": "https://github.com/G1oow/PI-desktop-Note",
-  "branch": "HEAD",
-  "commit": "14cdcac",
+  "branch": "main",
+  "commit": "14cdcac434b8e5fd45fb970ec9512f9541326f14",
   "version": "0.1.2",
   "tarball": "https://api.github.com/repos/G1oow/PI-desktop-Note/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:33.263Z",
+  "fetchedAt": "2026-11-26T03:33:01.177Z",
   "mode": "source-snapshot",
-  "sha256": "626e5cc672f51deb8fe7777195b12e2377bc70333084a2d58faff72bdfb25f29"
+  "sha256": "626e5cc672f51deb8fe7777195b12e2377bc70333084a2d58faff72bdfb25f29",
+  "syncMode": "independent-fork"
 }

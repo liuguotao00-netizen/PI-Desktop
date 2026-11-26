@@ -1,11 +1,12 @@
 {
   "id": "io.github.moyunliuyin.cline-upstream",
   "repository": "https://github.com/moyunliuyin/pi-desktop-cline-upstream",
-  "branch": "HEAD",
-  "commit": "4eb3c3d",
+  "branch": "main",
+  "commit": "4eb3c3d9721cf4c59fde5ea9831f0c58aa6d17c9",
   "version": "0.7.8",
   "tarball": "https://api.github.com/repos/moyunliuyin/pi-desktop-cline-upstream/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:41.396Z",
+  "fetchedAt": "2026-11-26T03:39:31.564Z",
   "mode": "source-snapshot",
-  "sha256": "8deab13440fd1b187b2a201fdc80bacf1ca31b1a68201ae0c9147ec9430cfad5"
+  "sha256": "8deab13440fd1b187b2a201fdc80bacf1ca31b1a68201ae0c9147ec9430cfad5",
+  "syncMode": "independent-fork"
 }

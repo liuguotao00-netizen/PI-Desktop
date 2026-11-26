@@ -1,12 +1,13 @@
 {
   "id": "axc00.project-knowledge",
   "repository": "https://github.com/new-Beginner/KnowStack",
-  "branch": "HEAD",
-  "commit": "f63c368b3a6f3308",
+  "branch": "master",
+  "commit": "2399532659a650d635d78dc5050c9e2927e99cf5",
   "version": "0.3.3",
   "tarball": "https://api.github.com/repos/new-Beginner/KnowStack/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:49:07.499Z",
+  "fetchedAt": "2026-11-26T02:30:58.949Z",
   "mode": "source-snapshot",
   "sha256": "f63c368b3a6f330852c63e8e717d3e9b9d40cd89b158356b878e3dac7c124aae",
-  "sourceRoot": "project-knowledge-source"
+  "sourceRoot": "project-knowledge-source",
+  "syncMode": "independent-fork"
 }

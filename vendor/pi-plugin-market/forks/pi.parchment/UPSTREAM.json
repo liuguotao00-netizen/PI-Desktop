@@ -1,12 +1,13 @@
 {
   "id": "pi.parchment",
   "repository": "https://github.com/ily55421/pi-desktop-plugins",
-  "branch": "HEAD",
-  "commit": "2a84b8d08e0016e6",
+  "branch": "main",
+  "commit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47",
   "version": "1.0.4",
   "tarball": "https://api.github.com/repos/ily55421/pi-desktop-plugins/tarball/HEAD",
   "sourceRoot": "plugins/pi.parchment",
-  "fetchedAt": "2026-11-25T18:21:00.310Z",
+  "fetchedAt": "2026-11-26T05:14:24.608Z",
   "mode": "source-snapshot",
-  "sha256": "2a84b8d08e0016e6403fa9aa6ec663a2f8f5a5d582e78ec658cef27f7be3f441"
+  "sha256": "2a84b8d08e0016e6403fa9aa6ec663a2f8f5a5d582e78ec658cef27f7be3f441",
+  "syncMode": "independent-fork"
 }

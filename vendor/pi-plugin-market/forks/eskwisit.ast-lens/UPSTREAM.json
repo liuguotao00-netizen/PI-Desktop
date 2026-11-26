@@ -1,11 +1,12 @@
 {
   "id": "eskwisit.ast-lens",
   "repository": "https://github.com/eskwisit/pi-ast-lens",
-  "branch": "HEAD",
-  "commit": "fdf1b3c",
+  "branch": "main",
+  "commit": "fdf1b3c8a24218d4b10983cc402d6f8fe2618f16",
   "version": "0.9.0",
   "tarball": "https://api.github.com/repos/eskwisit/pi-ast-lens/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:37.584Z",
+  "fetchedAt": "2026-11-26T02:51:57.737Z",
   "mode": "source-snapshot",
-  "sha256": "706106051f82f2c73ca12e4daed3c2292f72d98d0d5070f181758fdf03bc60f6"
+  "sha256": "706106051f82f2c73ca12e4daed3c2292f72d98d0d5070f181758fdf03bc60f6",
+  "syncMode": "independent-fork"
 }

@@ -2,11 +2,12 @@
   "id": "adoin.panel.anywhere",
   "repository": "https://github.com/adoin/pi-desktop-plugins",
   "branch": "feat/pi-agents-anywhere-v2",
-  "commit": "22444758f75af1ef",
+  "commit": "a4d6fabb32d4bbe1744ffc49ca285595bbb61986",
   "version": "2.2.2",
   "tarball": "https://codeload.github.com/adoin/pi-desktop-plugins/tar.gz/refs/heads/feat/pi-agents-anywhere-v2",
   "sourceRoot": "plugins/adoin.panel.anywhere",
-  "fetchedAt": "2026-11-25T18:57:47.481Z",
+  "fetchedAt": "2026-11-26T02:51:07.212Z",
   "mode": "source-snapshot",
-  "sha256": "22444758f75af1efbe712103bf9b2f188b542dfc727e058d07c3a4acc82b6569"
+  "sha256": "22444758f75af1efbe712103bf9b2f188b542dfc727e058d07c3a4acc82b6569",
+  "syncMode": "independent-fork"
 }

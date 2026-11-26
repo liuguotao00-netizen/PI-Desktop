@@ -1,11 +1,12 @@
 {
   "id": "io.github.techd81.pi-desktop-usage",
   "repository": "https://github.com/Techd81/pi-desktop-usage",
-  "branch": "HEAD",
-  "commit": "917afe8",
+  "branch": "main",
+  "commit": "917afe8020402988165753ccca80f509041ba5c9",
   "version": "0.1.4",
   "tarball": "https://api.github.com/repos/Techd81/pi-desktop-usage/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:49.516Z",
+  "fetchedAt": "2026-11-26T05:38:53.169Z",
   "mode": "source-snapshot",
-  "sha256": "b5967820f96dc2253f8aa6b9ef7224871209778b72554d1d72d0e7ff2f351693"
+  "sha256": "b5967820f96dc2253f8aa6b9ef7224871209778b72554d1d72d0e7ff2f351693",
+  "syncMode": "independent-fork"
 }

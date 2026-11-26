@@ -1,11 +1,12 @@
 {
   "id": "eskwisit.llm-council",
   "repository": "https://github.com/eskwisit/pi-llm-council",
-  "branch": "HEAD",
-  "commit": "c7e409e",
+  "branch": "main",
+  "commit": "c7e409e5a4ed454ddcb3d7a4aa4ae4ed87b79f91",
   "version": "0.18.0",
   "tarball": "https://api.github.com/repos/eskwisit/pi-llm-council/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:37.040Z",
+  "fetchedAt": "2026-11-26T02:51:57.769Z",
   "mode": "source-snapshot",
-  "sha256": "61872e808a60374b132ac1245004f3baf81e177996d56880bd2d9fb744d6d7f7"
+  "sha256": "61872e808a60374b132ac1245004f3baf81e177996d56880bd2d9fb744d6d7f7",
+  "syncMode": "independent-fork"
 }

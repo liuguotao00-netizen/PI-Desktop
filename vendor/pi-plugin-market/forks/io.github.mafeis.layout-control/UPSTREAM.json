@@ -1,11 +1,12 @@
 {
   "id": "io.github.mafeis.layout-control",
   "repository": "https://github.com/mafeis/pi-desktop-layout-control",
-  "branch": "HEAD",
-  "commit": "546e14b",
+  "branch": "main",
+  "commit": "546e14b16a78d9498e6a9bb1cbe500b54af6bb72",
   "version": "0.1.4",
   "tarball": "https://api.github.com/repos/mafeis/pi-desktop-layout-control/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:39.020Z",
+  "fetchedAt": "2026-11-26T03:34:31.462Z",
   "mode": "source-snapshot",
-  "sha256": "eb2d25bfb23dcfc9d39ce47ff1ff8ad58694596e7ac756cbf2cecf185789ada4"
+  "sha256": "eb2d25bfb23dcfc9d39ce47ff1ff8ad58694596e7ac756cbf2cecf185789ada4",
+  "syncMode": "independent-fork"
 }

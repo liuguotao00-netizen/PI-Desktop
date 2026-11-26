@@ -1,11 +1,12 @@
 {
   "id": "io.github.hufangyuan460-blip.windows-terminal",
   "repository": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop",
-  "branch": "HEAD",
-  "commit": "26843ec9df984c1b",
+  "branch": "main",
+  "commit": "e4b8e25bdfe6f27208640ace8f12645dbbca3524",
   "version": "1.1.5",
   "tarball": "https://api.github.com/repos/hufangyuan460-blip/windows-terminal-for-pi-desktop/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:44:35.216Z",
+  "fetchedAt": "2026-11-26T03:23:15.341Z",
   "mode": "source-snapshot",
-  "sha256": "26843ec9df984c1b37b39d0f188cc4cf60b2486ccb0a731ab8a10c1d8c3d1f47"
+  "sha256": "26843ec9df984c1b37b39d0f188cc4cf60b2486ccb0a731ab8a10c1d8c3d1f47",
+  "syncMode": "independent-fork"
 }

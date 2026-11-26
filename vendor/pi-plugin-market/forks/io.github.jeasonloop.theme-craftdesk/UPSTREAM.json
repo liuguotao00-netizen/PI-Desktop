@@ -1,11 +1,12 @@
 {
   "id": "io.github.jeasonloop.theme-craftdesk",
   "repository": "https://github.com/JeasonLoop/pi-theme-craftdesk",
-  "branch": "HEAD",
-  "commit": "10f57cd",
+  "branch": "main",
+  "commit": "10f57cdc164680a326de467949cc9526a77aa326",
   "version": "1.4.9",
   "tarball": "https://api.github.com/repos/JeasonLoop/pi-theme-craftdesk/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:43:38.609Z",
+  "fetchedAt": "2026-11-26T03:23:00.000Z",
   "mode": "source-snapshot",
-  "sha256": "dfd64bf705344b5b599963009c5ec81451dd2ce8e9c61015fbf5ea784a6b474c"
+  "sha256": "dfd64bf705344b5b599963009c5ec81451dd2ce8e9c61015fbf5ea784a6b474c",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "io.github.liushunqiu.pi-idea-git",
   "repository": "https://github.com/liushunqiu/pi-idea-git",
-  "branch": "HEAD",
-  "commit": "24b0f47",
+  "branch": "main",
+  "commit": "24b0f4704d4ef10b3524850da142514801a1712a",
   "version": "0.3.0",
   "tarball": "https://api.github.com/repos/liushunqiu/pi-idea-git/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:44:02.499Z",
+  "fetchedAt": "2026-11-26T03:23:15.362Z",
   "mode": "source-snapshot",
-  "sha256": "db44b90b1ae6d46939f7f01ca02a0757a7d339761cc00d02693377b7a4db7420"
+  "sha256": "db44b90b1ae6d46939f7f01ca02a0757a7d339761cc00d02693377b7a4db7420",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "local.unipi",
   "repository": "https://github.com/vsd269/UniPi",
-  "branch": "HEAD",
-  "commit": "486484880ad7c1f1",
+  "branch": "main",
+  "commit": "b94c1b47c528f2057dfc858719065f2054789c7e",
   "version": "0.3.24",
   "tarball": "https://api.github.com/repos/vsd269/UniPi/tarball/HEAD",
-  "fetchedAt": "2026-11-25T17:01:28.933Z",
+  "fetchedAt": "2026-11-26T05:11:35.334Z",
   "mode": "source-snapshot",
-  "sha256": "486484880ad7c1f1b8b7720d7c6b8bcc7e0ec11e23452f178190a1ec134b0829"
+  "sha256": "486484880ad7c1f1b8b7720d7c6b8bcc7e0ec11e23452f178190a1ec134b0829",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "cc.mcii.session-notify",
   "repository": "https://github.com/LectWolf/pi-session-notify",
-  "branch": "HEAD",
-  "commit": "4cf1711",
+  "branch": "main",
+  "commit": "4cf1711e8af4223374c0b9687e51af148eeddbd3",
   "version": "1.0.1",
   "tarball": "https://api.github.com/repos/LectWolf/pi-session-notify/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:19.272Z",
+  "fetchedAt": "2026-11-26T02:31:13.107Z",
   "mode": "source-snapshot",
-  "sha256": "4f9985d207067efa76b1aeaa0f6336435c2b81d79cce080a04db2cdd65410e30"
+  "sha256": "4f9985d207067efa76b1aeaa0f6336435c2b81d79cce080a04db2cdd65410e30",
+  "syncMode": "independent-fork"
 }

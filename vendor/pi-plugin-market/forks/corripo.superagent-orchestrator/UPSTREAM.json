@@ -1,11 +1,12 @@
 {
   "id": "corripo.superagent-orchestrator",
   "repository": "https://github.com/ProgramerLiang/piD-super-agent",
-  "branch": "HEAD",
-  "commit": "d3187d09c6136397",
+  "branch": "main",
+  "commit": "e3ab08e18e91538621054d2d63d0ac833713a4e9",
   "version": "0.2.1",
   "tarball": "https://api.github.com/repos/ProgramerLiang/piD-super-agent/tarball/HEAD",
-  "fetchedAt": "2026-11-25T17:13:51.429Z",
+  "fetchedAt": "2026-11-26T02:51:07.211Z",
   "mode": "source-snapshot",
-  "sha256": "d3187d09c61363974aecfacade2033c821f9fb8c08842239c0b108655ffb5b1f"
+  "sha256": "d3187d09c61363974aecfacade2033c821f9fb8c08842239c0b108655ffb5b1f",
+  "syncMode": "independent-fork"
 }

@@ -1,11 +1,12 @@
 {
   "id": "io.github.xideadev.task-dida",
   "repository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
-  "branch": "HEAD",
-  "commit": "b263277",
+  "branch": "main",
+  "commit": "b263277d4b92896355e097bfffe1d2122797076a",
   "version": "1.0.4",
   "tarball": "https://api.github.com/repos/XideaDev/PI-Desktop-Plugin-TaskDida/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:59:54.112Z",
+  "fetchedAt": "2026-11-26T04:30:27.668Z",
   "mode": "source-snapshot",
-  "sha256": "9589718bfd8e36ad8cf7274d819877cd22693dff67979b37ed1a0897068ee449"
+  "sha256": "9589718bfd8e36ad8cf7274d819877cd22693dff67979b37ed1a0897068ee449",
+  "syncMode": "independent-fork"
 }

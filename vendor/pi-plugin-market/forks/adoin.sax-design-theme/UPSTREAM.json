@@ -1,12 +1,13 @@
 {
   "id": "adoin.sax-design-theme",
   "repository": "https://github.com/adoin/pi-desktop-plugin-monorepo",
-  "branch": "HEAD",
-  "commit": "90fc891c9fbc218d",
+  "branch": "main",
+  "commit": "beb94fc1735ab01ac76b445f87a97137cc81af3d",
   "version": "0.5.3",
   "tarball": "https://api.github.com/repos/adoin/pi-desktop-plugin-monorepo/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:28:43.429Z",
+  "fetchedAt": "2026-11-26T02:31:01.609Z",
   "mode": "source-snapshot",
   "sourceRoot": "plugins/sax-design-theme",
-  "sha256": "90fc891c9fbc218dbc4da44f0ecf46835fd02f5efab406113974bc979b6fa255"
+  "sha256": "90fc891c9fbc218dbc4da44f0ecf46835fd02f5efab406113974bc979b6fa255",
+  "syncMode": "independent-fork"
 }

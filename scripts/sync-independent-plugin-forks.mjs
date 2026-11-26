@@ -28,6 +28,9 @@ const value = (name, fallback) => {
 const apply = flag("--apply");
 const only = value("--only", "").split(",").map((item) => item.trim()).filter(Boolean);
 const stateHome = value("--state", join(homedir(), ".pi-desktop-dev/plugin-forks"));
+const concurrency = Math.max(1, Math.min(12, Number(value("--concurrency", "8")) || 8));
+const gitTimeout = Math.max(30_000, Number(value("--git-timeout", "180000")) || 180_000);
+const bootstrapMonorepos = flag("--bootstrap-monorepos");
 
 function git(cwd, args) {
   return execFileSync("git", args, {
@@ -35,6 +38,7 @@ function git(cwd, args) {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     maxBuffer: 16 * 1024 * 1024,
+    timeout: gitTimeout,
   }).trim();
 }
 
@@ -54,6 +58,30 @@ async function defaultBranch(checkout) {
   }
 }
 
+async function bootstrapSnapshot(id, upstream, base, checkout, origin) {
+  await mkdir(checkout, { recursive: true });
+  for (const child of await readdir(join(forks, id))) {
+    if (child === "UPSTREAM.json") continue;
+    await cp(join(forks, id, child), join(checkout, child), { recursive: true, force: true });
+  }
+  git(checkout, ["init", "-b", "pi-fork"]);
+  git(checkout, ["-c", "user.name=PI Plugin Fork", "-c", "user.email=plugin-forks@local", "add", "."]);
+  git(checkout, [
+    "-c", "user.name=PI Plugin Fork",
+    "-c", "user.email=plugin-forks@local",
+    "commit", "-m", `snapshot ${id}`,
+  ]);
+  git(checkout, ["remote", "add", "upstream", upstream.repository]);
+  if (origin.startsWith("http")) {
+    git(checkout, ["remote", "add", "origin", origin]);
+  } else {
+    if (!existsSync(origin)) git(base, ["init", "--bare", origin]);
+    git(base, ["-C", origin, "config", "receive.shallowUpdate", "true"]);
+    git(checkout, ["remote", "add", "origin", origin]);
+  }
+  return { checkout, origin, branch: "pi-fork", remoteRef: null, bootstrapped: true };
+}
+
 async function ensureCheckout(id, upstream) {
   const base = join(stateHome, id);
   const checkout = join(base, "repo");
@@ -62,13 +90,18 @@ async function ensureCheckout(id, upstream) {
     : join(base, "origin.git"));
   await mkdir(base, { recursive: true });
   if (!existsSync(join(checkout, ".git"))) {
+    if (bootstrapMonorepos && upstream.sourceRoot) {
+      if (existsSync(checkout)) await rm(checkout, { recursive: true, force: true });
+      return bootstrapSnapshot(id, upstream, base, checkout, origin);
+    }
     if (existsSync(checkout)) await rm(checkout, { recursive: true, force: true });
-    git(base, ["clone", "--filter=blob:none", "--no-checkout", upstream.repository, checkout]);
+    git(base, ["clone", "--filter=blob:none", "--depth=1", "--no-checkout", upstream.repository, checkout]);
     git(checkout, ["remote", "rename", "origin", "upstream"]);
     if (origin.startsWith("http")) {
       git(checkout, ["remote", "add", "origin", origin]);
     } else {
       if (!existsSync(origin)) git(base, ["init", "--bare", origin]);
+      git(base, ["-C", origin, "config", "receive.shallowUpdate", "true"]);
       git(checkout, ["remote", "add", "origin", origin]);
     }
   }
@@ -85,14 +118,37 @@ async function ensureCheckout(id, upstream) {
       git(checkout, ["remote", "add", "origin", origin]);
     } else {
       if (!existsSync(origin)) git(base, ["init", "--bare", origin]);
+      git(base, ["-C", origin, "config", "receive.shallowUpdate", "true"]);
       git(checkout, ["remote", "add", "origin", origin]);
     }
   }
-  git(checkout, ["fetch", "upstream", "--prune"]);
+  if (!origin.startsWith("http")) {
+    git(base, ["-C", origin, "config", "receive.shallowUpdate", "true"]);
+  }
+  git(checkout, ["fetch", "upstream", "--depth=1", "--prune"]);
   const branch = upstream.branch && upstream.branch !== "HEAD"
     ? upstream.branch
     : await defaultBranch(checkout);
+  const sourceRoot = String(upstream.sourceRoot ?? "");
+  if (sourceRoot) {
+    try {
+      git(checkout, ["sparse-checkout", "init", "--cone"]);
+      git(checkout, ["sparse-checkout", "set", sourceRoot]);
+    } catch {
+      // Older Git builds may not support cone mode; a full checkout still works.
+    }
+  }
   const remoteRef = `upstream/${branch}`;
+  try {
+    git(checkout, ["rev-parse", "--verify", remoteRef]);
+  } catch {
+    git(checkout, [
+      "fetch",
+      "upstream",
+      "--depth=1",
+      `+refs/heads/${branch}:refs/remotes/upstream/${branch}`,
+    ]);
+  }
   git(checkout, ["rev-parse", "--verify", remoteRef]);
   const hasFork = (() => {
     try { git(checkout, ["rev-parse", "--verify", "refs/heads/pi-fork"]); return true; } catch { return false; }
@@ -145,25 +201,58 @@ const ids = (await readdir(forks, { withFileTypes: true }))
 
 let changed = 0;
 let failed = 0;
-for (const id of ids) {
+let cursor = 0;
+
+async function materialize(id) {
   const file = join(forks, id, "UPSTREAM.json");
-  if (!existsSync(file)) continue;
+  if (!existsSync(file)) return;
   const upstream = JSON.parse(await readFile(file, "utf8"));
   try {
-    const { checkout, origin, branch, remoteRef } = await ensureCheckout(id, upstream);
+    const info = await ensureCheckout(id, upstream);
+    const { checkout, origin, branch, remoteRef } = info;
+    if (info.bootstrapped) {
+      const revision = git(checkout, ["rev-parse", "HEAD"]);
+      if (apply) {
+        git(checkout, ["push", "origin", "pi-fork"]);
+        const file = join(forks, id, "UPSTREAM.json");
+        const current = JSON.parse(await readFile(file, "utf8"));
+        await writeFile(
+          file,
+          JSON.stringify({
+            ...current,
+            branch,
+            commit: revision,
+            fetchedAt: new Date().toISOString(),
+            syncMode: "independent-fork",
+            bootstrap: "snapshot",
+          }, null, 2) + "\n",
+          "utf8",
+        );
+        console.log(`[applied-bootstrap] ${id} ${revision.slice(0, 9)} (origin ${origin})`);
+        changed += 1;
+      }
+      return;
+    }
     const behind = Number(git(checkout, ["rev-list", "--count", `HEAD..${remoteRef}`]));
     const ahead = Number(git(checkout, ["rev-list", "--count", `${remoteRef}..HEAD`]));
     if (!behind && !ahead && upstream.syncMode === "independent-fork") {
       console.log(`[ok] ${id} ${branch} ${git(checkout, ["rev-parse", "--short", "HEAD"])}`);
-      continue;
+      return;
     }
     console.log(`[update] ${id} ${branch} behind=${behind} ahead=${ahead}`);
-    if (!apply) { changed += 1; continue; }
+    if (!apply) { changed += 1; return; }
     if (ahead === 0) git(checkout, ["reset", "--hard", remoteRef]);
     else git(checkout, ["merge", "--no-edit", remoteRef]);
     const revision = git(checkout, ["rev-parse", "HEAD"]);
-    git(checkout, ["push", "origin", "pi-fork"]);
-    const next = await exportSnapshot(id, checkout, upstream, branch, revision);
+    if (upstream.sourceRoot) {
+      // Pushing a partial clone of a monorepo forces Git to fetch every blob
+      // in the repository just to fill the local fork. The checkout remains a
+      // valid independent fork; sync exports only the plugin subtree.
+      console.log(`[push-skip] ${id}: monorepo sourceRoot`);
+    } else {
+      git(checkout, ["push", "origin", "pi-fork"]);
+    }
+    await exportSnapshot(id, checkout, upstream, branch, revision);
     console.log(`[applied] ${id} ${revision.slice(0, 9)} (origin ${origin})`);
     changed += 1;
   } catch (error) {
@@ -171,6 +260,16 @@ for (const id of ids) {
     console.warn(`[fail] ${id}: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
   }
 }
+
+await Promise.all(
+  Array.from({ length: Math.min(concurrency, ids.length) }, async () => {
+    for (;;) {
+      const index = cursor++;
+      if (index >= ids.length) return;
+      await materialize(ids[index]);
+    }
+  }),
+);
 
 console.log(`done: ${ids.length} forks, ${changed} changed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

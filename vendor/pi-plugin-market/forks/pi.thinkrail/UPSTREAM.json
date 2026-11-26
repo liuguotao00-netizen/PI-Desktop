@@ -1,12 +1,13 @@
 {
   "id": "pi.thinkrail",
   "repository": "https://github.com/andrewliu83/pideskthinkrails",
-  "branch": "HEAD",
-  "commit": "8aa63b1d0b3d32b8",
+  "branch": "main",
+  "commit": "6c66deff055c57d9eaef7213a0003b8de36a717c",
   "version": "1.7.1",
   "tarball": "https://api.github.com/repos/andrewliu83/pideskthinkrails/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:30:16.875Z",
+  "fetchedAt": "2026-11-26T05:19:54.066Z",
   "mode": "source-snapshot",
   "sourceRoot": "plugins/pi.thinkrail",
-  "sha256": "8aa63b1d0b3d32b8cc9080e414dd1817f09cbf44ece68d92c9e56702c74e14bb"
+  "sha256": "8aa63b1d0b3d32b8cc9080e414dd1817f09cbf44ece68d92c9e56702c74e14bb",
+  "syncMode": "independent-fork"
 }

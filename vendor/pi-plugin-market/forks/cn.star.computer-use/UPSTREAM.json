@@ -1,11 +1,12 @@
 {
   "id": "cn.star.computer-use",
   "repository": "https://github.com/TheFlareStar-Re/PI-Computer-Use",
-  "branch": "HEAD",
-  "commit": "cd375aad361628a4",
+  "branch": "main",
+  "commit": "872488f1280afd0aaeb649f1a4db6990edcc65ec",
   "version": "0.5.0",
   "tarball": "https://api.github.com/repos/TheFlareStar-Re/PI-Computer-Use/tarball/HEAD",
-  "fetchedAt": "2026-11-25T18:44:34.434Z",
+  "fetchedAt": "2026-11-26T02:31:30.726Z",
   "mode": "source-snapshot",
-  "sha256": "cd375aad361628a4971ccbecba2faeb8b0ee2fb27b693697f8c39cc19c7a2d38"
+  "sha256": "cd375aad361628a4971ccbecba2faeb8b0ee2fb27b693697f8c39cc19c7a2d38",
+  "syncMode": "independent-fork"
 }

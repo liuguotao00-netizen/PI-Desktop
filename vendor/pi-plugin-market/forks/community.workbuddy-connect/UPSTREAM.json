@@ -1,11 +1,12 @@
 {
   "id": "community.workbuddy-connect",
   "repository": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect",
-  "branch": "HEAD",
-  "commit": "05a0db4",
+  "branch": "main",
+  "commit": "05a0db43d1e2974ce47e3c7f7e4db9bd181e1692",
   "version": "0.4.1",
   "tarball": "https://api.github.com/repos/JHua07/Pi_desktop_plugins_workbuddy_connnect/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:34.808Z",
+  "fetchedAt": "2026-11-26T02:51:07.224Z",
   "mode": "source-snapshot",
-  "sha256": "e6d39de907d12c7f004940c57e33dafce9a94a10d5eae6240387b9340dbdd86d"
+  "sha256": "e6d39de907d12c7f004940c57e33dafce9a94a10d5eae6240387b9340dbdd86d",
+  "syncMode": "independent-fork"
 }

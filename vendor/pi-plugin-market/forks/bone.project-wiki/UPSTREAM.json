@@ -1,11 +1,12 @@
 {
   "id": "bone.project-wiki",
   "repository": "https://github.com/taokoplay/bone-project-wiki",
-  "branch": "HEAD",
-  "commit": "4ee43e3",
+  "branch": "main",
+  "commit": "4ee43e368fbe96b0b87aa8fd3299219a4af5b097",
   "version": "0.3.5",
   "tarball": "https://api.github.com/repos/taokoplay/bone-project-wiki/tarball/HEAD",
-  "fetchedAt": "2026-11-25T16:42:16.944Z",
+  "fetchedAt": "2026-11-26T02:31:18.179Z",
   "mode": "source-snapshot",
-  "sha256": "bff082623d80c8f68a7aeb5bf11c42caaded3e8c4e550511c65bdd2cf5f7a0f5"
+  "sha256": "bff082623d80c8f68a7aeb5bf11c42caaded3e8c4e550511c65bdd2cf5f7a0f5",
+  "syncMode": "independent-fork"
 }
