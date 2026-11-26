@@ -8,6 +8,8 @@ artifacts for most plugins, so those cannot be represented here as source.
 `pnpm sync:plugin-forks` refreshes snapshots; `pnpm check:plugin-forks` reports
 whether upstream HEAD moved without writing anything.
 
+The plugin-level description and upstream map is in [`../CATALOG.md`](../CATALOG.md).
+
 ## Coverage (2026-11-26)
 
 - 122 plugins have a confirmed public source repository.

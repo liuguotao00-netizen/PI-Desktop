@@ -1,5 +1,7 @@
 # PI Plugin Market vendor cache
 
+See `CATALOG.md` for every plugin id, description, upstream source and source status.
+
 This directory is populated by `scripts/vendor-plugin-market.mjs`.
 
 - `packages/` and `extracted/` are tracked in this repository as a vendored

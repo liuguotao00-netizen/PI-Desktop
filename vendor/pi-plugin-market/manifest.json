@@ -23,7 +23,10 @@
       "homepage": null,
       "license": null,
       "packagePath": "packages/adoin.deepseek-harness-0.2.0.piplug",
-      "extractedPath": "extracted/adoin.deepseek-harness"
+      "extractedPath": "extracted/adoin.deepseek-harness",
+      "description": "让DeepSeek的模型在pi-desktop上使用更接近dsh：提示词优化、请求协议、缓存和推理参数优化。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/adoin/pi-desktop-plugin-monorepo"
     },
     {
       "id": "adoin.panel.anywhere",
@@ -52,7 +55,11 @@
       "packagePath": "packages/adoin.panel.anywhere-2.2.2.piplug",
       "extractedPath": "extracted/adoin.panel.anywhere",
       "sourceForkPath": "forks/adoin.panel.anywhere",
-      "sourceRepository": "https://github.com/adoin/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/adoin/pi-desktop-plugins",
+      "description": "Connect Pi Desktop to Agents Anywhere and access workspace conversations from mobile or web. Discover existing sessions, create chats, send messages, sync text replies and task status, and interrupt running tasks. Includes password-encrypted connection storage and tabs for status, connection management and events. Workspace sharing requires explicit local consent.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/adoin/pi-desktop-plugins",
+      "sourceCommit": "a4d6fabb32d4bbe1744ffc49ca285595bbb61986"
     },
     {
       "id": "adoin.sax-design-theme",
@@ -77,7 +84,11 @@
       "packagePath": "packages/adoin.sax-design-theme-0.5.3.piplug",
       "extractedPath": "extracted/adoin.sax-design-theme",
       "sourceForkPath": "forks/adoin.sax-design-theme",
-      "sourceRepository": "https://github.com/adoin/pi-desktop-plugin-monorepo"
+      "sourceRepository": "https://github.com/adoin/pi-desktop-plugin-monorepo",
+      "description": "",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/adoin/pi-desktop-plugin-monorepo",
+      "sourceCommit": "beb94fc1735ab01ac76b445f87a97137cc81af3d"
     },
     {
       "id": "axc00.project-knowledge",
@@ -104,7 +115,11 @@
       "packagePath": "packages/axc00.project-knowledge-0.3.3.piplug",
       "extractedPath": "extracted/axc00.project-knowledge",
       "sourceForkPath": "forks/axc00.project-knowledge",
-      "sourceRepository": "https://github.com/new-Beginner/KnowStack"
+      "sourceRepository": "https://github.com/new-Beginner/KnowStack",
+      "description": "A per-project knowledge base for PI-Desktop. Relevant knowhow and specs are attached to each message automatically, the Agent can search and load entries, and new lessons are saved only after you confirm them on an in-chat card. Optional Jev dedup, off by default.",
+      "sourceKind": "alternate",
+      "sourceUpstream": "https://github.com/new-Beginner/KnowStack",
+      "sourceCommit": "2399532659a650d635d78dc5050c9e2927e99cf5"
     },
     {
       "id": "bone.aimedia.services",
@@ -132,7 +147,11 @@
       "packagePath": "packages/bone.aimedia.services-0.8.0.piplug",
       "extractedPath": "extracted/bone.aimedia.services",
       "sourceForkPath": "forks/bone.aimedia.services",
-      "sourceRepository": "https://github.com/taokoplay/bone-aimedia-services"
+      "sourceRepository": "https://github.com/taokoplay/bone-aimedia-services",
+      "description": "Generate PNG images from configured GPT image models in Agent conversations. Manage encrypted provider credentials and browse local generation records with previews and downloads. Credential persistence currently supports macOS.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/taokoplay/bone-aimedia-services",
+      "sourceCommit": "f87ebf8b688ca817eb4be9e1f85559be4b0f168d"
     },
     {
       "id": "bone.openpencil",
@@ -158,7 +177,11 @@
       "packagePath": "packages/bone.openpencil-0.2.0.piplug",
       "extractedPath": "extracted/bone.openpencil",
       "sourceForkPath": "forks/bone.openpencil",
-      "sourceRepository": "https://github.com/taokoplay/bone-openpencil-plugin"
+      "sourceRepository": "https://github.com/taokoplay/bone-openpencil-plugin",
+      "description": "A PI-Desktop port of the DSH OpenPencil plugin for inspecting and editing OpenPencil .op design documents. It supports OpenPencil v0.8.6 pages and legacy documents.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/taokoplay/bone-openpencil-plugin",
+      "sourceCommit": "4bf1fa7fff7ac3c4ebba0898d0030a674f809bf9"
     },
     {
       "id": "bone.project-wiki",
@@ -187,7 +210,11 @@
       "packagePath": "packages/bone.project-wiki-0.4.1.piplug",
       "extractedPath": "extracted/bone.project-wiki",
       "sourceForkPath": "forks/bone.project-wiki",
-      "sourceRepository": "https://github.com/taokoplay/bone-project-wiki"
+      "sourceRepository": "https://github.com/taokoplay/bone-project-wiki",
+      "description": "A general user-owned project knowledge base with automatic agent memory, Obsidian-style tree explorer and multi-format asset management.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/taokoplay/bone-project-wiki",
+      "sourceCommit": "4ee43e368fbe96b0b87aa8fd3299219a4af5b097"
     },
     {
       "id": "bone.token.statistics",
@@ -211,7 +238,11 @@
       "packagePath": "packages/bone.token.statistics-0.1.2.piplug",
       "extractedPath": "extracted/bone.token.statistics",
       "sourceForkPath": "forks/bone.token.statistics",
-      "sourceRepository": "https://github.com/taokoplay/bone-token-statistics"
+      "sourceRepository": "https://github.com/taokoplay/bone-token-statistics",
+      "description": "跨项目、模型和会话查看 PI-Desktop 的 Token 用量，支持每日趋势、活动热力图、CSV 导出及自定义单价成本估算。只读取已完成轮次计数和项目元数据，不读取对话正文。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/taokoplay/bone-token-statistics",
+      "sourceCommit": "16cd1902d12c1bc5d0b5de6777b81c40247e6d39"
     },
     {
       "id": "cc.fee.pi-terminal",
@@ -238,7 +269,11 @@
       "packagePath": "packages/cc.fee.pi-terminal-1.0.0.piplug",
       "extractedPath": "extracted/cc.fee.pi-terminal",
       "sourceForkPath": "forks/cc.fee.pi-terminal",
-      "sourceRepository": "https://github.com/yanecc/PI-Terminal"
+      "sourceRepository": "https://github.com/yanecc/PI-Terminal",
+      "description": "A real terminal the agent can drive: multi-session local shells and SSH, command read/write, upload/download, host and settings management, bastion/jump hosts, host-key checks, all well supported across platforms.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/yanecc/PI-Terminal",
+      "sourceCommit": "06002546fcc693d35fa5ab212fec74d962aa90a1"
     },
     {
       "id": "cc.mcii.session-notify",
@@ -261,7 +296,11 @@
       "packagePath": "packages/cc.mcii.session-notify-1.0.1.piplug",
       "extractedPath": "extracted/cc.mcii.session-notify",
       "sourceForkPath": "forks/cc.mcii.session-notify",
-      "sourceRepository": "https://github.com/LectWolf/pi-session-notify"
+      "sourceRepository": "https://github.com/LectWolf/pi-session-notify",
+      "description": "监听全部会话的状态变化，把标题和状态推到飞书、钉钉、企业微信、KOOK、Server酱、Telegram 或通用 Webhook。自定义 API 可选。不读消息正文。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/LectWolf/pi-session-notify",
+      "sourceCommit": "4cf1711e8af4223374c0b9687e51af148eeddbd3"
     },
     {
       "id": "cc.mcii.session-usage",
@@ -283,7 +322,11 @@
       "packagePath": "packages/cc.mcii.session-usage-1.0.1.piplug",
       "extractedPath": "extracted/cc.mcii.session-usage",
       "sourceForkPath": "forks/cc.mcii.session-usage",
-      "sourceRepository": "https://github.com/LectWolf/pi-session-usage"
+      "sourceRepository": "https://github.com/LectWolf/pi-session-usage",
+      "description": "在输入框输入 /usage，查看当前会话的输入、输出、缓存命中、缓存创建和命中率。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/LectWolf/pi-session-usage",
+      "sourceCommit": "fdd1783062fd3aa86ce946c45052a04b1890faa2"
     },
     {
       "id": "cn.star.computer-use",
@@ -307,7 +350,11 @@
       "packagePath": "packages/cn.star.computer-use-0.5.0.piplug",
       "extractedPath": "extracted/cn.star.computer-use",
       "sourceForkPath": "forks/cn.star.computer-use",
-      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Computer-Use"
+      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Computer-Use",
+      "description": "复刻 Codex 的操控功能，让 AI 直接操控电脑完成简单作业。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/TheFlareStar-Re/PI-Computer-Use",
+      "sourceCommit": "872488f1280afd0aaeb649f1a4db6990edcc65ec"
     },
     {
       "id": "cn.star.grok-enhance",
@@ -329,7 +376,11 @@
       "packagePath": "packages/cn.star.grok-enhance-0.2.0.piplug",
       "extractedPath": "extracted/cn.star.grok-enhance",
       "sourceForkPath": "forks/cn.star.grok-enhance",
-      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance"
+      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance",
+      "description": "给 Grok 加执行纪律，并在每轮第一请求直接激活 Grep / Glob（以及已装的 memory / skill_manage）。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/TheFlareStar-Re/PI-Grok-Enhance",
+      "sourceCommit": "8803f0004ff5bb296e44e1c26875b40df869f4aa"
     },
     {
       "id": "cn.star.jianying-assistant",
@@ -353,7 +404,11 @@
       "packagePath": "packages/cn.star.jianying-assistant-0.1.1.piplug",
       "extractedPath": "extracted/cn.star.jianying-assistant",
       "sourceForkPath": "forks/cn.star.jianying-assistant",
-      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant"
+      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant",
+      "description": "用自然语言描述需求，即可完成视频截取、拼接、变速、配乐和字幕添加，生成可在剪映中继续编辑的草稿。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/TheFlareStar-Re/PI-Jianying-Assistant",
+      "sourceCommit": "801fb63c092214b4e415055a36561cd3c8cf31b5"
     },
     {
       "id": "cn.star.skill-learning",
@@ -381,7 +436,11 @@
       "packagePath": "packages/cn.star.skill-learning-0.2.0.piplug",
       "extractedPath": "extracted/cn.star.skill-learning",
       "sourceForkPath": "forks/cn.star.skill-learning",
-      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Skill-Learning"
+      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-Skill-Learning",
+      "description": "你把一件事做完，它把以后还能照着做的步骤做成 SKILL，下次同类活可以直接用。\n会话比较长时会在后台自己复盘，聊天里不会冒出来。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/TheFlareStar-Re/PI-Skill-Learning",
+      "sourceCommit": "482f600145ea8a99e2c7e37b66d71808cd2a16b5"
     },
     {
       "id": "cn.star.user-profile",
@@ -404,7 +463,11 @@
       "packagePath": "packages/cn.star.user-profile-0.1.7.piplug",
       "extractedPath": "extracted/cn.star.user-profile",
       "sourceForkPath": "forks/cn.star.user-profile",
-      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-User-Profile"
+      "sourceRepository": "https://github.com/TheFlareStar-Re/PI-User-Profile",
+      "description": "本地记「用户是谁」和「这台机器怎么用」。有字符上限。每轮注入系统提示，Agent 用 `memory` 工具写。\n不接远程记忆服务，不写 skill。兼容 modelcontextprotocol/server-memory。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/TheFlareStar-Re/PI-User-Profile",
+      "sourceCommit": "39cdee2f96dcced7f5628c520c014b0e4b063b51"
     },
     {
       "id": "com.dragonnahs.session-usage-toolbar",
@@ -427,7 +490,11 @@
       "packagePath": "packages/com.dragonnahs.session-usage-toolbar-0.3.0.piplug",
       "extractedPath": "extracted/com.dragonnahs.session-usage-toolbar",
       "sourceForkPath": "forks/com.dragonnahs.session-usage-toolbar",
-      "sourceRepository": "https://github.com/dragonnahs/session-usage-toolbar"
+      "sourceRepository": "https://github.com/dragonnahs/session-usage-toolbar",
+      "description": "在 PI-Desktop 输入框工具栏放一个用量图标，点开即看当前会话的 Token 消耗。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/dragonnahs/session-usage-toolbar",
+      "sourceCommit": "994be4968d597ab1ecb7f261ce109eaeea96fcf8"
     },
     {
       "id": "com.github.yy568821795-max.session-recorder",
@@ -450,7 +517,10 @@
       "homepage": "https://github.com/yy568821795-max/pi-session-recorder",
       "license": null,
       "packagePath": "packages/com.github.yy568821795-max.session-recorder-0.3.0.piplug",
-      "extractedPath": "extracted/com.github.yy568821795-max.session-recorder"
+      "extractedPath": "extracted/com.github.yy568821795-max.session-recorder",
+      "description": "Local session recorder: archiving every conversation and tool call into per-session JSONL files, marking gaps and truncation, and exporting JSONL or Markdown. Data stays on this device.",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/yy568821795-max/pi-session-recorder"
     },
     {
       "id": "com.opencode2pi",
@@ -473,7 +543,11 @@
       "packagePath": "packages/com.opencode2pi-0.5.5.piplug",
       "extractedPath": "extracted/com.opencode2pi",
       "sourceForkPath": "forks/com.opencode2pi",
-      "sourceRepository": "https://github.com/JasonYu0822/opencode2pi-desktop"
+      "sourceRepository": "https://github.com/JasonYu0822/opencode2pi-desktop",
+      "description": "A very simple tool to apply free models from OpenCode to pi-desktop; availability is not guaranteed.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/JasonYu0822/opencode2pi-desktop",
+      "sourceCommit": "a07a3dfff4cc8d72b6fe90f5704f0b91ff6d827a"
     },
     {
       "id": "com.vastsa.side-chat",
@@ -503,7 +577,11 @@
       "packagePath": "packages/com.vastsa.side-chat-0.1.15.piplug",
       "extractedPath": "extracted/com.vastsa.side-chat",
       "sourceForkPath": "forks/com.vastsa.side-chat",
-      "sourceRepository": "https://github.com/vastsa/pi-desktop-side-chat"
+      "sourceRepository": "https://github.com/vastsa/pi-desktop-side-chat",
+      "description": "A docked sidebar chat that talks with your signed-in models, can attach the current session as context, and can send a reply back into that session.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vastsa/pi-desktop-side-chat",
+      "sourceCommit": "cdceac39fda13710f980c8b793966709b1fe0e07"
     },
     {
       "id": "community.cloudflare-workers-ai",
@@ -528,7 +606,11 @@
       "packagePath": "packages/community.cloudflare-workers-ai-0.1.2.piplug",
       "extractedPath": "extracted/community.cloudflare-workers-ai",
       "sourceForkPath": "forks/community.cloudflare-workers-ai",
-      "sourceRepository": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop"
+      "sourceRepository": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop",
+      "description": "Connect PI-Desktop to Cloudflare Workers AI through a local OpenAI-compatible Chat Completions bridge. Includes dynamic model discovery, streaming, and tool-call forwarding.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/wxaef/cloudflare-workers-ai-pi-desktop",
+      "sourceCommit": "7a5c16cad776fe9beb0b89db25fbd2452aee9525"
     },
     {
       "id": "community.workbuddy-connect",
@@ -553,7 +635,11 @@
       "packagePath": "packages/community.workbuddy-connect-0.4.1.piplug",
       "extractedPath": "extracted/community.workbuddy-connect",
       "sourceForkPath": "forks/community.workbuddy-connect",
-      "sourceRepository": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect"
+      "sourceRepository": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect",
+      "description": "Connect your own WorkBuddy or WorkBuddy AI account to PI through a local OpenAI Chat Completions bridge that starts with the PI plugin. Includes a configuration, key, authentication and model dashboard. Based on corrinehu/dsh-workbuddy-connect (MIT). Requires one-time PI model setup; not an official integration.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/JHua07/Pi_desktop_plugins_workbuddy_connnect",
+      "sourceCommit": "05a0db43d1e2974ce47e3c7f7e4db9bd181e1692"
     },
     {
       "id": "corripo.computer-use",
@@ -575,7 +661,11 @@
       "packagePath": "packages/corripo.computer-use-0.1.2.piplug",
       "extractedPath": "extracted/corripo.computer-use",
       "sourceForkPath": "forks/corripo.computer-use",
-      "sourceRepository": "https://github.com/ProgramerLiang/pi-computer-use"
+      "sourceRepository": "https://github.com/ProgramerLiang/pi-computer-use",
+      "description": "Linux desktop automation for PI-Desktop: screenshots, mouse, keyboard, and window inspection. On Wayland, text input is blocked while fcitx5 is active unless you explicitly opt in to temporary suspension. / PI-Desktop 的 Linux 桌面自动化工具：截图、鼠标、键盘与窗口检查。Wayland 下 fcitx5 运行时默认阻止文本注入；仅在明确启用时才会临时暂停输入法。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/ProgramerLiang/pi-computer-use",
+      "sourceCommit": "48fc1253f1e6669366d4ed9527927e24dce26e9c"
     },
     {
       "id": "corripo.superagent-orchestrator",
@@ -602,7 +692,11 @@
       "packagePath": "packages/corripo.superagent-orchestrator-0.2.0.piplug",
       "extractedPath": "extracted/corripo.superagent-orchestrator",
       "sourceForkPath": "forks/corripo.superagent-orchestrator",
-      "sourceRepository": "https://github.com/ProgramerLiang/piD-super-agent"
+      "sourceRepository": "https://github.com/ProgramerLiang/piD-super-agent",
+      "description": "Route work from the main agent to isolated worker sessions. Delegation is asynchronous by default: the host appends a result card when a worker's turn ends, so the orchestrator dispatches and ends its turn instead of polling. Workers close their report with a status contract (state: ready | blocked | failed, human_action) so a blocked result shows \"needs your decision\" on the card and a ready one needs nothing.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/ProgramerLiang/piD-super-agent",
+      "sourceCommit": "e3ab08e18e91538621054d2d63d0ac833713a4e9"
     },
     {
       "id": "demo.hello",
@@ -626,7 +720,11 @@
       "packagePath": "packages/demo.hello-0.3.3.piplug",
       "extractedPath": "extracted/demo.hello",
       "sourceForkPath": "forks/demo.hello",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "Official sample plugin with panel, command, and echo tool.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "demo.workspace-notes",
@@ -656,7 +754,11 @@
       "packagePath": "packages/demo.workspace-notes-0.2.3.piplug",
       "extractedPath": "extracted/demo.workspace-notes",
       "sourceForkPath": "forks/demo.workspace-notes",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "Read/write workspace notes and fetch remote snippets with explicit high-risk grants.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "demo.workspace-summary",
@@ -682,7 +784,11 @@
       "packagePath": "packages/demo.workspace-summary-0.2.3.piplug",
       "extractedPath": "extracted/demo.workspace-summary",
       "sourceForkPath": "forks/demo.workspace-summary",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "Practical template plugin: scan the current workspace, summarize key files, and expose an agent tool plus isolated panel.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "eskwisit.ast-lens",
@@ -705,7 +811,11 @@
       "packagePath": "packages/eskwisit.ast-lens-0.9.0.piplug",
       "extractedPath": "extracted/eskwisit.ast-lens",
       "sourceForkPath": "forks/eskwisit.ast-lens",
-      "sourceRepository": "https://github.com/eskwisit/pi-ast-lens"
+      "sourceRepository": "https://github.com/eskwisit/pi-ast-lens",
+      "description": "The agent reads code as code: structural search and rewrite with ast-grep, and go-to-definition, references, rename, hover, symbols and diagnostics from the language server picked by the file extension, and a debugger that shows the stack and values at a breakpoint, instead of grepping text.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-ast-lens",
+      "sourceCommit": "fdf1b3c8a24218d4b10983cc402d6f8fe2618f16"
     },
     {
       "id": "eskwisit.llm-council",
@@ -731,7 +841,11 @@
       "packagePath": "packages/eskwisit.llm-council-0.18.0.piplug",
       "extractedPath": "extracted/eskwisit.llm-council",
       "sourceForkPath": "forks/eskwisit.llm-council",
-      "sourceRepository": "https://github.com/eskwisit/pi-llm-council"
+      "sourceRepository": "https://github.com/eskwisit/pi-llm-council",
+      "description": "A council of five advisors (Contrarian, First Principles, Expansionist, Outsider, Executor), cast from your own models, answers your question, reviews the answers anonymously, and a chairman delivers the verdict.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-llm-council",
+      "sourceCommit": "c7e409e5a4ed454ddcb3d7a4aa4ae4ed87b79f91"
     },
     {
       "id": "eskwisit.llm-superagent",
@@ -759,7 +873,11 @@
       "packagePath": "packages/eskwisit.llm-superagent-0.25.1.piplug",
       "extractedPath": "extracted/eskwisit.llm-superagent",
       "sourceForkPath": "forks/eskwisit.llm-superagent",
-      "sourceRepository": "https://github.com/eskwisit/pi-llm-superagent"
+      "sourceRepository": "https://github.com/eskwisit/pi-llm-superagent",
+      "description": "An autonomous team for any LLM: your agent routes each request into a ticket and hands it to a worker sub-agent (code, research, analysis, review, docs) on the model from your list best suited to its type of task and requirements.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-llm-superagent",
+      "sourceCommit": "1757a0af95f4c84d0aa5f43b0c5dabd39b5151e7"
     },
     {
       "id": "eskwisit.mumble",
@@ -781,7 +899,11 @@
       "packagePath": "packages/eskwisit.mumble-0.6.3.piplug",
       "extractedPath": "extracted/eskwisit.mumble",
       "sourceForkPath": "forks/eskwisit.mumble",
-      "sourceRepository": "https://github.com/eskwisit/pi-mumble"
+      "sourceRepository": "https://github.com/eskwisit/pi-mumble",
+      "description": "Mumble for PI-Desktop cuts the talk, not the facts. Code and errors stay exact. Each original is one call away.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-mumble",
+      "sourceCommit": "046fa49c3cced87e094949f70d82e8ee8d976d23"
     },
     {
       "id": "eskwisit.neural-radar",
@@ -805,7 +927,11 @@
       "packagePath": "packages/eskwisit.neural-radar-0.45.3.piplug",
       "extractedPath": "extracted/eskwisit.neural-radar",
       "sourceForkPath": "forks/eskwisit.neural-radar",
-      "sourceRepository": "https://github.com/eskwisit/pi-neural-radar"
+      "sourceRepository": "https://github.com/eskwisit/pi-neural-radar",
+      "description": "A live neural map of your PI-Desktop agents and their subagents, shown in the session's work panel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-neural-radar",
+      "sourceCommit": "0a6cc177c19f49e683a66f1739b8c745e27c5d9c"
     },
     {
       "id": "eskwisit.test-warden",
@@ -831,7 +957,11 @@
       "packagePath": "packages/eskwisit.test-warden-0.8.0.piplug",
       "extractedPath": "extracted/eskwisit.test-warden",
       "sourceForkPath": "forks/eskwisit.test-warden",
-      "sourceRepository": "https://github.com/eskwisit/pi-test-warden"
+      "sourceRepository": "https://github.com/eskwisit/pi-test-warden",
+      "description": "Keeps unit tests in step with code, for any test framework: uses the project's own verified test command, finds regressions on old vs new code, builds test suites for files without touching them, keeps only tests that can fail, and reports bugs instead of fixing them.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-test-warden",
+      "sourceCommit": "cff6f726cca94fd3bdbca5e51df2241049077b77"
     },
     {
       "id": "eskwisit.world-model-hjepa",
@@ -856,7 +986,11 @@
       "packagePath": "packages/eskwisit.world-model-hjepa-0.10.1.piplug",
       "extractedPath": "extracted/eskwisit.world-model-hjepa",
       "sourceForkPath": "forks/eskwisit.world-model-hjepa",
-      "sourceRepository": "https://github.com/eskwisit/pi-world-model-hjepa"
+      "sourceRepository": "https://github.com/eskwisit/pi-world-model-hjepa",
+      "description": "A hierarchical JEPA world model for agents and sub-agents: it learns in latent space what actions and intents do, imagines candidate plans and delegations before you commit, and flags surprising results so the agent replans. Also installs and runs the official H-JEPA world models from Hugging Face, on this computer's GPU or a remote NVIDIA GPU.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eskwisit/pi-world-model-hjepa",
+      "sourceCommit": "0ff92b753acd0d19f3415c1d6a0afa5ca22b9cb1"
     },
     {
       "id": "hawchou.mumu-player",
@@ -879,7 +1013,11 @@
       "packagePath": "packages/hawchou.mumu-player-0.3.1.piplug",
       "extractedPath": "extracted/hawchou.mumu-player",
       "sourceForkPath": "forks/hawchou.mumu-player",
-      "sourceRepository": "https://github.com/hawchou1995/pi-mumu-player"
+      "sourceRepository": "https://github.com/hawchou1995/pi-mumu-player",
+      "description": "Locate a MuMu Android emulator installation, drive the whole MuMuManager command surface, and keep the winhttp proxy VIP patch table in sync with the installed build. Detection is automatic with a manual root override as the fallback. The patch engine backs up before every write, skips any point whose original bytes do not match, and can restore the previous file.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/hawchou1995/pi-mumu-player",
+      "sourceCommit": "f35873bad77613d93efeae89ea7643f20de5e313"
     },
     {
       "id": "icedly.moyu-games",
@@ -901,7 +1039,11 @@
       "packagePath": "packages/icedly.moyu-games-0.5.0.piplug",
       "extractedPath": "extracted/icedly.moyu-games",
       "sourceForkPath": "forks/icedly.moyu-games",
-      "sourceRepository": "https://github.com/CJLY-0915/pi-timer-killer-games"
+      "sourceRepository": "https://github.com/CJLY-0915/pi-timer-killer-games",
+      "description": "右侧工作面板里的休闲小游戏合集：扫雷、2048、纸牌接龙、俄罗斯方块、贪吃蛇。纯本地运行，不访问网络与文件系统；每个游戏各自记住最高分、设置与累计时长，跨会话保留。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/CJLY-0915/pi-timer-killer-games",
+      "sourceCommit": "a1904204d29f6e3b1c36c218e5f28c9d098a6b33"
     },
     {
       "id": "in.memcode.memory",
@@ -924,7 +1066,11 @@
       "packagePath": "packages/in.memcode.memory-0.1.0.piplug",
       "extractedPath": "extracted/in.memcode.memory",
       "sourceForkPath": "forks/in.memcode.memory",
-      "sourceRepository": "https://github.com/vivekgupta-memcode/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/vivekgupta-memcode/pi-desktop-plugins",
+      "description": "Give PI-Desktop agents explicit tools to save, search, and retrieve the signed-in user's Memcode memories.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vivekgupta-memcode/pi-desktop-plugins",
+      "sourceCommit": "6dab161f63a510714fdec978a04a2a74cb9ef0c5"
     },
     {
       "id": "io.github.akshayxkill.nexus-scenic-themes",
@@ -948,7 +1094,11 @@
       "packagePath": "packages/io.github.akshayxkill.nexus-scenic-themes-0.1.0.piplug",
       "extractedPath": "extracted/io.github.akshayxkill.nexus-scenic-themes",
       "sourceForkPath": "forks/io.github.akshayxkill.nexus-scenic-themes",
-      "sourceRepository": "https://github.com/alphalaughs2024-netizen/nexus-scenic-themes"
+      "sourceRepository": "https://github.com/alphalaughs2024-netizen/nexus-scenic-themes",
+      "description": "Nexus Scenic Themes is an appearance theme pack for Pi Desktop, bringing four scenic themes from PI Desktop Nexus into the native theme system. Includes Twilight Mountains, Alpine Light, Obsidian Horizon, and Emerald Afterglow, with per-theme backdrop blur and bundled local assets. Requires Pi Desktop 0.15.8 or later. Checkout nexus at \nhttps://github.com/alphalaughs2024-netizen/PI-Desktop-Nexus",
+      "sourceKind": "alternate",
+      "sourceUpstream": "https://github.com/alphalaughs2024-netizen/nexus-scenic-themes",
+      "sourceCommit": "65850fec53f8a6c65b6a19149f8d8a1c8a86169c"
     },
     {
       "id": "io.github.b1eight.pi-desktop-claude-theme",
@@ -970,7 +1120,11 @@
       "packagePath": "packages/io.github.b1eight.pi-desktop-claude-theme-1.2.0.piplug",
       "extractedPath": "extracted/io.github.b1eight.pi-desktop-claude-theme",
       "sourceForkPath": "forks/io.github.b1eight.pi-desktop-claude-theme",
-      "sourceRepository": "https://github.com/B1eight/pi-desktop-claude-theme"
+      "sourceRepository": "https://github.com/B1eight/pi-desktop-claude-theme",
+      "description": "Unofficial Claude-inspired light and dark themes for PI-Desktop. Pure declarative CSS with ui.theme as the only permission: no scripts, no network access, no changes to host behavior.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/B1eight/pi-desktop-claude-theme",
+      "sourceCommit": "d22fb3570f02cc3e91ab208b041b43bc3dd6114e"
     },
     {
       "id": "io.github.caopengfei.opencode-quota",
@@ -994,7 +1148,11 @@
       "packagePath": "packages/io.github.caopengfei.opencode-quota-0.3.1.piplug",
       "extractedPath": "extracted/io.github.caopengfei.opencode-quota",
       "sourceForkPath": "forks/io.github.caopengfei.opencode-quota",
-      "sourceRepository": "https://github.com/caopengfei/pi-desktop-opencode-quota"
+      "sourceRepository": "https://github.com/caopengfei/pi-desktop-opencode-quota",
+      "description": "OpenCode Go subscription quota in a compact panel: rolling 5-hour, weekly and monthly allowance left, with reset times. Read-only, one endpoint, English and Simplified Chinese.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/caopengfei/pi-desktop-opencode-quota",
+      "sourceCommit": "a995a8ae0b633c69c02302bd1fc4f2543b545985"
     },
     {
       "id": "io.github.catdford.color-picker",
@@ -1025,7 +1183,11 @@
       "packagePath": "packages/io.github.catdford.color-picker-0.4.1.piplug",
       "extractedPath": "extracted/io.github.catdford.color-picker",
       "sourceForkPath": "forks/io.github.catdford.color-picker",
-      "sourceRepository": "https://github.com/catDforD/pi-desktop-color-picker"
+      "sourceRepository": "https://github.com/catDforD/pi-desktop-color-picker",
+      "description": "Browse Tailwind and Material palettes, pick colors out of any image with a pixel loupe, build schemes with harmony rules or AI, check WCAG contrast and color blindness, and export CSS variables, Tailwind or JSON — or install the palette as a PI-Desktop theme.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/catDforD/pi-desktop-color-picker",
+      "sourceCommit": "32899802cdacd2f5e911fd3ac9a173fae9bd673a"
     },
     {
       "id": "io.github.chengzhi-c.pi-desktop-wtq-pool",
@@ -1053,7 +1215,11 @@
       "packagePath": "packages/io.github.chengzhi-c.pi-desktop-wtq-pool-1.4.1.piplug",
       "extractedPath": "extracted/io.github.chengzhi-c.pi-desktop-wtq-pool",
       "sourceForkPath": "forks/io.github.chengzhi-c.pi-desktop-wtq-pool",
-      "sourceRepository": "https://github.com/chengzhi-c/pi-desktop-wtq-pool"
+      "sourceRepository": "https://github.com/chengzhi-c/pi-desktop-wtq-pool",
+      "description": "把本机 WorkBuddy、Trae、Qoder 的桌面登录接进 PI-Desktop。WorkBuddy 被限流时自动换号，三家各有开关。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/chengzhi-c/pi-desktop-wtq-pool",
+      "sourceCommit": "cd2508cd57d9d9390cd42d20fb504965af547258"
     },
     {
       "id": "io.github.cydione.prompt-injector",
@@ -1077,7 +1243,11 @@
       "packagePath": "packages/io.github.cydione.prompt-injector-1.2.0.piplug",
       "extractedPath": "extracted/io.github.cydione.prompt-injector",
       "sourceForkPath": "forks/io.github.cydione.prompt-injector",
-      "sourceRepository": "https://github.com/cyDione/pi-prompt-injector"
+      "sourceRepository": "https://github.com/cyDione/pi-prompt-injector",
+      "description": "Bind system prompts to specific models. Sessions using a bound model get the prompt injected automatically, with per-item switches, first-turn or whole-session scope, and an injection log.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/cyDione/pi-prompt-injector",
+      "sourceCommit": "dc2d1e85fec1e4f40fc115dec79576c13e6c52bf"
     },
     {
       "id": "io.github.czp0312.subscription-quota",
@@ -1102,7 +1272,11 @@
       "packagePath": "packages/io.github.czp0312.subscription-quota-0.4.2.piplug",
       "extractedPath": "extracted/io.github.czp0312.subscription-quota",
       "sourceForkPath": "forks/io.github.czp0312.subscription-quota",
-      "sourceRepository": "https://github.com/czp0312/pi-desktop-quota-visualizer"
+      "sourceRepository": "https://github.com/czp0312/pi-desktop-quota-visualizer",
+      "description": "在工作面板中可视化订阅账号的剩余额度：Anthropic (Claude Pro/Max)、OpenAI (ChatGPT Plus/Pro)、GitHub Copilot、OpenRouter 等，按 5 小时 / 每周 / 每月 / 余额窗口显示剩余百分比、重置倒计时与进度条（绿=剩余、灰=已用）。只显示本机已登录的账号。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/czp0312/pi-desktop-quota-visualizer",
+      "sourceCommit": "009b084301ba09767f0289dfe243c8f360629589"
     },
     {
       "id": "io.github.eonova.theme-dracula",
@@ -1124,7 +1298,11 @@
       "packagePath": "packages/io.github.eonova.theme-dracula-0.5.0.piplug",
       "extractedPath": "extracted/io.github.eonova.theme-dracula",
       "sourceForkPath": "forks/io.github.eonova.theme-dracula",
-      "sourceRepository": "https://github.com/eonova/pi-theme-dracula"
+      "sourceRepository": "https://github.com/eonova/pi-theme-dracula",
+      "description": "A pure PI-Desktop theme plugin: applies the classic Dracula palette to the whole app. No panel, no commands.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eonova/pi-theme-dracula",
+      "sourceCommit": "2859c3b501c25df07b459457eab066ef4398cef3"
     },
     {
       "id": "io.github.eureka-0x01.open-with",
@@ -1146,7 +1324,11 @@
       "packagePath": "packages/io.github.eureka-0x01.open-with-0.1.0.piplug",
       "extractedPath": "extracted/io.github.eureka-0x01.open-with",
       "sourceForkPath": "forks/io.github.eureka-0x01.open-with",
-      "sourceRepository": "https://github.com/Eureka-0x01/open-with"
+      "sourceRepository": "https://github.com/Eureka-0x01/open-with",
+      "description": "通过资源管理器、代码编辑器或其他应用打开当前 PI-Desktop 项目目录。可管理自定义打开方式、记住所选应用，并在输入框旁显示应用图标。需要 PI-Desktop 0.9.0 或更高版本。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Eureka-0x01/open-with",
+      "sourceCommit": "15d22f93d8edf2077d09ae98334daabae883df90"
     },
     {
       "id": "io.github.g1oow.sidebar-note",
@@ -1169,7 +1351,11 @@
       "packagePath": "packages/io.github.g1oow.sidebar-note-0.1.2.piplug",
       "extractedPath": "extracted/io.github.g1oow.sidebar-note",
       "sourceForkPath": "forks/io.github.g1oow.sidebar-note",
-      "sourceRepository": "https://github.com/G1oow/PI-desktop-Note"
+      "sourceRepository": "https://github.com/G1oow/PI-desktop-Note",
+      "description": "工作面板里的笔记：按项目隔离的笔记列表加一个全局收件箱，Markdown 编辑与预览，自动保存。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/G1oow/PI-desktop-Note",
+      "sourceCommit": "14cdcac434b8e5fd45fb970ec9512f9541326f14"
     },
     {
       "id": "io.github.gzxingr.genui",
@@ -1194,7 +1380,11 @@
       "packagePath": "packages/io.github.gzxingr.genui-0.1.0.piplug",
       "extractedPath": "extracted/io.github.gzxingr.genui",
       "sourceForkPath": "forks/io.github.gzxingr.genui",
-      "sourceRepository": "https://github.com/GzxingR/pi-desktop-genui"
+      "sourceRepository": "https://github.com/GzxingR/pi-desktop-genui",
+      "description": "PI-Desktop port of omdsh-dev/dsh-genui: the model describes an interface as a dsh-ui JSON spec and the plugin renders it as real interactive components — stat/table/chart/plot, cards, steps, timelines, forms, quizzes with local grading, and an action loop back to the model.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/GzxingR/pi-desktop-genui",
+      "sourceCommit": "91ebd8b0301a5b8e073af6672710eda586062620"
     },
     {
       "id": "io.github.hufangyuan460-blip.windows-terminal",
@@ -1218,7 +1408,11 @@
       "packagePath": "packages/io.github.hufangyuan460-blip.windows-terminal-1.1.5.piplug",
       "extractedPath": "extracted/io.github.hufangyuan460-blip.windows-terminal",
       "sourceForkPath": "forks/io.github.hufangyuan460-blip.windows-terminal",
-      "sourceRepository": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop"
+      "sourceRepository": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop",
+      "description": "在工作面板中使用真正的 Windows 交互式终端：ConPTY 伪终端，支持 PowerShell 7 / Windows PowerShell 5.1 / cmd、多标签、中文输入输出、复制粘贴与 Ctrl+C 中断，终端内容不会交给 AI。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/hufangyuan460-blip/windows-terminal-for-pi-desktop",
+      "sourceCommit": "e4b8e25bdfe6f27208640ace8f12645dbbca3524"
     },
     {
       "id": "io.github.jeasonloop.theme-craftdesk",
@@ -1241,7 +1435,11 @@
       "packagePath": "packages/io.github.jeasonloop.theme-craftdesk-1.4.9.piplug",
       "extractedPath": "extracted/io.github.jeasonloop.theme-craftdesk",
       "sourceForkPath": "forks/io.github.jeasonloop.theme-craftdesk",
-      "sourceRepository": "https://github.com/JeasonLoop/pi-theme-craftdesk"
+      "sourceRepository": "https://github.com/JeasonLoop/pi-theme-craftdesk",
+      "description": "一款mc风格的pi-desktop主题",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/JeasonLoop/pi-theme-craftdesk",
+      "sourceCommit": "10f57cdc164680a326de467949cc9526a77aa326"
     },
     {
       "id": "io.github.ldzhouquan.fast-browser",
@@ -1269,7 +1467,11 @@
       "packagePath": "packages/io.github.ldzhouquan.fast-browser-0.2.1.piplug",
       "extractedPath": "extracted/io.github.ldzhouquan.fast-browser",
       "sourceForkPath": "forks/io.github.ldzhouquan.fast-browser",
-      "sourceRepository": "https://github.com/ldzhouquan/pi-fast-browser"
+      "sourceRepository": "https://github.com/ldzhouquan/pi-fast-browser",
+      "description": "Jev-powered browser agent for PI-Desktop: observes the work-panel browser as a numbered list of real controls, asks Jev for one constrained decision per step (one TypeSafe request), and executes through the host-approved CDP surface until the goal is done, blocked, or out of steps. Tools: jev_observe, jev_act, jev_run, jev_wait, jev_cancel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/ldzhouquan/pi-fast-browser",
+      "sourceCommit": "fe076af7d33370b13201acbafa0928ae10dd315b"
     },
     {
       "id": "io.github.linuxdazhao.side-questions",
@@ -1292,7 +1494,11 @@
       "packagePath": "packages/io.github.linuxdazhao.side-questions-0.3.0.piplug",
       "extractedPath": "extracted/io.github.linuxdazhao.side-questions",
       "sourceForkPath": "forks/io.github.linuxdazhao.side-questions",
-      "sourceRepository": "https://github.com/Linuxdazhao/pi-side-questions"
+      "sourceRepository": "https://github.com/Linuxdazhao/pi-side-questions",
+      "description": "Fork from a completed assistant reply and ask follow-up questions in a separate work-panel conversation. Continue, stop, and reopen branches from the panel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Linuxdazhao/pi-side-questions",
+      "sourceCommit": "963c29560e839f9c353a4ce19c2db4ac85a128ec"
     },
     {
       "id": "io.github.liushunqiu.pi-idea-git",
@@ -1319,7 +1525,11 @@
       "packagePath": "packages/io.github.liushunqiu.pi-idea-git-0.3.0.piplug",
       "extractedPath": "extracted/io.github.liushunqiu.pi-idea-git",
       "sourceForkPath": "forks/io.github.liushunqiu.pi-idea-git",
-      "sourceRepository": "https://github.com/liushunqiu/pi-idea-git"
+      "sourceRepository": "https://github.com/liushunqiu/pi-idea-git",
+      "description": "方便推送代码到git仓库",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/liushunqiu/pi-idea-git",
+      "sourceCommit": "24b0f4704d4ef10b3524850da142514801a1712a"
     },
     {
       "id": "io.github.mafeis.layout-control",
@@ -1341,7 +1551,11 @@
       "packagePath": "packages/io.github.mafeis.layout-control-0.1.4.piplug",
       "extractedPath": "extracted/io.github.mafeis.layout-control",
       "sourceForkPath": "forks/io.github.mafeis.layout-control",
-      "sourceRepository": "https://github.com/mafeis/pi-desktop-layout-control"
+      "sourceRepository": "https://github.com/mafeis/pi-desktop-layout-control",
+      "description": "Control the conversation layout: content width (presets, custom, full-width) and side gutters, adjustable from a composer toolbar button; the choice is saved with the plugin.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/mafeis/pi-desktop-layout-control",
+      "sourceCommit": "546e14b16a78d9498e6a9bb1cbe500b54af6bb72"
     },
     {
       "id": "io.github.moyunliuyin.cline-upstream",
@@ -1365,7 +1579,11 @@
       "packagePath": "packages/io.github.moyunliuyin.cline-upstream-0.7.8.piplug",
       "extractedPath": "extracted/io.github.moyunliuyin.cline-upstream",
       "sourceForkPath": "forks/io.github.moyunliuyin.cline-upstream",
-      "sourceRepository": "https://github.com/moyunliuyin/pi-desktop-cline-upstream"
+      "sourceRepository": "https://github.com/moyunliuyin/pi-desktop-cline-upstream",
+      "description": "Expose ClinePass' real upstream choice.\r\n\r\nEvery chat request is logged with the provider that actually served it, how many fallbacks remained, the prompt-cache hit count and the exact cost. The model list ships 18 built-in cline-pass models with their context window and thinking levels; tick the ones you allow and anything else is rejected at forward time with 404 model_not_enabled. The ClinePass API key is sealed at rest with Windows DPAPI (bound to the current user) — only ciphertext touches disk, and it is decrypted into memory once at startup.\r\n\r\nNote: the Cline gateway ignores client-side routing hints. provider.only and allow_fallbacks were tested with three different providers and the request still landed on the affinity-pinned upstream, so this plugin reports the real route instead of promising to pin it.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/moyunliuyin/pi-desktop-cline-upstream",
+      "sourceCommit": "4eb3c3d9721cf4c59fde5ea9831f0c58aa6d17c9"
     },
     {
       "id": "io.github.muzimu217.deps-audit",
@@ -1391,7 +1609,11 @@
       "packagePath": "packages/io.github.muzimu217.deps-audit-0.2.0.piplug",
       "extractedPath": "extracted/io.github.muzimu217.deps-audit",
       "sourceForkPath": "forks/io.github.muzimu217.deps-audit",
-      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "description": "依赖漏洞扫描：唤起 osv-scanner 扫描工作区，列出 OSV 数据库中的依赖漏洞，让 Agent 给出升级或修复 patch。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/muzimu217/pi-desktop-plugins",
+      "sourceCommit": "3e5999c43a171d633c5609ee41029e8d160392e4"
     },
     {
       "id": "io.github.muzimu217.session-import",
@@ -1422,7 +1644,11 @@
       "packagePath": "packages/io.github.muzimu217.session-import-0.4.9.piplug",
       "extractedPath": "extracted/io.github.muzimu217.session-import",
       "sourceForkPath": "forks/io.github.muzimu217.session-import",
-      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins",
+      "description": "一体化会话导入与熔炉：扫描本机的 ZCode、WorkBuddy、Claude Code、Codex、OpenCode、Pi 并导入会话；可用声明式 JSON 自定义来源扩展；再读回这些会话，用宿主额度蒸馏成项目约定与可复用做法。",
+      "sourceKind": "alternate",
+      "sourceUpstream": "https://github.com/ily55421/pi-desktop-plugins",
+      "sourceCommit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47"
     },
     {
       "id": "io.github.muzimu217.theme-forge",
@@ -1446,7 +1672,11 @@
       "packagePath": "packages/io.github.muzimu217.theme-forge-0.1.0.piplug",
       "extractedPath": "extracted/io.github.muzimu217.theme-forge",
       "sourceForkPath": "forks/io.github.muzimu217.theme-forge",
-      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "description": "给 agent 的 AI 主题工作台：用一句自然语言描述想要的样子，agent 生成主题 CSS 并经运行时主题注册表实时应用到整个应用——即见即所得，不满意就继续改，满意后一键导出 CSS。内置主题列表/移除/一键恢复系统主题，全部经宿主主题策略消毒，零出网、零文件访问。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/muzimu217/pi-desktop-plugins",
+      "sourceCommit": "c4aba0aedc89eacc620e16ca9269f31966bc81a3"
     },
     {
       "id": "io.github.muzimu217.usage-dashboard",
@@ -1469,7 +1699,11 @@
       "packagePath": "packages/io.github.muzimu217.usage-dashboard-0.1.0.piplug",
       "extractedPath": "extracted/io.github.muzimu217.usage-dashboard",
       "sourceForkPath": "forks/io.github.muzimu217.usage-dashboard",
-      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "description": "A native PI-Desktop usage dashboard built on the official read-only usage contract (pi.usage.listTurns): 365-day activity heatmap, model-share donut, daily trend lines, top sessions and streaks, in a light and dark panel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/muzimu217/pi-desktop-plugins",
+      "sourceCommit": "3e5999c43a171d633c5609ee41029e8d160392e4"
     },
     {
       "id": "io.github.muzimu217.vision-kit",
@@ -1492,7 +1726,11 @@
       "packagePath": "packages/io.github.muzimu217.vision-kit-0.2.0.piplug",
       "extractedPath": "extracted/io.github.muzimu217.vision-kit",
       "sourceForkPath": "forks/io.github.muzimu217.vision-kit",
-      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/muzimu217/pi-desktop-plugins",
+      "description": "给 agent 一个真正能「看见」本地图片的工具：read_image 读取本地图片（png/jpg/jpeg/webp/gif，≤10MB），经工具结果 images 字段把图片作为多模态输入回传，视觉模型可直接看图分析——补上内置 Read 仅限文本的能力缺口。工作区内图片零提示读取；工作区外路径由宿主逐次授权。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/muzimu217/pi-desktop-plugins",
+      "sourceCommit": "041f579ad98ddad9e2c256cd98d2c792fbf90863"
     },
     {
       "id": "io.github.new-beginner.session-usage",
@@ -1515,7 +1753,11 @@
       "packagePath": "packages/io.github.new-beginner.session-usage-1.6.4.piplug",
       "extractedPath": "extracted/io.github.new-beginner.session-usage",
       "sourceForkPath": "forks/io.github.new-beginner.session-usage",
-      "sourceRepository": "https://github.com/new-Beginner/pi-session-usage"
+      "sourceRepository": "https://github.com/new-Beginner/pi-session-usage",
+      "description": "Session usage in the right work panel, automatically following the visible conversation. /usage refreshes the current conversation without opening a window.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/new-Beginner/pi-session-usage",
+      "sourceCommit": "2b0c4dfeb1c4307d43bd16b074506aace12e3ef8"
     },
     {
       "id": "io.github.readon.deepseek-web",
@@ -1537,7 +1779,11 @@
       "packagePath": "packages/io.github.readon.deepseek-web-0.1.0.piplug",
       "extractedPath": "extracted/io.github.readon.deepseek-web",
       "sourceForkPath": "forks/io.github.readon.deepseek-web",
-      "sourceRepository": "https://github.com/Readon/pi-deepseek-web"
+      "sourceRepository": "https://github.com/Readon/pi-deepseek-web",
+      "description": "Real-time web search and URL content extraction powered by DeepSeek's Search & Fetch APIs.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Readon/pi-deepseek-web",
+      "sourceCommit": "f1a9a709a12b49fcd032788d24fd4c55b4887863"
     },
     {
       "id": "io.github.realzsy.opencode-quota-bubble",
@@ -1563,7 +1809,11 @@
       "packagePath": "packages/io.github.realzsy.opencode-quota-bubble-0.5.0.piplug",
       "extractedPath": "extracted/io.github.realzsy.opencode-quota-bubble",
       "sourceForkPath": "forks/io.github.realzsy.opencode-quota-bubble",
-      "sourceRepository": "https://github.com/realzsy/opencode-quota-bubble"
+      "sourceRepository": "https://github.com/realzsy/opencode-quota-bubble",
+      "description": "在聊天输入框旁实时显示 OpenCode Go 订阅剩余额度（滚动 5 小时档，剩余 ≤25% 变黄、≤10% 变红，悬停看三档明细，点击打开详情面板）。只读，仅访问一个接口；中英双语，默认跟随系统语言。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/realzsy/opencode-quota-bubble",
+      "sourceCommit": "f362775a5228d0d35f3720903134571bd0474e84"
     },
     {
       "id": "io.github.techd81.pi-desktop-usage",
@@ -1588,7 +1838,11 @@
       "packagePath": "packages/io.github.techd81.pi-desktop-usage-0.1.4.piplug",
       "extractedPath": "extracted/io.github.techd81.pi-desktop-usage",
       "sourceForkPath": "forks/io.github.techd81.pi-desktop-usage",
-      "sourceRepository": "https://github.com/Techd81/pi-desktop-usage"
+      "sourceRepository": "https://github.com/Techd81/pi-desktop-usage",
+      "description": "Token usage and cost for PI-Desktop and the Pi CLI in one local panel, with the two sources kept apart.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Techd81/pi-desktop-usage",
+      "sourceCommit": "917afe8020402988165753ccca80f509041ba5c9"
     },
     {
       "id": "io.github.techd81.stop-that-shit",
@@ -1613,7 +1867,11 @@
       "packagePath": "packages/io.github.techd81.stop-that-shit-0.2.7.piplug",
       "extractedPath": "extracted/io.github.techd81.stop-that-shit",
       "sourceForkPath": "forks/io.github.techd81.stop-that-shit",
-      "sourceRepository": "https://github.com/Techd81/pi-desktop-stop-that-shit"
+      "sourceRepository": "https://github.com/Techd81/pi-desktop-stop-that-shit",
+      "description": "Task-boundary Guard and Skill for PI-Desktop: explicit read-only or change contracts, checked before every tool call, with a local audit panel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Techd81/pi-desktop-stop-that-shit",
+      "sourceCommit": "a899f703236030e9561b34a687a6d1256b136a08"
     },
     {
       "id": "io.github.tonkic.agent-governance",
@@ -1640,7 +1898,11 @@
       "packagePath": "packages/io.github.tonkic.agent-governance-0.8.3.piplug",
       "extractedPath": "extracted/io.github.tonkic.agent-governance",
       "sourceForkPath": "forks/io.github.tonkic.agent-governance",
-      "sourceRepository": "https://github.com/Tonkic/pi-agent-governance"
+      "sourceRepository": "https://github.com/Tonkic/pi-agent-governance",
+      "description": "Repository handoff, project boards, source-backed architecture and Git collaboration with isolated worktrees and commit-bound verification.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tonkic/pi-agent-governance",
+      "sourceCommit": "662657987a16fe8ca70816d8997628021619a382"
     },
     {
       "id": "io.github.w1ndys.pi-open-git-web",
@@ -1663,7 +1925,11 @@
       "packagePath": "packages/io.github.w1ndys.pi-open-git-web-0.1.0.piplug",
       "extractedPath": "extracted/io.github.w1ndys.pi-open-git-web",
       "sourceForkPath": "forks/io.github.w1ndys.pi-open-git-web",
-      "sourceRepository": "https://github.com/w1ndys/pi-open-git-web"
+      "sourceRepository": "https://github.com/w1ndys/pi-open-git-web",
+      "description": "读取当前仓库的 origin，在默认浏览器打开对应网页。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/w1ndys/pi-open-git-web",
+      "sourceCommit": "d9a71bdb41d4e0d827c323a7ca63e11958b6cfa4"
     },
     {
       "id": "io.github.w1ndys.pi-open-in-vscode",
@@ -1685,7 +1951,11 @@
       "packagePath": "packages/io.github.w1ndys.pi-open-in-vscode-0.3.0.piplug",
       "extractedPath": "extracted/io.github.w1ndys.pi-open-in-vscode",
       "sourceForkPath": "forks/io.github.w1ndys.pi-open-in-vscode",
-      "sourceRepository": "https://github.com/w1ndys/pi-open-in-vscode"
+      "sourceRepository": "https://github.com/w1ndys/pi-open-in-vscode",
+      "description": "用命令立刻用 Visual Studio Code 打开当前工作目录。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/w1ndys/pi-open-in-vscode",
+      "sourceCommit": "d9593856a7bb55fcedbd9c645689ab3f61463e84"
     },
     {
       "id": "io.github.wenziji-hub.market-translator",
@@ -1710,7 +1980,11 @@
       "packagePath": "packages/io.github.wenziji-hub.market-translator-0.1.6.piplug",
       "extractedPath": "extracted/io.github.wenziji-hub.market-translator",
       "sourceForkPath": "forks/io.github.wenziji-hub.market-translator",
-      "sourceRepository": "https://github.com/wenziji-hub/pi-market-translator"
+      "sourceRepository": "https://github.com/wenziji-hub/pi-market-translator",
+      "description": "Chinese display for the skill and MCP marketplace: list cards and the pre-install detail sheet (title, description, full SKILL.md preview). Uses an optional Google Cloud Translation key (no model quota) or an already configured model; falls back to the model when Google fails. Originals, install commands and MCP settings stay untouched. Never reads your model base URL, API keys, chat history or project files.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/wenziji-hub/pi-market-translator",
+      "sourceCommit": "d921308618caae60c1e97eb7c0da29a419e879ea"
     },
     {
       "id": "io.github.xelzsss.macos-classic-theme",
@@ -1733,7 +2007,11 @@
       "packagePath": "packages/io.github.xelzsss.macos-classic-theme-1.3.0.piplug",
       "extractedPath": "extracted/io.github.xelzsss.macos-classic-theme",
       "sourceForkPath": "forks/io.github.xelzsss.macos-classic-theme",
-      "sourceRepository": "https://github.com/XELZSSS/PI-Mac-OS-Classic-Theme"
+      "sourceRepository": "https://github.com/XELZSSS/PI-Mac-OS-Classic-Theme",
+      "description": "Theme plugins for PI-Desktop, ported from huacnlee/zed-theme-macos-classic",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/XELZSSS/PI-Mac-OS-Classic-Theme",
+      "sourceCommit": "9db252cd996635276769e87303156f98f5cebe9d"
     },
     {
       "id": "io.github.xideadev.pi-wechatbot",
@@ -1758,7 +2036,11 @@
       "packagePath": "packages/io.github.xideadev.pi-wechatbot-1.4.0.piplug",
       "extractedPath": "extracted/io.github.xideadev.pi-wechatbot",
       "sourceForkPath": "forks/io.github.xideadev.pi-wechatbot",
-      "sourceRepository": "https://github.com/XideaDev/Pi-WechatBot"
+      "sourceRepository": "https://github.com/XideaDev/Pi-WechatBot",
+      "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/XideaDev/Pi-WechatBot",
+      "sourceCommit": "5e26bb3222c008c51e94df367497978e98c85c29"
     },
     {
       "id": "io.github.xideadev.skill-hub",
@@ -1786,7 +2068,11 @@
       "packagePath": "packages/io.github.xideadev.skill-hub-0.1.0.piplug",
       "extractedPath": "extracted/io.github.xideadev.skill-hub",
       "sourceForkPath": "forks/io.github.xideadev.skill-hub",
-      "sourceRepository": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub"
+      "sourceRepository": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub",
+      "description": "PI-Desktop 官方级侧边栏技能管理工作台：直观查看、分类检索、启用控制及项目/全局精准注入。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/XideaDev/PI-Desktop-Plugin-SkillHub",
+      "sourceCommit": "75ad09849e993bb587109df11aa1f2777a404cc3"
     },
     {
       "id": "io.github.xideadev.task-dida",
@@ -1809,7 +2095,11 @@
       "packagePath": "packages/io.github.xideadev.task-dida-1.0.4.piplug",
       "extractedPath": "extracted/io.github.xideadev.task-dida",
       "sourceForkPath": "forks/io.github.xideadev.task-dida",
-      "sourceRepository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida"
+      "sourceRepository": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
+      "description": "在 AI 智能体完成任务回合、发生报错或等待操作时播放清脆悦耳的系统提示音，支持试听与自定义替换。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/XideaDev/PI-Desktop-Plugin-TaskDida",
+      "sourceCommit": "b263277d4b92896355e097bfffe1d2122797076a"
     },
     {
       "id": "io.github.xinzhihong.group-rooms",
@@ -1840,7 +2130,11 @@
       "packagePath": "packages/io.github.xinzhihong.group-rooms-0.1.1.piplug",
       "extractedPath": "extracted/io.github.xinzhihong.group-rooms",
       "sourceForkPath": "forks/io.github.xinzhihong.group-rooms",
-      "sourceRepository": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms"
+      "sourceRepository": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms",
+      "description": "Create or join shared rooms, chat in native sessions, and manage members in the work panel.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/xinzhihong-ship-it/pi-plugin-group-rooms",
+      "sourceCommit": "cbee7baded9f0825dab8732e29e6348f1cc9b32b"
     },
     {
       "id": "local.chrome-cdp",
@@ -1862,7 +2156,11 @@
       "packagePath": "packages/local.chrome-cdp-0.1.0.piplug",
       "extractedPath": "extracted/local.chrome-cdp",
       "sourceForkPath": "forks/local.chrome-cdp",
-      "sourceRepository": "https://github.com/nnda152-prog/chrome-cdp"
+      "sourceRepository": "https://github.com/nnda152-prog/chrome-cdp",
+      "description": "Real Google Chrome for the agent: launches a visible Chrome window and drives it over the DevTools Protocol (navigate, accessibility snapshot, click, fill, screenshots, JavaScript, console, tabs, raw CDP).",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/nnda152-prog/chrome-cdp",
+      "sourceCommit": "f0ec238407cdd6db31fafab31a78ea4def4a0054"
     },
     {
       "id": "local.context-guard",
@@ -1884,7 +2182,11 @@
       "packagePath": "packages/local.context-guard-0.1.0.piplug",
       "extractedPath": "extracted/local.context-guard",
       "sourceForkPath": "forks/local.context-guard",
-      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-context-guard"
+      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-context-guard",
+      "description": "Early native compaction and recoverable batched folding of old tool outputs. Preserves user messages, assistant conclusions and complete local history.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/RugkeyPro/pi-desktop-context-guard",
+      "sourceCommit": "a12b3c0b0842d6e6c556d46d1547987922aee4c5"
     },
     {
       "id": "local.git-workbench",
@@ -1908,7 +2210,11 @@
       "packagePath": "packages/local.git-workbench-0.2.0.piplug",
       "extractedPath": "extracted/local.git-workbench",
       "sourceForkPath": "forks/local.git-workbench",
-      "sourceRepository": "https://github.com/itzhoujun/pi-desktop-plugin"
+      "sourceRepository": "https://github.com/itzhoujun/pi-desktop-plugin",
+      "description": "模型读你本次改动，自动写出规范的提交信息：在 PI-Desktop 右侧工作面板查看改动文件、按文件暂存或放弃，点一下就让模型根据 diff 生成 commit message（也可以自己手写），再提交、拉取、推送；面板底部还能查看提交历史与单个提交的属性、改动文件和差异，全程不用离开应用。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/itzhoujun/pi-desktop-plugin",
+      "sourceCommit": "3fca4174bae1daa7bf8ef96fb27d782c30abc50e"
     },
     {
       "id": "local.hindsight.memory",
@@ -1932,7 +2238,11 @@
       "packagePath": "packages/local.hindsight.memory-0.2.3.piplug",
       "extractedPath": "extracted/local.hindsight.memory",
       "sourceForkPath": "forks/local.hindsight.memory",
-      "sourceRepository": "https://github.com/zwwangoo/pi-hindsight-memory"
+      "sourceRepository": "https://github.com/zwwangoo/pi-hindsight-memory",
+      "description": "Hindsight Memory — PI-Desktop 插件\r\n一个插件，两部分：\r\n\r\n长期记忆（agent 侧）：包装官方 @vectorize-io/hindsight-coding-agents 的 pi 扩展，会话开始自动召回、 结束自动写回，并修掉 PI-Desktop 与上游之间的两处不兼容。\r\n配置面板（人侧）：工作面板「Hindsight 记忆」标签页，编辑 ~/.hindsight/coding-agent.json、 浏览/搜索/阅读 knowledge page、看同步诊断、向库提问。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/zwwangoo/pi-hindsight-memory",
+      "sourceCommit": "5fe17d0cd4b16c2af9b28e4ec8b9f94292f0c8a2"
     },
     {
       "id": "local.igniter",
@@ -1960,7 +2270,11 @@
       "packagePath": "packages/local.igniter-0.1.0.piplug",
       "extractedPath": "extracted/local.igniter",
       "sourceForkPath": "forks/local.igniter",
-      "sourceRepository": "https://github.com/zwwangoo/pi-igniter"
+      "sourceRepository": "https://github.com/zwwangoo/pi-igniter",
+      "description": "按时点灯：每个 5 小时额度窗口一重置，就点亮下一个窗口。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/zwwangoo/pi-igniter",
+      "sourceCommit": "578a203b0d0a92259cdd77354bfd5b903e7cd8b1"
     },
     {
       "id": "local.image-budget",
@@ -1983,7 +2297,11 @@
       "packagePath": "packages/local.image-budget-0.1.0.piplug",
       "extractedPath": "extracted/local.image-budget",
       "sourceForkPath": "forks/local.image-budget",
-      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-image-budget"
+      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-image-budget",
+      "description": "Budget-aware image previews and original-coordinate crops. Auto 2048px/512KiB; high detail 4096px/1MiB. Preserves source files; no network permissions. Does not rewrite pasted attachments or existing history.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/RugkeyPro/pi-desktop-image-budget",
+      "sourceCommit": "8112c52665ced779d34e9839d486df832289b8bd"
     },
     {
       "id": "local.mac-file-open",
@@ -2004,7 +2322,10 @@
       "homepage": "https://github.com/RugkeyPro/agent-skills",
       "license": null,
       "packagePath": "packages/local.mac-file-open-1.0.0.piplug",
-      "extractedPath": "extracted/local.mac-file-open"
+      "extractedPath": "extracted/local.mac-file-open",
+      "description": "macOS 专用本地文件链接右键菜单增强：支持在 Finder 中显示、使用默认应用打开、选择系统关联应用（打开方式）、应用内预览及复制完整或相对路径。仅支持 macOS，目前内置原生助手仅编译了 Apple Silicon (arm64) 版本。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/RugkeyPro/agent-skills"
     },
     {
       "id": "local.mi-note",
@@ -2033,7 +2354,11 @@
       "packagePath": "packages/local.mi-note-0.2.7.piplug",
       "extractedPath": "extracted/local.mi-note",
       "sourceForkPath": "forks/local.mi-note",
-      "sourceRepository": "https://github.com/sucjs/mi-note-for-pi"
+      "sourceRepository": "https://github.com/sucjs/mi-note-for-pi",
+      "description": "把小米云笔记做成 PI-Desktop 里的图形化工作面板，并让 AI 直接读写你的笔记。\n功能\n扫一扫登录 \n两栏界面 \n笔记管理 \n大纲 \n导出 \nMarkdown 预览 \n写作辅助 \n自动保存 \n\n删除可撤销 \nAI 问答\n自动同步 \n侧边栏\nAI 可以直接操作你的笔记\n插件内置 10 个工具，AI 能读取、搜索、创建、修改、删除笔记，无需任何额外配置。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/sucjs/mi-note-for-pi",
+      "sourceCommit": "efec3333a5e5a61a89da3c954787517a294587a7"
     },
     {
       "id": "local.miku-theme",
@@ -2057,7 +2382,11 @@
       "packagePath": "packages/local.miku-theme-1.0.1.piplug",
       "extractedPath": "extracted/local.miku-theme",
       "sourceForkPath": "forks/local.miku-theme",
-      "sourceRepository": "https://github.com/cainiao0502/pi-desktop-skin"
+      "sourceRepository": "https://github.com/cainiao0502/pi-desktop-skin",
+      "description": "一款为 PI-Desktop 打造的皮肤主题插件，以初音未来（Hatsune Miku）为设计灵感，提供 亮色 与 暗色 两套完整主题。\r\n打开 PI-Desktop 的 设置 → 外观 → 主题。\r\n在主题列表中选择：\r\nSnow Miku（初音 · 亮） —— 启用亮色主题；\r\nCyber Diva（初音 · 暗） —— 启用暗色主题。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/cainiao0502/pi-desktop-skin",
+      "sourceCommit": "aec77f584b778155c7c96e5801c0f6755366baad"
     },
     {
       "id": "local.nebula-spectrum",
@@ -2080,7 +2409,11 @@
       "packagePath": "packages/local.nebula-spectrum-0.9.0.piplug",
       "extractedPath": "extracted/local.nebula-spectrum",
       "sourceForkPath": "forks/local.nebula-spectrum",
-      "sourceRepository": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum"
+      "sourceRepository": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum",
+      "description": "A vibrant, high-tech appearance theme for PI-Desktop in three editions: a white conversation pane, a deep-ocean dark, and a near-black Onyx. All three keep the full spectrum at the window edges.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/LiuHongXuMaritime/pi-desktop-theme-nebula-spectrum",
+      "sourceCommit": "1a90bf26b8e41db60ce206731d076b74db034a7a"
     },
     {
       "id": "local.next-reply",
@@ -2103,7 +2436,10 @@
       "homepage": "https://github.com/RugkeyPro/agent-skills",
       "license": null,
       "packagePath": "packages/local.next-reply-1.0.0.piplug",
-      "extractedPath": "extracted/local.next-reply"
+      "extractedPath": "extracted/local.next-reply",
+      "description": "回答结束后基于近期对话智能推荐用户的下一句回复，支持 Tab 填入可编辑草稿、Esc 忽略或通过命令手动生成，完全独立运行，无需文件打开组件。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/RugkeyPro/agent-skills"
     },
     {
       "id": "local.pi-bot",
@@ -2138,7 +2474,11 @@
       "packagePath": "packages/local.pi-bot-0.3.110.piplug",
       "extractedPath": "extracted/local.pi-bot",
       "sourceForkPath": "forks/local.pi-bot",
-      "sourceRepository": "https://github.com/vsd269/PI-Bot"
+      "sourceRepository": "https://github.com/vsd269/PI-Bot",
+      "description": "Bring persistent AI Bot teams to PI Desktop, with private chats, multi-agent group collaboration, memory, skills, voice input, and app connections. An independently maintained adaptation of DeepSeek-Bot.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vsd269/PI-Bot",
+      "sourceCommit": "fd3c9a10649521728bdd63c940d480fdadc6a6d4"
     },
     {
       "id": "local.pi-canvas",
@@ -2162,7 +2502,10 @@
       "homepage": "https://github.com/payAgain/pi-canvas",
       "license": null,
       "packagePath": "packages/local.pi-canvas-0.1.5.piplug",
-      "extractedPath": "extracted/local.pi-canvas"
+      "extractedPath": "extracted/local.pi-canvas",
+      "description": "Right-side local Canvas for PI-Desktop with isolated React views, versioned source and persistent state.",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/payAgain/pi-canvas"
     },
     {
       "id": "local.pi-commandcode-desktop",
@@ -2187,7 +2530,11 @@
       "packagePath": "packages/local.pi-commandcode-desktop-0.2.0.piplug",
       "extractedPath": "extracted/local.pi-commandcode-desktop",
       "sourceForkPath": "forks/local.pi-commandcode-desktop",
-      "sourceRepository": "https://github.com/eric8bit/pi-commandcode-desktop"
+      "sourceRepository": "https://github.com/eric8bit/pi-commandcode-desktop",
+      "description": "帮你在pi-desktop上面使用commandcodego的订阅，喜欢的可以给我的github点个星星吗",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eric8bit/pi-commandcode-desktop",
+      "sourceCommit": "f234928dd795ca5b98c7183b74bc988dd204412d"
     },
     {
       "id": "local.pi-desktop-install-guard",
@@ -2209,7 +2556,11 @@
       "packagePath": "packages/local.pi-desktop-install-guard-1.2.0.piplug",
       "extractedPath": "extracted/local.pi-desktop-install-guard",
       "sourceForkPath": "forks/local.pi-desktop-install-guard",
-      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins",
+      "description": "给 PI-Desktop 写插件并装到位：先分清 Desktop 和 PI CLI，再按官方模板写 manifest/技能/面板，然后 Scaffold → Check → Pack → 插件页装 .piplug。不是给 Windows 桌面装软件。",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/ily55421/pi-desktop-plugins",
+      "sourceCommit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47"
     },
     {
       "id": "local.pi-desktop-workbuddy",
@@ -2233,7 +2584,11 @@
       "packagePath": "packages/local.pi-desktop-workbuddy-1.0.7.piplug",
       "extractedPath": "extracted/local.pi-desktop-workbuddy",
       "sourceForkPath": "forks/local.pi-desktop-workbuddy",
-      "sourceRepository": "https://github.com/eric8bit/pi-desktop-workbuddy"
+      "sourceRepository": "https://github.com/eric8bit/pi-desktop-workbuddy",
+      "description": "帮你在pi-desktop中使用workbuddy的免费积分，喜欢的可以给我的github点个星星吗",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/eric8bit/pi-desktop-workbuddy",
+      "sourceCommit": "d11acf1a1ce05602df8d8e424a29253c6d7a042d"
     },
     {
       "id": "local.pi-markdown",
@@ -2257,7 +2612,11 @@
       "packagePath": "packages/local.pi-markdown-0.6.0.piplug",
       "extractedPath": "extracted/local.pi-markdown",
       "sourceForkPath": "forks/local.pi-markdown",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown",
+      "description": "本地 Markdown 笔记：真·所见即所得编辑（输入 # / - [ ] / > / ``` / $…$ 即出样式，Typora 风格，Milkdown Crepe）、米白/黑夜双主题切换、5 级目录与 H1-H5 大纲、297 种语言代码高亮、Mermaid 图表实时渲染、Todo 任务列表、KaTeX 公式、全局搜索（标题/内容）、导出 Markdown/HTML/图像；文件夹与笔记拖拽排序、右键操作菜单；Agent 工具 preview_file——按绝对路径以只读预览打开单个 Markdown/文本文件（无需选定目录），用户点「编辑」后可直接修改并自动写回（单文件模式，不显示文档列表）；界面语言与面板标题跟随宿主（中文/English）；数据保存在插件数据目录。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-markdown",
+      "sourceCommit": "ca09c644584c087d1889f090fe9864127daa02c5"
     },
     {
       "id": "local.pi-matt-workflow",
@@ -2279,7 +2638,11 @@
       "packagePath": "packages/local.pi-matt-workflow-1.1.1.piplug",
       "extractedPath": "extracted/local.pi-matt-workflow",
       "sourceForkPath": "forks/local.pi-matt-workflow",
-      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins",
+      "description": "把 Matt Pocock 工程技能装进 PI-Desktop：规划、实现、测试、评审。不含记忆、画图或 MCP。",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/ily55421/pi-desktop-plugins",
+      "sourceCommit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47"
     },
     {
       "id": "local.pi-session-filter",
@@ -2302,7 +2665,11 @@
       "packagePath": "packages/local.pi-session-filter-0.4.0.piplug",
       "extractedPath": "extracted/local.pi-session-filter",
       "sourceForkPath": "forks/local.pi-session-filter",
-      "sourceRepository": "https://github.com/mai-ming/pi-desktop-session-filter"
+      "sourceRepository": "https://github.com/mai-ming/pi-desktop-session-filter",
+      "description": "在侧边栏按来源和时间筛选会话：勾选你想看到的（PI-Desktop 原生会话 / Pi 会话 / 最新 / 近 7 天 / 近 14 天 / 更早），不勾就是全部显示。项目标题栏上有一个漏斗按钮。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/mai-ming/pi-desktop-session-filter",
+      "sourceCommit": "2e6c07a9f47f63faf97ee58fa840acd11f018479"
     },
     {
       "id": "local.project-memory-api-probe",
@@ -2327,7 +2694,11 @@
       "packagePath": "packages/local.project-memory-api-probe-0.6.3.piplug",
       "extractedPath": "extracted/local.project-memory-api-probe",
       "sourceForkPath": "forks/local.project-memory-api-probe",
-      "sourceRepository": "https://github.com/new-Beginner/KnowStack"
+      "sourceRepository": "https://github.com/new-Beginner/KnowStack",
+      "description": "Concise, deduplicated native project memory for PI-Desktop, with session-bound saves, per-project automatic saving or user approval, and a memory editor.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/new-Beginner/KnowStack",
+      "sourceCommit": "2399532659a650d635d78dc5050c9e2927e99cf5"
     },
     {
       "id": "local.remote-tools",
@@ -2347,7 +2718,10 @@
       "homepage": "https://github.com/jiege6-66/pi-desktop-remote-tools",
       "license": null,
       "packagePath": "packages/local.remote-tools-0.1.0.piplug",
-      "extractedPath": "extracted/local.remote-tools"
+      "extractedPath": "extracted/local.remote-tools",
+      "description": "SSH 远程读取、写入、编辑与命令执行；适配 @oresk/pi-remote-tools。需要已配置的密钥和可信主机。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/jiege6-66/pi-desktop-remote-tools"
     },
     {
       "id": "local.sidebar-labels",
@@ -2369,7 +2743,11 @@
       "packagePath": "packages/local.sidebar-labels-0.1.1.piplug",
       "extractedPath": "extracted/local.sidebar-labels",
       "sourceForkPath": "forks/local.sidebar-labels",
-      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels"
+      "sourceRepository": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels",
+      "description": "Choose symbols and colors for conversations, and color existing project folder icons. Labels stay on your device.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/RugkeyPro/pi-desktop-sidebar-labels",
+      "sourceCommit": "4613a8ff596f2280c6efb98e86bc7e3ad6715f4d"
     },
     {
       "id": "local.source-code-mgmt",
@@ -2393,7 +2771,11 @@
       "packagePath": "packages/local.source-code-mgmt-0.9.1.piplug",
       "extractedPath": "extracted/local.source-code-mgmt",
       "sourceForkPath": "forks/local.source-code-mgmt",
-      "sourceRepository": "https://github.com/ysanjin1/pi-desktop-source-code-mgmt"
+      "sourceRepository": "https://github.com/ysanjin1/pi-desktop-source-code-mgmt",
+      "description": "",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/ysanjin1/pi-desktop-source-code-mgmt",
+      "sourceCommit": "3e82956209764430acc715c63804de78b9433b74"
     },
     {
       "id": "local.starry-bus-theme",
@@ -2416,7 +2798,11 @@
       "packagePath": "packages/local.starry-bus-theme-1.1.1.piplug",
       "extractedPath": "extracted/local.starry-bus-theme",
       "sourceForkPath": "forks/local.starry-bus-theme",
-      "sourceRepository": "https://github.com/yuehan1228/starry-bus-theme"
+      "sourceRepository": "https://github.com/yuehan1228/starry-bus-theme",
+      "description": "Starry Bus glassmorphic theme pack for PI-Desktop with automatic OS light/dark theme switching between Starry Bus Night and Starry Bus Day.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/yuehan1228/starry-bus-theme",
+      "sourceCommit": "6530d9639322898260b78c979f67dfbcc5408349"
     },
     {
       "id": "local.task-board",
@@ -2439,7 +2825,10 @@
       "homepage": null,
       "license": null,
       "packagePath": "packages/local.task-board-0.3.9.piplug",
-      "extractedPath": "extracted/local.task-board"
+      "extractedPath": "extracted/local.task-board",
+      "description": "一个只读任务看板：一屏看清谁在等你批计划或回答、谁在跑、有哪些待审批、谁刚跑完。侧栏四列 + 置顶浮窗两种形态，刷新按活跃度自适应，会话清单缓存复用。点行直达会话，双击唤起主窗。全程只读，不读正文、不写文件、不联网。\r\nalt+space搜索任务看板，点击后可以呼出悬浮面板，默认置顶。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/ws1993/GeneralBound"
     },
     {
       "id": "local.terminal",
@@ -2464,7 +2853,11 @@
       "packagePath": "packages/local.terminal-0.5.0.piplug",
       "extractedPath": "extracted/local.terminal",
       "sourceForkPath": "forks/local.terminal",
-      "sourceRepository": "https://github.com/zwwangoo/pi-terminal"
+      "sourceRepository": "https://github.com/zwwangoo/pi-terminal",
+      "description": "PI-Desktop 工作面板里的内嵌终端：按项目隔离会话，支持 ⌘T 唤起、右键菜单和输入法自动切换。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/zwwangoo/pi-terminal",
+      "sourceCommit": "33b070c65d26b1164a332b6cd7fe903c28b11768"
     },
     {
       "id": "local.unipi",
@@ -2493,7 +2886,11 @@
       "packagePath": "packages/local.unipi-0.3.24.piplug",
       "extractedPath": "extracted/local.unipi",
       "sourceForkPath": "forks/local.unipi",
-      "sourceRepository": "https://github.com/vsd269/UniPi"
+      "sourceRepository": "https://github.com/vsd269/UniPi",
+      "description": "Muse Desktop, adapted for PI-Desktop! UniPi is an unofficial port of the open-source Muse Desktop project, bringing its interface and themes to PI-Desktop with your configured models—no Muse Code CLI required. Includes conversation management, model switching, project file previews, read-only Git information, and replacement unicorn artwork.\r\n\r\nBased on Muse Desktop by Robert Courson (@robzilla1738), with original attribution and MIT license preserved. Model tool execution, attachments, and microphone input are currently unavailable.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vsd269/UniPi",
+      "sourceCommit": "b94c1b47c528f2057dfc858719065f2054789c7e"
     },
     {
       "id": "mfy.pi-desktop-open-tools",
@@ -2516,7 +2913,11 @@
       "packagePath": "packages/mfy.pi-desktop-open-tools-0.5.0.piplug",
       "extractedPath": "extracted/mfy.pi-desktop-open-tools",
       "sourceForkPath": "forks/mfy.pi-desktop-open-tools",
-      "sourceRepository": "https://github.com/mfy/pi-desktop-plugin-open-tools"
+      "sourceRepository": "https://github.com/mfy/pi-desktop-plugin-open-tools",
+      "description": "An entry point for launching external tools has been added below the project chat box; you can configure it to open tools such as VS Code, a terminal, etc.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/mfy/pi-desktop-plugin-open-tools",
+      "sourceCommit": "638c0b4b4e01b65dcd53e9137bd822ec7b7060e2"
     },
     {
       "id": "net.aiuo.session-title",
@@ -2541,7 +2942,11 @@
       "packagePath": "packages/net.aiuo.session-title-0.1.0.piplug",
       "extractedPath": "extracted/net.aiuo.session-title",
       "sourceForkPath": "forks/net.aiuo.session-title",
-      "sourceRepository": "https://github.com/vastsa/pi-session-title-plugin"
+      "sourceRepository": "https://github.com/vastsa/pi-session-title-plugin",
+      "description": "Generate concise titles for new sessions with a configurable prompt, model, and thinking level.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vastsa/pi-session-title-plugin",
+      "sourceCommit": "d3ecd1de59c4e96d60047a575b87a8cdf144ec76"
     },
     {
       "id": "net.stronghe.session-title-ubuntu",
@@ -2566,7 +2971,11 @@
       "packagePath": "packages/net.stronghe.session-title-ubuntu-0.1.0.piplug",
       "extractedPath": "extracted/net.stronghe.session-title-ubuntu",
       "sourceForkPath": "forks/net.stronghe.session-title-ubuntu",
-      "sourceRepository": "https://github.com/strongxp/pi-session-title-ubuntu"
+      "sourceRepository": "https://github.com/strongxp/pi-session-title-ubuntu",
+      "description": "Ubuntu-focused PI-Desktop session titles with Simplified Chinese defaults, configurable prompts and models, and protection for manual renames. An independent StrongHE fork of Lan’s Session Titles.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/strongxp/pi-session-title-ubuntu",
+      "sourceCommit": "a1dfef76528383ce4209f03da73f7933b8a20a64"
     },
     {
       "id": "pi.agents-anywhere",
@@ -2589,7 +2998,10 @@
       "homepage": null,
       "license": null,
       "packagePath": "packages/pi.agents-anywhere-1.0.3.piplug",
-      "extractedPath": "extracted/pi.agents-anywhere"
+      "extractedPath": "extracted/pi.agents-anywhere",
+      "description": "基于 Agents Anywhere 平台实现手机端对 Pi Desktop 的远程查看、发问与控制。",
+      "sourceKind": "none",
+      "sourceUpstream": "https://github.com/mazongYY/pi-desktop-plugins"
     },
     {
       "id": "pi.bianqian",
@@ -2614,7 +3026,11 @@
       "packagePath": "packages/pi.bianqian-0.1.6.piplug",
       "extractedPath": "extracted/pi.bianqian",
       "sourceForkPath": "forks/pi.bianqian",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "Markdown 桌面便签：多便签管理、实时预览、任务列表勾选、荧光笔高亮与回收站。Sticky notes with Markdown preview, task lists, text highlights and recycle bin.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "pi.clinepass",
@@ -2636,7 +3052,11 @@
       "packagePath": "packages/pi.clinepass-1.3.0.piplug",
       "extractedPath": "extracted/pi.clinepass",
       "sourceForkPath": "forks/pi.clinepass",
-      "sourceRepository": "https://github.com/banned104/Cline-Pi-Desktop"
+      "sourceRepository": "https://github.com/banned104/Cline-Pi-Desktop",
+      "description": "非常便宜的Cline Pass接入Pi-Desktop",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/banned104/Cline-Pi-Desktop",
+      "sourceCommit": "e852c66c49a526add7cb5858644d959a9acc75b6"
     },
     {
       "id": "pi.clipboard-history",
@@ -2661,7 +3081,11 @@
       "packagePath": "packages/pi.clipboard-history-0.2.0.piplug",
       "extractedPath": "extracted/pi.clipboard-history",
       "sourceForkPath": "forks/pi.clipboard-history",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history",
+      "description": "Capture clipboard text while PI-Desktop runs, keep 30 days of history, restore any entry with one click.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-clipboard-history",
+      "sourceCommit": "08e8918ced02b5d1af5153eb59c2477b880060fa"
     },
     {
       "id": "pi.file-manager",
@@ -2684,7 +3108,11 @@
       "packagePath": "packages/pi.file-manager-0.9.1.piplug",
       "extractedPath": "extracted/pi.file-manager",
       "sourceForkPath": "forks/pi.file-manager",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager",
+      "description": "Browse, view and edit the open project in the right work panel: a full directory tree with per-file-type icons, syntax-highlighted editing, a Markdown preview, image and media viewing, CSV/JSON structured views, read-only SQLite browsing with a SQL query box, a context menu for creating and renaming, and filename search.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-file-manager",
+      "sourceCommit": "de90e23af39c4ac4a68867fa6017fbfcf38c67d1"
     },
     {
       "id": "pi.gitlens",
@@ -2706,7 +3134,11 @@
       "packagePath": "packages/pi.gitlens-0.2.7.piplug",
       "extractedPath": "extracted/pi.gitlens",
       "sourceForkPath": "forks/pi.gitlens",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "GitLens-inspired local Git management for PI-Desktop: status, history, diff, blame, branches, commits and stashes. Docks in the right work panel (no separate window). Human UI only — no agent tools.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "pi.goal-x",
@@ -2734,7 +3166,11 @@
       "packagePath": "packages/pi.goal-x-0.1.1.piplug",
       "extractedPath": "extracted/pi.goal-x",
       "sourceForkPath": "forks/pi.goal-x",
-      "sourceRepository": "https://github.com/tmonk/pi-goal-x"
+      "sourceRepository": "https://github.com/tmonk/pi-goal-x",
+      "description": "Persistent workspace goals, task evidence, and host-owned completion audits for PI-Desktop.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/tmonk/pi-goal-x",
+      "sourceCommit": "073277b199a48e1fedf28b0cb54ce26cc7eb62cf"
     },
     {
       "id": "pi.log-viewer",
@@ -2758,7 +3194,11 @@
       "packagePath": "packages/pi.log-viewer-0.2.1.piplug",
       "extractedPath": "extracted/pi.log-viewer",
       "sourceForkPath": "forks/pi.log-viewer",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-plugin-log-viewer"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-plugin-log-viewer",
+      "description": "大日志文件查看器：GB 级流式分页、虚拟滚动、实时跟随、搜索高亮、文本/等级过滤、钉住对比。Log viewer for huge files: paging, tail, search, filter, pin.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-plugin-log-viewer",
+      "sourceCommit": "549fb853c67decf645f769f3743e03656584547b"
     },
     {
       "id": "pi.mobile-remote-control",
@@ -2786,7 +3226,11 @@
       "packagePath": "packages/pi.mobile-remote-control-1.0.0.piplug",
       "extractedPath": "extracted/pi.mobile-remote-control",
       "sourceForkPath": "forks/pi.mobile-remote-control",
-      "sourceRepository": "https://github.com/CJLY-0915/pi-desktop-bot"
+      "sourceRepository": "https://github.com/CJLY-0915/pi-desktop-bot",
+      "description": "通过飞书、Telegram、微信等聊天工具接入 PI-Desktop Agent：发送任务、接收结果、回答问题和审阅计划。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/CJLY-0915/pi-desktop-bot",
+      "sourceCommit": "a9675a57e4ff8a9f425f4d6f56350daffeef62af"
     },
     {
       "id": "pi.obsidian-theme",
@@ -2809,7 +3253,11 @@
       "packagePath": "packages/pi.obsidian-theme-3.0.0.piplug",
       "extractedPath": "extracted/pi.obsidian-theme",
       "sourceForkPath": "forks/pi.obsidian-theme",
-      "sourceRepository": "https://github.com/adoin/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/adoin/pi-desktop-plugins",
+      "description": "A deep blue-teal global theme tuned to a measured reference: surfaces lifted from #0F1B26 to #223648, hierarchy carried by 1px #2A4054 hairlines rather than glow, a solid #1B4F53 selection state, and a four-step text scale that takes body prose from 17:1 down to 11:1. Styling only — no features.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/adoin/pi-desktop-plugins",
+      "sourceCommit": "c35605a5ed31bd4c899683d5fd0064bd632775cb"
     },
     {
       "id": "pi.parchment",
@@ -2832,7 +3280,11 @@
       "packagePath": "packages/pi.parchment-1.0.4.piplug",
       "extractedPath": "extracted/pi.parchment",
       "sourceForkPath": "forks/pi.parchment",
-      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins",
+      "description": "A warm parchment global theme: cream paper background with a faint grid, ink-colored user bubbles, paper assistant cards, and monospace meta lines. No features beyond styling.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/ily55421/pi-desktop-plugins",
+      "sourceCommit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47"
     },
     {
       "id": "pi.piopt",
@@ -2863,7 +3315,11 @@
       "packagePath": "packages/pi.piopt-2.0.0.piplug",
       "extractedPath": "extracted/pi.piopt",
       "sourceForkPath": "forks/pi.piopt",
-      "sourceRepository": "https://github.com/Lu-Mine/PiOpt"
+      "sourceRepository": "https://github.com/Lu-Mine/PiOpt",
+      "description": "PiOpt 是 PI-Desktop 的控制台插件：外观（界面动效的克制预设与实时预览、减弱动态保护、推理强度滑杆的吸附动效，以及可即时开关的窗口磨砂材质、背景图与 Wallpaper Engine 壁纸（video 直接播放、scene 由随插件分发的 WebWallGL 引擎渲染），以及按帧率重绘视频壁纸的性能模式）、行为（聊天框的模型浮窗始终列出全部模型，可按默认顺序 / 供应商 / 厂商 / 名称排列，选中标记可用圆角框替代对勾，推理强度滑杆的档位可译成中文，窗口入口（新建任务、搜索）可从会话标题栏搬进侧边栏）、远程（同一局域网里配对后的设备可以看会话、发指令、停止运行，电脑浏览器同样可用）与插件市场（读取官方目录，经镜像下载并按 sha256 校验），并在侧边栏左下角第二个按钮后提供一个控制台入口。",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Lu-Mine/PiOpt",
+      "sourceCommit": "75b1b5bfbd7b139d11b333fddb843ce5539b8195"
     },
     {
       "id": "pi.prompt-enhancement",
@@ -2888,7 +3344,11 @@
       "packagePath": "packages/pi.prompt-enhancement-1.3.0.piplug",
       "extractedPath": "extracted/pi.prompt-enhancement",
       "sourceForkPath": "forks/pi.prompt-enhancement",
-      "sourceRepository": "https://github.com/vastsa/pi-prompt-enhancement"
+      "sourceRepository": "https://github.com/vastsa/pi-prompt-enhancement",
+      "description": "Rewrite the current Composer draft as a clearer prompt when you choose to run it.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vastsa/pi-prompt-enhancement",
+      "sourceCommit": "f04349ae6902d0d6be880cc19b20e68942d78721"
     },
     {
       "id": "pi.prompt-switcher",
@@ -2911,7 +3371,11 @@
       "packagePath": "packages/pi.prompt-switcher-1.0.1.piplug",
       "extractedPath": "extracted/pi.prompt-switcher",
       "sourceForkPath": "forks/pi.prompt-switcher",
-      "sourceRepository": "https://github.com/mikulo/pi-prompt-switcher"
+      "sourceRepository": "https://github.com/mikulo/pi-prompt-switcher",
+      "description": "Manage local directory `.md` prompts: input or quickly select and apply them in the initial turn of a conversation (similar to `agents.md`), automatically ignoring existing chat history.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/mikulo/pi-prompt-switcher",
+      "sourceCommit": "5781556c9142a8a6fb68f654893cfb7d5bbf9ea1"
     },
     {
       "id": "pi.scratch-calc",
@@ -2933,7 +3397,11 @@
       "packagePath": "packages/pi.scratch-calc-0.3.4.piplug",
       "extractedPath": "extracted/pi.scratch-calc",
       "sourceForkPath": "forks/pi.scratch-calc",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc",
+      "description": "A paper-like multi-line calculator: evaluate as you type, keep a draft history, add notes to each line, copy results or export the sheet as an image, with local draft management and dark mode.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-scratch-calc",
+      "sourceCommit": "a3438a0cce7c6cae00920858cae5726764e948ab"
     },
     {
       "id": "pi.session-orchestrator",
@@ -2957,7 +3425,11 @@
       "packagePath": "packages/pi.session-orchestrator-0.7.1.piplug",
       "extractedPath": "extracted/pi.session-orchestrator",
       "sourceForkPath": "forks/pi.session-orchestrator",
-      "sourceRepository": "https://github.com/vastsa/pi-plugin-session-orchestrator"
+      "sourceRepository": "https://github.com/vastsa/pi-plugin-session-orchestrator",
+      "description": "Coordinate durable PI-Desktop sessions with bidirectional messages, host-owned completion notifications, reliable results, and configured model selection.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vastsa/pi-plugin-session-orchestrator",
+      "sourceCommit": "cb9037a90218721345e3a7cd9704d8621acf0289"
     },
     {
       "id": "pi.ssh-manager",
@@ -2981,7 +3453,11 @@
       "packagePath": "packages/pi.ssh-manager-0.1.6.piplug",
       "extractedPath": "extracted/pi.ssh-manager",
       "sourceForkPath": "forks/pi.ssh-manager",
-      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/niansi1/pi-desktop-plugins",
+      "description": "A local-first SSH host manager for PI-Desktop with local OpenSSH config import, identity-file selection, and bounded high-risk commands.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/niansi1/pi-desktop-plugins",
+      "sourceCommit": "17dd4a1a5cccc0b54f99cedf40b3bf4ec6e00a42"
     },
     {
       "id": "pi.super-domain-man",
@@ -3009,7 +3485,11 @@
       "packagePath": "packages/pi.super-domain-man-0.4.4.piplug",
       "extractedPath": "extracted/pi.super-domain-man",
       "sourceForkPath": "forks/pi.super-domain-man",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man",
+      "description": "A local-first DNS and SSL workspace for Alibaba Cloud, Tencent Cloud, Cloudflare, AWS Route53, Volcano Engine and Huawei Cloud. Credentials stay on this device.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-super-domain-man",
+      "sourceCommit": "80bfc46640c260b9313c000a07ccac3634f561e0"
     },
     {
       "id": "pi.terminal",
@@ -3035,7 +3515,11 @@
       "packagePath": "packages/pi.terminal-0.1.6.piplug",
       "extractedPath": "extracted/pi.terminal",
       "sourceForkPath": "forks/pi.terminal",
-      "sourceRepository": "https://github.com/WnJee/pi-desktop-plugin-terminal"
+      "sourceRepository": "https://github.com/WnJee/pi-desktop-plugin-terminal",
+      "description": "Otty-inspired interactive terminal for PI-Desktop. Docks in the right work panel (no separate window), with tabs, cross-platform shell profiles, and copy/paste.",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/WnJee/pi-desktop-plugin-terminal",
+      "sourceCommit": "958f6a21d69d7fbd8f97741cedba6035328385b8"
     },
     {
       "id": "pi.theme.opencode",
@@ -3057,7 +3541,11 @@
       "packagePath": "packages/pi.theme.opencode-1.2.0.piplug",
       "extractedPath": "extracted/pi.theme.opencode",
       "sourceForkPath": "forks/pi.theme.opencode",
-      "sourceRepository": "https://github.com/hzz12138/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/hzz12138/pi-desktop-plugins",
+      "description": "Pixel-perfect port of the official OpenCode palette (anomalyco/opencode): #9d7cd8 violet headings, #7fd88f mint code, #f5a742 amber highlights, and monospace typography.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/hzz12138/pi-desktop-plugins",
+      "sourceCommit": "894a2f9134bf4f6003310be75bdc0573665a9933"
     },
     {
       "id": "pi.theme.studio",
@@ -3083,7 +3571,11 @@
       "packagePath": "packages/pi.theme.studio-1.5.0.piplug",
       "extractedPath": "extracted/pi.theme.studio",
       "sourceForkPath": "forks/pi.theme.studio",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio",
+      "description": "PI-Desktop theme studio: 5 built-in palettes, visual editing of all 56 --ds-* tokens and 7 background regions (window, sidebar, chat, dock, titlebar, thread, composer) with fills, gradients, local PNG images, blur and radius. The preview is a faithful replica of the real window, contrast is checked live (WCAG 2.1), and image backgrounds are referenced by absolute path so saving never reloads the plugin. Also ships four Agent tools, so a theme can be created from a sentence.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-theme-studio",
+      "sourceCommit": "0757d5d7e0f20315307170a4ea06e081763452d5"
     },
     {
       "id": "pi.thinkrail",
@@ -3111,7 +3603,11 @@
       "packagePath": "packages/pi.thinkrail-1.7.1.piplug",
       "extractedPath": "extracted/pi.thinkrail",
       "sourceForkPath": "forks/pi.thinkrail",
-      "sourceRepository": "https://github.com/andrewliu83/pideskthinkrails"
+      "sourceRepository": "https://github.com/andrewliu83/pideskthinkrails",
+      "description": "ThinkRail for PI-Desktop: a spec-graph the agent can read, query and maintain (7 spec_* tools), 10 workflow skills (including the authoring checklist for the family), and a panel with a specs browser.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/andrewliu83/pideskthinkrails",
+      "sourceCommit": "6c66deff055c57d9eaef7213a0003b8de36a717c"
     },
     {
       "id": "pi.todo",
@@ -3136,7 +3632,11 @@
       "packagePath": "packages/pi.todo-0.6.5.piplug",
       "extractedPath": "extracted/pi.todo",
       "sourceForkPath": "forks/pi.todo",
-      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo"
+      "sourceRepository": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo",
+      "description": "The official PI-Desktop todo list with list and four-quadrant layouts, due dates, native reminders and a todo_manage agent tool for querying, adding, splitting, completing and rescheduling tasks.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Tioit-Wang/pi-desktop-plugin-pi-todo",
+      "sourceCommit": "33c9a41c603603f62c0e81e86bb931e02bb87f28"
     },
     {
       "id": "pi.token-insights",
@@ -3159,7 +3659,11 @@
       "packagePath": "packages/pi.token-insights-0.4.8.piplug",
       "extractedPath": "extracted/pi.token-insights",
       "sourceForkPath": "forks/pi.token-insights",
-      "sourceRepository": "https://github.com/vastsa/pi-plugin-token-insights"
+      "sourceRepository": "https://github.com/vastsa/pi-plugin-token-insights",
+      "description": "A private local dashboard for the tokens you spend across PI-Desktop, Claude Code, Codex and OpenCode: follows the app's theme and language, filters by tool, model, provider, date range or keyword, and keeps a streak and milestone worth looking at.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/vastsa/pi-plugin-token-insights",
+      "sourceCommit": "7d01df699ec527aeceb18a5f38dac3d33b3e5010"
     },
     {
       "id": "pi.web-access",
@@ -3187,7 +3691,11 @@
       "packagePath": "packages/pi.web-access-0.2.1.piplug",
       "extractedPath": "extracted/pi.web-access",
       "sourceForkPath": "forks/pi.web-access",
-      "sourceRepository": "https://github.com/Techd81/pi-desktop-web-access"
+      "sourceRepository": "https://github.com/Techd81/pi-desktop-web-access",
+      "description": "Web search, page and image fetching, stored-content retrieval, source checks, page answers, field extraction, and authenticated fetches for the agent, ported from the pi-web-access extension.",
+      "sourceKind": "bound",
+      "sourceUpstream": "https://github.com/Techd81/pi-desktop-web-access",
+      "sourceCommit": "23c6436bf40b7e0c17433a2fbfd1195bfe41f04a"
     },
     {
       "id": "pi.workspace-file-guard",
@@ -3210,7 +3718,11 @@
       "packagePath": "packages/pi.workspace-file-guard-0.2.7.piplug",
       "extractedPath": "extracted/pi.workspace-file-guard",
       "sourceForkPath": "forks/pi.workspace-file-guard",
-      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins"
+      "sourceRepository": "https://github.com/ily55421/pi-desktop-plugins",
+      "description": "防止模型把测试、日志、缓存、临时文件写到系统盘、桌面、下载。垃圾只待在当前项目的 Temp 或 scratch。",
+      "sourceKind": "discovered",
+      "sourceUpstream": "https://github.com/ily55421/pi-desktop-plugins",
+      "sourceCommit": "09c832f3f36fec4e8e4a7982fe1eb5804c458b47"
     }
   ]
 }
