@@ -28,6 +28,24 @@ more candidates in one pass.
 Do not edit a snapshot in place. Local changes belong in a patch applied after
 the snapshot is updated, so the next upstream sync stays reviewable.
 
+## Independent forks
+
+`pnpm sync:independent-forks` materializes one Git repository per plugin under
+`~/.pi-desktop-dev/plugin-forks/<id>/`:
+
+```text
+repo/        working checkout on branch pi-fork
+origin.git   bare fork remote
+upstream     source repository
+```
+
+It fetches `upstream`, fast-forwards when the fork has no local commits, merges
+when it does, pushes `pi-fork` to `origin`, and exports the resulting tree back
+into this directory. Set `UPSTREAM.json.forkOrigin` to a GitHub fork URL to push
+to a hosted fork instead of the local bare remote.
+
+`pnpm check:independent-forks` fetches and reports behind/ahead without writing.
+
 ## License
 
 A source fork is not a redistribution grant. `local.pi-markdown` currently has

@@ -92,6 +92,8 @@
     "check:plugin-forks": "node scripts/sync-plugin-source-forks.mjs --check",
     "discover:plugin-forks": "node scripts/discover-plugin-source-forks.mjs",
     "discover:plugin-bound-repos": "node scripts/discover-plugin-bound-repos.mjs",
+    "sync:independent-forks": "node scripts/sync-independent-plugin-forks.mjs --apply",
+    "check:independent-forks": "node scripts/sync-independent-plugin-forks.mjs --check",
     "check:pi-dependencies": "node scripts/check-pi-dependencies.mjs",
     "check:pi-patches": "node scripts/check-pi-patches.mjs",
     "check:release-docs": "node scripts/check-release-docs.mjs",
