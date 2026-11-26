@@ -95,7 +95,12 @@ async function ensureCheckout(id, upstream) {
       return bootstrapSnapshot(id, upstream, base, checkout, origin);
     }
     if (existsSync(checkout)) await rm(checkout, { recursive: true, force: true });
-    git(base, ["clone", "--filter=blob:none", "--depth=1", "--no-checkout", upstream.repository, checkout]);
+    const explicitBranch = upstream.branch && upstream.branch !== "HEAD" ? upstream.branch : "";
+    git(base, [
+      "clone", "--filter=blob:none", "--depth=1", "--no-checkout",
+      ...(explicitBranch ? ["--branch", explicitBranch, "--single-branch"] : []),
+      upstream.repository, checkout,
+    ]);
     git(checkout, ["remote", "rename", "origin", "upstream"]);
     if (origin.startsWith("http")) {
       git(checkout, ["remote", "add", "origin", origin]);
