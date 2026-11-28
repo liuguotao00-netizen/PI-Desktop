@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.cua",
+  "name": "CUA State",
+  "version": "1.0.0",
+  "description": "Unified app/browser CUA inventory and per-session binding.",
+  "author": "PI-Desktop",
+  "main": "main.js",
+  "permissions": [
+    "computer.control",
+    "agent.tool.register"
+  ],
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "cua_state",
+        "description": "Read the unified CUA state: browser backend/tab, desktop capabilities, live grant and target windows.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_bind",
+        "description": "Remember the selected desktop target and/or browser tab for this session.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "targetId": {
+              "type": "string"
+            },
+            "tabId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_clear",
+        "description": "Clear the session's selected target and browser tab.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_app",
+        "description": "Observe one desktop target (or the selected target) and return its accessibility nodes, grant and budget.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "targetId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_browser",
+        "description": "Read the session browser binding and its tabs.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tabId": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_create_tab",
+        "description": "Open a browser tab and remember it as the session selection.",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string"
+            },
+            "visible": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "url"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_act",
+        "description": "Run one unified CUA action against the selected desktop target or browser tab.",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "surface": {
+              "type": "string",
+              "enum": [
+                "app",
+                "browser"
+              ]
+            },
+            "action": {
+              "type": "string"
+            },
+            "targetId": {
+              "type": "string"
+            },
+            "tabId": {
+              "type": "string"
+            },
+            "uid": {
+              "type": "string"
+            },
+            "point": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            "toPoint": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "x",
+                "y"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "scroll": {
+              "type": "object",
+              "properties": {
+                "dx": {
+                  "type": "number"
+                },
+                "dy": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "dx",
+                "dy"
+              ]
+            },
+            "option": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "expression": {
+              "type": "string"
+            },
+            "fullPage": {
+              "type": "boolean"
+            },
+            "limit": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "surface",
+            "action"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_claim_tab",
+        "description": "Claim a browser tab for agent control until released.",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "tabId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "tabId"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_release_tab",
+        "description": "Release the claimed browser tab back to the user.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_js",
+        "description": "Run JavaScript in a persistent per-session CUA runtime.",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "code"
+          ],
+          "additionalProperties": false
+        }
+      },
+      {
+        "name": "cua_js_reset",
+        "description": "Reset the persistent CUA JavaScript session.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {},
+          "additionalProperties": false
+        }
+      }
+    ]
+  }
+}

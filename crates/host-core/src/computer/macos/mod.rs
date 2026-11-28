@@ -22,7 +22,7 @@ use super::backend::{
     Desktop, DesktopError, Dispatched, Measured, RawInspection, RawTarget, TargetRef,
 };
 use super::{
-    Action, ActionKind, Capabilities, Fidelity, Node, PermissionState, Rect, MAX_LABEL_CHARS,
+    Action, ActionKind, Capabilities, Fidelity, Node, PermissionState, Point, Rect, MAX_LABEL_CHARS,
 };
 
 pub struct MacDesktop;
@@ -370,6 +370,51 @@ impl MacDesktop {
         }
     }
 
+    /// Post a left-button drag to the granted process. Coordinates arrive
+    /// scope-relative and are translated through the grant's live bounds.
+    fn drag(&self, pid: i32, bounds: Rect, start: Point, end: Point) -> Result<(), DesktopError> {
+        let points = [
+            (kCGEventLeftMouseDown, start.x, start.y),
+            (
+                kCGEventLeftMouseDragged,
+                start.x + (end.x - start.x) * 0.25,
+                start.y + (end.y - start.y) * 0.25,
+            ),
+            (
+                kCGEventLeftMouseDragged,
+                start.x + (end.x - start.x) * 0.5,
+                start.y + (end.y - start.y) * 0.5,
+            ),
+            (
+                kCGEventLeftMouseDragged,
+                start.x + (end.x - start.x) * 0.75,
+                start.y + (end.y - start.y) * 0.75,
+            ),
+            (kCGEventLeftMouseDragged, end.x, end.y),
+            (kCGEventLeftMouseUp, end.x, end.y),
+        ];
+        for (event_type, x, y) in points {
+            let position = CGPoint {
+                x: bounds.x + x,
+                y: bounds.y + y,
+            };
+            // SAFETY: a null source is documented as "use a private source";
+            // the event is released before the next iteration.
+            let event = unsafe {
+                CGEventCreateMouseEvent(std::ptr::null(), event_type, position, kCGMouseButtonLeft)
+            };
+            if event.is_null() {
+                return Err(DesktopError::Failed("mouse event".into()));
+            }
+            // SAFETY: the event is ours until it is released.
+            unsafe {
+                CGEventPostToPid(pid, event);
+                CFRelease(event);
+            }
+        }
+        Ok(())
+    }
+
     /// Post one key chord to the granted process. The event never enters the
     /// HID tap, so it cannot land in another application if focus moves.
     fn press_keys(&self, pid: i32, chords: &[String]) -> Result<(), DesktopError> {
@@ -566,11 +611,59 @@ impl Desktop for MacDesktop {
             self.press_keys(target.pid, keys)?;
             return Ok(Dispatched::WindowEvent);
         }
+        if kind == ActionKind::PasteText {
+            let text = action.text.as_deref().ok_or(DesktopError::NotActionable)?;
+            use std::io::Write;
+            let mut child = std::process::Command::new("/usr/bin/pbcopy")
+                .stdin(std::process::Stdio::piped())
+                .spawn()
+                .map_err(|error| DesktopError::Failed(error.to_string()))?;
+            if let Some(mut stdin) = child.stdin.take() {
+                stdin
+                    .write_all(text.as_bytes())
+                    .map_err(|error| DesktopError::Failed(error.to_string()))?;
+            }
+            child
+                .wait()
+                .map_err(|error| DesktopError::Failed(error.to_string()))?;
+            self.press_keys(target.pid, &["cmd+v".to_string()])?;
+            return Ok(Dispatched::WindowEvent);
+        }
+        if kind == ActionKind::LaunchApp {
+            let app = action.text.as_deref().ok_or(DesktopError::NotActionable)?;
+            if app.starts_with('/') {
+                std::process::Command::new("/usr/bin/open")
+                    .arg(app)
+                    .status()
+                    .map_err(|error| DesktopError::Failed(error.to_string()))?;
+            } else {
+                std::process::Command::new("/usr/bin/open")
+                    .arg("-a")
+                    .arg(app)
+                    .status()
+                    .map_err(|error| DesktopError::Failed(error.to_string()))?;
+            }
+            return Ok(Dispatched::WindowEvent);
+        }
+        if kind == ActionKind::Drag {
+            let start = action.point.ok_or(DesktopError::NotActionable)?;
+            let end = action.to_point.ok_or(DesktopError::NotActionable)?;
+            let bounds = self.ax_bounds(target).ok_or(DesktopError::TargetGone)?;
+            self.drag(target.pid, bounds, start, end)?;
+            return Ok(Dispatched::WindowEvent);
+        }
         let window = self.window_element(target)?;
         let uid = uid.ok_or(DesktopError::ElementNotFound)?;
         let (resolved, _bounds) = self.resolve(window.as_ref(), uid)?;
         let element = resolved.as_ref();
         match kind {
+            ActionKind::SecondaryAction => {
+                let option = action
+                    .option
+                    .as_deref()
+                    .ok_or(DesktopError::NotActionable)?;
+                self.perform_ax_action(element, option)?;
+            }
             ActionKind::Click | ActionKind::DoubleClick => {
                 self.perform_ax_action(element, "AXPress")?;
                 if kind == ActionKind::DoubleClick {
@@ -592,7 +685,10 @@ impl Desktop for MacDesktop {
                 };
                 self.perform_ax_action(element, name)?;
             }
-            ActionKind::PressKeys => unreachable!("handled above"),
+            ActionKind::PressKeys
+            | ActionKind::Drag
+            | ActionKind::LaunchApp
+            | ActionKind::PasteText => unreachable!("handled above"),
         }
         Ok(Dispatched::AccessibilityAction)
     }

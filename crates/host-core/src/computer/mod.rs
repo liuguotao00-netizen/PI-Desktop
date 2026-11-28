@@ -18,11 +18,15 @@
 //! agent cannot immediately mint its way back onto the screen.
 
 pub mod backend;
+#[cfg(target_os = "linux")]
+mod linux;
 #[cfg(target_os = "macos")]
 mod macos;
 pub mod policy;
 #[cfg(test)]
 mod tests;
+#[cfg(target_os = "windows")]
+mod windows;
 
 use std::time::{Duration, Instant};
 
@@ -35,6 +39,18 @@ pub use backend::{DesktopError, Dispatched, TargetRef};
 pub const MAX_NODES: usize = 400;
 /// Hard ceiling on one accessible label, so a hostile window cannot pad a
 /// model context through its own titles.
+/// Accessibility actions the model may request by name. A closed list keeps a
+/// window from turning arbitrary AX verbs into an escalation path.
+pub const SECONDARY_ACTIONS: &[&str] = &[
+    "AXShowMenu",
+    "AXPick",
+    "AXConfirm",
+    "AXCancel",
+    "AXIncrement",
+    "AXDecrement",
+    "AXScrollToVisible",
+];
+
 pub const MAX_LABEL_CHARS: usize = 200;
 /// Hard ceiling on text one step may type.
 pub const MAX_TEXT_CHARS: usize = 2_000;
@@ -264,6 +280,10 @@ pub enum ActionKind {
     PressKeys,
     Scroll,
     Select,
+    Drag,
+    LaunchApp,
+    PasteText,
+    SecondaryAction,
 }
 
 impl ActionKind {
@@ -282,6 +302,10 @@ impl ActionKind {
             ActionKind::PressKeys => "press_keys",
             ActionKind::Scroll => "scroll",
             ActionKind::Select => "select",
+            ActionKind::Drag => "drag",
+            ActionKind::LaunchApp => "launch_app",
+            ActionKind::PasteText => "paste_text",
+            ActionKind::SecondaryAction => "secondary_action",
         }
     }
 }
@@ -315,6 +339,8 @@ pub struct Action {
     pub uid: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub point: Option<Point>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub to_point: Option<Point>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub basis: Option<Basis>,
     #[serde(skip_serializing_if = "Option::is_none")]

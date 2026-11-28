@@ -484,7 +484,7 @@ pub fn validate_action(
     if kind.is_input() && grant.remaining_budget == 0 {
         return Err(Refusal::BudgetExhausted);
     }
-    if action.uid.is_none() && action.point.is_none() {
+    if kind != ActionKind::LaunchApp && action.uid.is_none() && action.point.is_none() {
         return Err(Refusal::ActionRejected(
             "action names neither an element nor a point".into(),
         ));
@@ -499,6 +499,16 @@ pub fn validate_action(
             .basis
             .ok_or_else(|| Refusal::ActionRejected("coordinate action without a basis".into()))?;
         validate_basis(grant, &basis, measured_bounds)?;
+        if !measured_bounds.contains(point.x, point.y) {
+            return Err(Refusal::ScopeViolation);
+        }
+    }
+    if let Some(point) = action.to_point {
+        if action.point.is_none() {
+            return Err(Refusal::ActionRejected(
+                "drag destination without a start point".into(),
+            ));
+        }
         if !measured_bounds.contains(point.x, point.y) {
             return Err(Refusal::ScopeViolation);
         }
@@ -547,6 +557,48 @@ pub fn validate_action(
                 .ok_or_else(|| Refusal::ActionRejected("scroll without a delta".into()))?;
             if !scroll.dx.is_finite() || !scroll.dy.is_finite() {
                 return Err(Refusal::ActionRejected("non-finite scroll delta".into()));
+            }
+        }
+        ActionKind::SecondaryAction => {
+            let option = action.option.as_deref().ok_or_else(|| {
+                Refusal::ActionRejected("secondary_action without an option".into())
+            })?;
+            if !super::SECONDARY_ACTIONS.contains(&option) {
+                return Err(Refusal::ActionRejected(
+                    "unsupported secondary action".into(),
+                ));
+            }
+        }
+        ActionKind::PasteText => {
+            let text = action
+                .text
+                .as_deref()
+                .ok_or_else(|| Refusal::ActionRejected("paste_text without text".into()))?;
+            if text.chars().count() > MAX_TEXT_CHARS {
+                return Err(Refusal::ActionRejected(
+                    "text exceeds the step limit".into(),
+                ));
+            }
+        }
+        ActionKind::LaunchApp => {
+            let app = action
+                .text
+                .as_deref()
+                .ok_or_else(|| Refusal::ActionRejected("launch_app without an app".into()))?;
+            let trimmed = app.trim();
+            if trimmed.is_empty()
+                || trimmed.len() > 256
+                || trimmed.starts_with('-')
+                || trimmed.chars().any(char::is_control)
+            {
+                return Err(Refusal::ActionRejected("malformed app name".into()));
+            }
+        }
+        ActionKind::Drag => {
+            if action.point.is_none() || action.to_point.is_none() {
+                return Err(Refusal::ActionRejected(
+                    "drag needs a start and destination point".into(),
+                ));
             }
         }
         ActionKind::Click | ActionKind::DoubleClick | ActionKind::RightClick => {}

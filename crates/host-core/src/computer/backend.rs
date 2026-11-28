@@ -217,17 +217,11 @@ pub fn active() -> Box<dyn Desktop> {
     }
     #[cfg(target_os = "windows")]
     {
-        Box::new(UnsupportedDesktop::new(
-            "win32",
-            "the Windows UI Automation backend lands in stage 2",
-        ))
+        Box::new(super::windows::WindowsDesktop::new())
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        Box::new(UnsupportedDesktop::new(
-            "linux",
-            "the Linux AT-SPI backend lands in stage 2",
-        ))
+        Box::new(super::linux::LinuxDesktop::new())
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows", unix)))]
     {

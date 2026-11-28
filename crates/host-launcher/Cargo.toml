@@ -1,0 +1,13 @@
+[package]
+name = "host-launcher"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Disclaims TCC responsibility before execing host-core on macOS"
+
+[[bin]]
+name = "pi-desktop-host-launcher"
+path = "src/main.rs"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"

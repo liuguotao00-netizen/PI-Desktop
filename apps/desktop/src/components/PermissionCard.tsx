@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "react-i18next";
 import type { PendingPermission } from "../lib/pending-permissions";
 import { useAppStore } from "../stores/app-store";
 import { buildToolPresentation } from "../lib/tool-presentation";
+import { getToolPhrase } from "../lib/tool-phrases";
 import { ToolDetailBlocks } from "./ToolDetails";
 import { Button } from "./ui";
 
@@ -84,7 +85,11 @@ export function PermissionCard({
       <div className="permission-card-prompt">
         <Trans
           i18nKey="permission.allowPrompt"
-          values={{ tool: permission.toolName }}
+          values={{
+            tool: getToolPhrase(permission.toolName)
+              ? t(getToolPhrase(permission.toolName)!.labelKey)
+              : permission.toolName,
+          }}
           components={{ highlight: <span className="text-text-primary" /> }}
         />
       </div>
