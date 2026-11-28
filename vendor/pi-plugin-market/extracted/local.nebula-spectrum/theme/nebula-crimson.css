@@ -1,0 +1,233 @@
+/* Nebula Spectrum Crimson — red-and-black dark edition (crimson / orange / amber / magenta / cyan edges).
+   Theme id: plugin:local.nebula-spectrum:nebula-crimson   (base: dark)
+   Same structure as the other editions; every selector carries the theme attribute. */
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] {
+  color-scheme: dark;
+
+  --gray-0: #fdeef0;
+  --gray-50: #fbe0e4;
+  --gray-75: #f5ced4;
+  --gray-100: #eeb9c2;
+  --gray-300: #c98a96;
+  --gray-500: #8a5b66;
+  --gray-550: #7a4e58;
+  --gray-600: #68414a;
+  --gray-700: #52333a;
+  --gray-750: #442a31;
+  --gray-800: #342027;
+  --gray-900: #22151a;
+  --gray-1000: #120a0d;
+
+  --accent-50: #fef2f2;
+  --accent-100: #fee2e2;
+  --accent-300: #fca5a5;
+  --accent-400: #fdeef0;
+  --accent-900: #3d0a0d;
+
+  --ds-bg-primary: #0d0508;
+  --ds-bg-under: #050203;
+  --ds-settings-rail-bg: #0a0406;
+  --ds-bg-sidebar: #10060a;
+  --ds-bg-secondary: #140a0e;
+  --ds-bg-tertiary: #1a0e13;
+  --ds-bg-inset: #070304;
+  --ds-bg-dock: #180b10;
+  --ds-bg-dock-raised: #220f16;
+  --ds-bg-elevated: rgba(34, 17, 24, 0.88);
+  --ds-bg-elevated-opaque: #1a0e13;
+  --ds-bg-elevated-primary: rgba(14, 7, 10, 0.95);
+  --ds-bg-hover: rgba(250, 170, 180, 0.08);
+  --ds-bg-active: rgba(250, 170, 180, 0.14);
+  --ds-bg-chip: rgba(250, 170, 180, 0.07);
+  --ds-bg-composer: rgba(16, 8, 11, 0.94);
+  --ds-sidebar-glass-tint: rgba(10, 4, 6, 0.64);
+  --ds-sidebar-glass-sheen-top: rgba(255, 190, 190, 0.07);
+  --ds-sidebar-glass-sheen-bottom: rgba(239, 68, 68, 0.06);
+
+  --ds-text-primary: #fdeef0;
+  --ds-text-secondary: rgba(250, 214, 220, 0.74);
+  --ds-text-muted: rgba(228, 186, 194, 0.54);
+  --ds-text-faint: rgba(212, 170, 178, 0.4);
+  --ds-placeholder-ink: rgba(250, 170, 180, 0.4);
+  --ds-prose-kbd-fg: rgba(250, 214, 220, 0.8);
+
+  --ds-border-default: rgba(250, 170, 180, 0.16);
+  --ds-border-subtle: rgba(250, 170, 180, 0.1);
+  --ds-border-strong: rgba(250, 170, 180, 0.26);
+
+  --ds-tile: rgba(250, 170, 180, 0.05);
+  --ds-tile-hover: rgba(250, 170, 180, 0.09);
+  --ds-tile-deep: rgba(239, 68, 68, 0.16);
+  --ds-tool-row-bg: rgba(250, 170, 180, 0.045);
+  --ds-raised: #220f16;
+  --ds-raised-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+
+  --ds-accent: #ef4444;
+  --ds-accent-hover: #f87171;
+  --ds-accent-soft: #dc2626;
+  --ds-focus: #fbbf24;
+  --ds-success: #4ade80;
+  --ds-warning: #fbbf24;
+  --ds-error: #fb7185;
+  --ds-info: #38bdf8;
+  --ds-purple: #f472b6;
+
+  --ds-settings-field-bg: rgba(250, 170, 180, 0.06);
+  --ds-settings-nav-active: rgba(239, 68, 68, 0.16);
+  --ds-field-inset-bg: rgba(250, 170, 180, 0.06);
+  --ds-field-inset-focus-bg: rgba(250, 170, 180, 0.11);
+  --ds-switch-track-off: rgba(250, 170, 180, 0.14);
+  --ds-switch-track-off-hover: rgba(250, 170, 180, 0.22);
+  --ds-switch-ring-off: rgba(250, 170, 180, 0.26);
+  --ds-switch-knob-off: #c98a96;
+  --ds-switch-knob-on: #0d0508;
+
+  --ds-code-head-bg: rgba(250, 170, 180, 0.08);
+  --ds-code-hover-bg: rgba(250, 170, 180, 0.13);
+  --ds-thinking-code-bg: rgba(250, 170, 180, 0.06);
+  --ds-mermaid-canvas: #140a0e;
+
+  --ds-scrim: rgba(4, 1, 2, 0.58);
+  --ds-modal-veil: rgba(10, 4, 6, 0.74);
+  --ds-send-disabled-bg: rgba(250, 170, 180, 0.16);
+  --ds-send-disabled-fg: rgba(250, 214, 220, 0.5);
+  --ds-elevation-stroke: 0 0 0 0.5px rgba(250, 170, 180, 0.16);
+
+  --ds-shadow-composer: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(250, 170, 180, 0.16);
+  --ds-shadow-dialog: 0 22px 64px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(250, 170, 180, 0.16), 0 0 48px rgba(239, 68, 68, 0.24);
+  --ds-shadow-model-menu: 0 18px 48px rgba(0, 0, 0, 0.72), 0 0 0 1px rgba(250, 170, 180, 0.16), 0 0 36px rgba(236, 72, 153, 0.16);
+}
+
+/* Canvas — black with a crimson lead, plus orange, magenta, amber and a cyan tail. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .app-shell {
+  background-color: #000000;
+  background-image:
+    radial-gradient(1200px 680px at 4% -12%, rgba(239, 68, 68, 0.34), transparent 64%),
+    radial-gradient(980px 560px at 98% -8%, rgba(249, 115, 22, 0.22), transparent 66%),
+    radial-gradient(900px 600px at 88% 112%, rgba(236, 72, 153, 0.22), transparent 68%),
+    radial-gradient(760px 460px at 10% 114%, rgba(34, 211, 238, 0.12), transparent 70%),
+    radial-gradient(1000px 620px at 48% 46%, rgba(251, 191, 36, 0.16), transparent 72%),
+    radial-gradient(700px 420px at 62% 106%, rgba(163, 230, 53, 0.08), transparent 74%);
+}
+
+/* Two-pixel spectrum hairline across the top of the window. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.85;
+  background: linear-gradient(90deg, #ef4444, #f97316 20%, #f59e0b 40%, #ec4899 62%, #06b6d4 82%, #a3e635);
+}
+
+/* Conversation pane — near-black maroon sheet with a red glow along the top edge. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .main-pane {
+  background-color: #0d0508;
+  background-image:
+    radial-gradient(1100px 340px at 50% -18%, rgba(239, 68, 68, 0.15), transparent 70%),
+    radial-gradient(820px 300px at 100% -10%, rgba(249, 115, 22, 0.11), transparent 72%),
+    radial-gradient(820px 300px at 0% -10%, rgba(236, 72, 153, 0.1), transparent 72%),
+    radial-gradient(900px 320px at 82% 112%, rgba(34, 211, 238, 0.06), transparent 72%);
+}
+
+/* Title bars — black glass with a red edge. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .main-titlebar,
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .conversation-topbar {
+  background: linear-gradient(180deg, rgba(8, 2, 4, 0.94), rgba(8, 2, 4, 0.6));
+  backdrop-filter: blur(14px) saturate(145%);
+  box-shadow: 0 1px 0 rgba(250, 170, 180, 0.12);
+}
+
+/* Sidebar — black glass with red, orange and magenta glows. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .sidebar-surface {
+  background-color: rgba(8, 3, 5, 0.7);
+  background-image:
+    radial-gradient(460px 300px at 0% 0%, rgba(239, 68, 68, 0.28), transparent 66%),
+    radial-gradient(420px 300px at 100% 46%, rgba(249, 115, 22, 0.18), transparent 70%),
+    radial-gradient(440px 340px at 60% 104%, rgba(236, 72, 153, 0.2), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 240px);
+  backdrop-filter: blur(24px) saturate(160%);
+  border-inline-end: 1px solid rgba(239, 68, 68, 0.18);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .sidebar-rail {
+  background-color: rgba(8, 3, 5, 0.92);
+}
+
+/* Composer — black field with a red-to-cyan spectrum rim. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .composer-shell {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(152deg, rgba(38, 18, 24, 0.96), rgba(10, 4, 6, 0.98)),
+    linear-gradient(
+      135deg,
+      rgba(239, 68, 68, 0.85),
+      rgba(249, 115, 22, 0.8) 26%,
+      rgba(251, 191, 36, 0.7) 48%,
+      rgba(236, 72, 153, 0.78) 74%,
+      rgba(6, 182, 212, 0.7)
+    );
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.72), 0 0 26px rgba(239, 68, 68, 0.22);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .composer-shell:focus-within {
+  background-image:
+    linear-gradient(152deg, rgba(48, 24, 30, 0.97), rgba(12, 5, 7, 0.98)),
+    linear-gradient(
+      135deg,
+      rgba(220, 38, 38, 0.95),
+      rgba(234, 88, 12, 0.92) 26%,
+      rgba(217, 119, 6, 0.9) 48%,
+      rgba(219, 39, 119, 0.92) 74%,
+      rgba(8, 145, 178, 0.9)
+    );
+  box-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.78),
+    0 0 34px rgba(239, 68, 68, 0.32),
+    0 0 22px rgba(236, 72, 153, 0.22);
+}
+
+/* User bubble — red-black card; assistant turns also carry .message-bubble in the host DOM. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .message-row.user .message-bubble {
+  background: #220f16;
+  color: #fdeef0;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 180, 190, 0.16),
+    0 2px 8px rgba(0, 0, 0, 0.58);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .message-row.user .message-user-text {
+  color: #fdeef0;
+}
+
+/* Send button — crimson to magenta. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .send-btn {
+  background: linear-gradient(135deg, #ef4444, #f97316 40%, #ec4899 78%, #fb7185);
+  color: #170608;
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.42);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .send-btn:hover {
+  box-shadow: 0 3px 18px rgba(236, 72, 153, 0.45);
+}
+
+/* Code — red-black inset panel with a spectrum header band. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .code-block {
+  background: #180a0f;
+  box-shadow: inset 0 0 0 1px rgba(250, 170, 180, 0.14), 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] .code-block-head {
+  background-image: linear-gradient(90deg, rgba(239, 68, 68, 0.16), rgba(249, 115, 22, 0.12) 40%, rgba(236, 72, 153, 0.14));
+}
+
+/* Text selection. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-crimson"] ::selection {
+  background: rgba(239, 68, 68, 0.32);
+  color: #fdeef0;
+}

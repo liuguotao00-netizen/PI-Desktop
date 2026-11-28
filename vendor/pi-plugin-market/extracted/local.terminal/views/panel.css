@@ -1,0 +1,44 @@
+:root { color-scheme: dark; --bg: #181818; --fg: #d4d4d4; --bar: #131313; --line: rgba(255, 255, 255, 0.08); }
+:root[data-base="light"] { color-scheme: light; --bg: #fafafa; --fg: #1a1c1f; --bar: #f0f0f0; --line: rgba(0, 0, 0, 0.08); }
+html, body { height: 100%; margin: 0; background: var(--bg); color: var(--fg); font: 12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; overflow: hidden; }
+.app { display: flex; flex-direction: column; height: calc(100dvh - var(--pi-plugin-titlebar-height, 0px)); }
+.bar { display: flex; align-items: center; background: var(--bar); border-bottom: 1px solid var(--line); min-height: 32px; }
+.tabs { display: flex; flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.tab { display: flex; align-items: center; gap: 8px; padding: 0 10px; height: 32px; border: 0; border-right: 1px solid var(--line); background: transparent; color: inherit; opacity: .6; cursor: pointer; font: inherit; max-width: 180px; white-space: nowrap; }
+.tab.on { opacity: 1; background: var(--bg); }
+.tab.dead span:first-child { text-decoration: line-through; }
+.tab .x { opacity: .5; font-size: 14px; line-height: 1; }
+.tab .x:hover { opacity: 1; }
+.add { height: 32px; width: 32px; border: 0; background: transparent; color: inherit; font-size: 16px; cursor: pointer; opacity: .7; }
+.add:hover { opacity: 1; }
+/* One session: the bar is hidden (the host header already carries the "Terminal" tab, the prompt shows the cwd). */
+.app.single .bar { display: none; }
+.float-add { display: none; position: absolute; top: 4px; right: 8px; z-index: 5; width: 24px; height: 24px; border: 0; border-radius: 6px; background: var(--bar); color: inherit; font-size: 16px; line-height: 24px; padding: 0; cursor: pointer; opacity: 0; transition: opacity .12s; }
+.app.single .float-add { display: block; }
+.app.single .terms:hover .float-add, .float-add:focus-visible { opacity: .75; }
+.app.single .float-add:hover { opacity: 1; }
+/* Which backend the active tab runs on: a "tmux" tab tag, and for a single tab (bar hidden) a corner badge. */
+.tab .tag { padding: 0 4px; border-radius: 4px; background: rgba(0, 187, 187, 0.22); color: #2fbfbf; font-size: 10px; line-height: 14px; }
+.tab .tag.remote { background: rgba(229, 160, 58, 0.22); color: #e5a03a; }
+.mode { display: none; position: absolute; top: 5px; right: 40px; z-index: 5; padding: 0 6px; border-radius: 4px; background: var(--bar); font-size: 10px; line-height: 16px; opacity: .6; pointer-events: none; }
+.mode.tmux { color: #2fbfbf; opacity: .9; }
+.mode.remote { color: #e5a03a; opacity: .9; }
+.app.single .mode { display: block; }
+.mode:empty { display: none !important; }
+.status { position: absolute; left: 8px; right: 8px; bottom: 6px; z-index: 5; padding: 4px 8px; border-radius: 6px; background: var(--bar); color: #d9534f; pointer-events: none; }
+.status:empty { display: none; }
+.terms { position: relative; flex: 1; min-height: 0; padding: 6px 0 4px 8px; background: var(--bg); }
+.term { position: absolute; inset: 6px 0 4px 8px; display: none; }
+.term.on { display: block; }
+.term .xterm { height: 100%; }
+.term .xterm-viewport { background: transparent !important; }
+/* Right-click menu: positioned by panel.js, colors follow the host light/dark base. */
+.ctx { --menu-bg: #242424; --menu-hover: rgba(255, 255, 255, 0.1); --menu-line: rgba(255, 255, 255, 0.14); position: fixed; z-index: 20; min-width: 176px; padding: 4px; border: 1px solid var(--menu-line); border-radius: 8px; background: var(--menu-bg); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+:root[data-base="light"] .ctx { --menu-bg: #ffffff; --menu-hover: rgba(0, 0, 0, 0.07); --menu-line: rgba(0, 0, 0, 0.12); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); }
+.ctx[hidden] { display: none; }
+.ctx-item { display: flex; align-items: center; justify-content: space-between; gap: 24px; width: 100%; box-sizing: border-box; padding: 5px 10px; border: 0; border-radius: 5px; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: default; }
+.ctx-item:hover:not(:disabled), .ctx-item:focus-visible { background: var(--menu-hover); outline: none; }
+.ctx-item:disabled { opacity: .4; }
+.ctx-hint { opacity: .5; font-size: 11px; }
+.ctx-note { padding: 4px 10px 3px; font-size: 11px; opacity: .55; white-space: nowrap; cursor: default; user-select: none; }
+.ctx-sep { height: 1px; margin: 4px 6px; background: var(--menu-line); }

@@ -1,0 +1,143 @@
+{
+  "id": "douyin-like",
+  "platform": "douyin",
+  "kind": "interact",
+  "name": "抖音 · 点赞 / 取消点赞",
+  "description": "先按 data-e2e-state、aria 属性、激活文案和颜色读当前点赞状态，证据充分且需要改变时才点，点完复读确认。证据不足时 clicked=false 并说明原因，不盲点。",
+  "variables": [
+    {
+      "key": "videoId",
+      "label": "作品 ID（纯数字）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "action",
+      "label": "动作：like（点赞）/ unlike（取消点赞）",
+      "type": "text",
+      "default": "like"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "douyin_like"
+    }
+  },
+  "steps": [
+    {
+      "id": "openVideo",
+      "action": "navigate",
+      "value": "https://www.douyin.com/video/{{videoId}}",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          },
+          {
+            "type": "text",
+            "value": "身份验证"
+          },
+          {
+            "type": "text",
+            "value": "接收短信验证码"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*='captcha'], iframe[src*='captcha']"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "抖音触发了验证码/风控，请先在浏览器里完成验证"
+      }
+    },
+    {
+      "id": "waitDetail",
+      "action": "waitForState",
+      "timeout": 30000,
+      "params": {
+        "expression": "(function(){try{var el=document.querySelector('h1');return !!(el&&(el.innerText||'').trim());}catch(e){return false;}})()",
+        "errorCode": "DETAIL_NOT_READY",
+        "errorMessage": "作品详情没有加载出来（作品可能不可见，或页面改版）"
+      }
+    },
+    {
+      "id": "readState",
+      "description": "按证据链读当前状态；标记控件供后面点击。证据不足时不点",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "douyinInteractState",
+        "fn": "function(ctx){window.__qiworkReadEvidence=function(root){\n  if(!root)return {state:'unknown',confidence:'none'};\n  var nodes=[root].concat(Array.from(root.querySelectorAll('*')));\n  var values=['aria-pressed','aria-checked','data-selected','data-checked','data-active']\n    .map(function(name){return root.getAttribute(name);})\n    .filter(function(value){return value!==null;})\n    .map(function(value){return String(value).toLowerCase();});\n  var labels=nodes.map(function(el){\n    return [el.innerText||'',el.getAttribute&&el.getAttribute('aria-label')||'',el.getAttribute&&el.getAttribute('title')||''].join(' ');\n  }).join(' ').trim();\n  var colors=[];\n  nodes.forEach(function(el){\n    var style=getComputedStyle(el);\n    [style.color,style.fill,style.stroke].forEach(function(v){if(v)colors.push(v);});\n  });\n  var e2e=String(root.getAttribute('data-e2e-state')||'').toLowerCase();\n  var attributeActive=window.__qiworkTokens.activeState.indexOf(e2e)>=0;\n  var attributeInactive=window.__qiworkTokens.inactiveState.indexOf(e2e)>=0;\n  var explicitTrue=values.some(function(v){return ['true','1','yes'].indexOf(v)>=0;});\n  var explicitFalse=values.some(function(v){return ['false','0','no'].indexOf(v)>=0;});\n  var activeText=window.__qiworkTokens.activeText.some(function(t){return t&&labels.indexOf(t)>=0;});\n  var activeStyle=window.__qiworkTokens.activeStyle.some(function(token){\n    return colors.some(function(color){return color.toLowerCase().indexOf(token.toLowerCase())>=0;});\n  });\n  var activeClass=nodes.some(function(el){\n    return /(^|[-_\\s])(active|selected|checked|liked|favorited|collected)([-_\\s]|$)/i.test(String(el.className||''));\n  });\n  var highActive=attributeActive||explicitTrue||activeText||activeStyle;\n  var highInactive=attributeInactive||explicitFalse;\n  var conflict=highActive&&highInactive;\n  var state=conflict?'unknown':highActive?'active':highInactive?'inactive':activeClass?'active':'unknown';\n  var confidence=conflict?'none':(highActive||highInactive)?'high':activeClass?'low':'none';\n  return {state:state,confidence:confidence,e2e:e2e,label:labels.slice(0,200)};\n};\n\n  window.__qiworkTokens={\n    activeText:[\"已赞\", \"取消赞\", \"已点赞\", \"取消点赞\"],\n    activeStyle:[\"rgb(255, 44, 85)\", \"#ff2c55\"],\n    activeState:[\"video-player-is-digged\"],\n    inactiveState:[\"video-player-no-digged\"]\n  };\n  var selectors=[[\"[data-e2e=\\\"video-player-digg\\\"]\"]];\n  var visible=function(el){\n    if(!el)return false;\n    if(!(el.offsetWidth||el.offsetHeight||el.getClientRects().length))return false;\n    var style=getComputedStyle(el);\n    return style.display!=='none'&&style.visibility!=='hidden'&&Number(style.opacity||1)>0;\n  };\n  Array.from(document.querySelectorAll('[data-qiwork-target]')).forEach(function(el){\n    el.removeAttribute('data-qiwork-target');\n  });\n  var root=null;\n  for(var i=0;i<selectors.length&&!root;i++){\n    var nodes=document.querySelectorAll(selectors[i]);\n    for(var j=0;j<nodes.length;j++){\n      if(visible(nodes[j])){root=nodes[j];break;}\n    }\n  }\n  var want=String(ctx.action||'like')==='like';\n  if(!root){\n    window.__qiworkInteract={kind:'like',found:false,state:'missing',confidence:'none',target:want,needed:false};\n    return {kind:'like',found:false,state:'missing',confidence:'none',target:want,needed:false};\n  }\n  root.setAttribute('data-qiwork-target','1');\n  var evidence=window.__qiworkReadEvidence(root);\n  var needed=evidence.confidence==='high'&&(\n    (want&&evidence.state==='inactive')||(!want&&evidence.state==='active')\n  );\n  window.__qiworkInteract={\n    kind:'like',found:true,state:evidence.state,confidence:evidence.confidence,\n    target:want,needed:needed,clicked:false\n  };\n  return {kind:'like',found:true,state:evidence.state,confidence:evidence.confidence,target:want,needed:needed};\n}"
+      }
+    },
+    {
+      "id": "assertControlFound",
+      "description": "按钮本身找不到多半是页面改版，明确报错而不是当成“已达成”",
+      "action": "waitForState",
+      "timeout": 3000,
+      "params": {
+        "expression": "window.__qiworkInteract && window.__qiworkInteract.found",
+        "errorCode": "INTERACTION_CONTROL_NOT_FOUND",
+        "errorMessage": "没有找到点赞/收藏按钮（页面可能改版，或该作品不支持）"
+      }
+    },
+    {
+      "id": "toggle",
+      "description": "只有证据充分且需要改变状态时才点",
+      "action": "click",
+      "trusted": true,
+      "whenState": "window.__qiworkInteract && window.__qiworkInteract.needed",
+      "target": {
+        "selector": "[data-qiwork-target=\"1\"]"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        1200,
+        2000
+      ]
+    },
+    {
+      "id": "verify",
+      "description": "复读状态；点过才验，没点说明本来就已经是目标状态",
+      "action": "waitForState",
+      "whenState": "window.__qiworkInteract && window.__qiworkInteract.needed",
+      "timeout": 12000,
+      "params": {
+        "expression": "(function(){try{var el=document.querySelector('[data-qiwork-target=\"1\"]');if(!el||!window.__qiworkReadEvidence)return false;var ev=window.__qiworkReadEvidence(el);var expected=window.__qiworkInteract.target?'active':'inactive';return ev.confidence==='high'&&ev.state===expected;}catch(e){return false;}})()",
+        "errorCode": "INTERACT_NOT_CONFIRMED",
+        "errorMessage": "互动状态没有在限定时间内变成目标状态，请在页面上确认，不要重复点击"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "douyinLikeResult",
+        "fn": "function(){window.__qiworkReadEvidence=function(root){\n  if(!root)return {state:'unknown',confidence:'none'};\n  var nodes=[root].concat(Array.from(root.querySelectorAll('*')));\n  var values=['aria-pressed','aria-checked','data-selected','data-checked','data-active']\n    .map(function(name){return root.getAttribute(name);})\n    .filter(function(value){return value!==null;})\n    .map(function(value){return String(value).toLowerCase();});\n  var labels=nodes.map(function(el){\n    return [el.innerText||'',el.getAttribute&&el.getAttribute('aria-label')||'',el.getAttribute&&el.getAttribute('title')||''].join(' ');\n  }).join(' ').trim();\n  var colors=[];\n  nodes.forEach(function(el){\n    var style=getComputedStyle(el);\n    [style.color,style.fill,style.stroke].forEach(function(v){if(v)colors.push(v);});\n  });\n  var e2e=String(root.getAttribute('data-e2e-state')||'').toLowerCase();\n  var attributeActive=window.__qiworkTokens.activeState.indexOf(e2e)>=0;\n  var attributeInactive=window.__qiworkTokens.inactiveState.indexOf(e2e)>=0;\n  var explicitTrue=values.some(function(v){return ['true','1','yes'].indexOf(v)>=0;});\n  var explicitFalse=values.some(function(v){return ['false','0','no'].indexOf(v)>=0;});\n  var activeText=window.__qiworkTokens.activeText.some(function(t){return t&&labels.indexOf(t)>=0;});\n  var activeStyle=window.__qiworkTokens.activeStyle.some(function(token){\n    return colors.some(function(color){return color.toLowerCase().indexOf(token.toLowerCase())>=0;});\n  });\n  var activeClass=nodes.some(function(el){\n    return /(^|[-_\\s])(active|selected|checked|liked|favorited|collected)([-_\\s]|$)/i.test(String(el.className||''));\n  });\n  var highActive=attributeActive||explicitTrue||activeText||activeStyle;\n  var highInactive=attributeInactive||explicitFalse;\n  var conflict=highActive&&highInactive;\n  var state=conflict?'unknown':highActive?'active':highInactive?'inactive':activeClass?'active':'unknown';\n  var confidence=conflict?'none':(highActive||highInactive)?'high':activeClass?'low':'none';\n  return {state:state,confidence:confidence,e2e:e2e,label:labels.slice(0,200)};\n};\n\n  var st=window.__qiworkInteract||{};\n  var root=document.querySelector('[data-qiwork-target=\"1\"]');\n  var evidence=root?window.__qiworkReadEvidence(root):{state:'unknown',confidence:'none'};\n  var expected=st.target?'active':'inactive';\n  return {\n    kind:'like',\n    action:st.target?'activate':'deactivate',\n    found:!!root,\n    before:st.state||'',\n    state:evidence.state,\n    state_verified:evidence.confidence==='high'&&evidence.state===expected,\n    clicked:!!st.needed\n  };\n}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

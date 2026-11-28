@@ -1,0 +1,252 @@
+{
+  "id": "douyin-image",
+  "platform": "douyin",
+  "kind": "publish",
+  "name": "抖音 · 发布图文",
+  "taskName": "douyin_publish_image",
+  "dedupeWindowMs": 300000,
+  "startUrl": "https://creator.douyin.com/creator-micro/content/upload?default-tab=3",
+  "humanize": {
+    "mouseSpeed": "normal",
+    "typingSpeed": "normal",
+    "mistakeRate": 0.03,
+    "extraPauseRate": 0.1
+  },
+  "variables": [
+    {
+      "key": "title",
+      "label": "图文标题（最多 20 字，emoji 按平台计数，超出截断）",
+      "type": "text",
+      "placeholder": "添加作品标题"
+    },
+    {
+      "key": "desc",
+      "label": "图文描述（最多 1000 字，超出截断）",
+      "type": "textarea",
+      "placeholder": "添加作品描述…"
+    },
+    {
+      "key": "images",
+      "label": "图片（最多 35 张，仅支持 JPG/JPEG/PNG/WEBP）",
+      "type": "files",
+      "accept": ".jpg,.jpeg,.png,.webp"
+    },
+    {
+      "key": "tags",
+      "label": "话题标签（最多 5 个）",
+      "type": "text",
+      "placeholder": "#话题1 #话题2"
+    }
+  ],
+  "steps": [
+    {
+      "id": "assertDouyinImageReady",
+      "description": "等待抖音图文页登录与风控状态可判定",
+      "action": "assertPageState",
+      "timeout": 12000,
+      "params": {
+        "passWhen": [
+          {
+            "type": "exist",
+            "selector": "input[type='file'][multiple][accept*='image/png']"
+          }
+        ],
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成下方验证",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前抖音触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": "[class*='captcha'], iframe[src*='captcha']",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前抖音触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前抖音创作者中心未登录，请先登录后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": "[class*='login-container'], [class*='login-mask']",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前抖音创作者中心未登录，请先登录后再重试"
+          }
+        ],
+        "errorCode": "PUBLISH_BUTTON_UNAVAILABLE",
+        "errorMessage": "抖音图文上传页未在限定时间内进入可用状态"
+      }
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": "input[type='file'][multiple][accept*='image/png']"
+      },
+      "timeout": 12000,
+      "description": "等待图文上传控件"
+    },
+    {
+      "action": "upload",
+      "inputSelector": "input[type='file'][multiple][accept*='image/png']",
+      "value": "{{images}}",
+      "params": {
+        "verify": {
+          "uploadedSelector": "[class*='content-child']:has(button[class*='continue-add']) [class*='img-'] img",
+          "pendingSelectors": [
+            "[class*='uploading']",
+            "[class*='upload-progress']",
+            "[class*='uploadProgress']",
+            "[class*='image'][class*='loading']"
+          ],
+          "failureSelectors": [
+            ".semi-toast-content",
+            ".semi-notification-content",
+            "[role='alert']",
+            "[class*='toast']",
+            "[class*='upload'][class*='error']",
+            "[class*='image'][class*='error']",
+            "[class*='image'][class*='fail']"
+          ],
+          "failureTexts": [
+            "图片上传失败",
+            "上传图片失败",
+            "上传失败",
+            "重试上传",
+            "请重新上传"
+          ],
+          "allowedExtensions": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+          ],
+          "maxFiles": 35,
+          "stabilityMs": 3000,
+          "timeout": 60000,
+          "pollInterval": 500
+        }
+      },
+      "description": "上传图片并确认全部完成"
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": "input[placeholder='添加作品标题']"
+      },
+      "timeout": 30000,
+      "retry": 2,
+      "description": "等待图文编辑区加载"
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": "input[placeholder='添加作品标题']"
+      },
+      "value": "{{title}}",
+      "maxChars": 20,
+      "maxLengthUnit": "utf16",
+      "description": "输入图文标题"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": ".zone-container[data-zone-id='0'][contenteditable='true']"
+      },
+      "timeout": 12000,
+      "description": "等待作品描述编辑器"
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": ".zone-container[data-zone-id='0'][contenteditable='true']"
+      },
+      "value": "{{desc}}",
+      "maxChars": 1000,
+      "description": "输入图文描述"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": ".zone-container[data-zone-id='0'][contenteditable='true']"
+      },
+      "value": " {{tags}}",
+      "noClick": true,
+      "tagMode": true,
+      "maxTags": 5,
+      "description": "输入话题标签"
+    },
+    {
+      "action": "wait",
+      "duration": [400, 800]
+    },
+    {
+      "action": "click",
+      "target": {
+        "selector": "[class*='container-right-']",
+        "text": "选择音乐"
+      },
+      "description": "打开音乐选择抽屉"
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": "[class*='card-container-']:has([class*='song-name-'])"
+      },
+      "timeout": 15000,
+      "description": "等待推荐音乐列表加载完成"
+    },
+    {
+      "action": "click",
+      "target": {
+        "selector": "[class*='card-container-']:has([class*='song-name-']) button[class*='apply-btn-']",
+        "text": "使用"
+      },
+      "hoverTarget": {
+        "selector": "[class*='card-container-']:has([class*='song-name-'])"
+      },
+      "description": "选择第一首推荐音乐"
+    },
+    {
+      "action": "wait",
+      "duration": [500, 900]
+    },
+    {
+      "action": "activateAndWaitForNavigation",
+      "target": {
+        "selector": "button",
+        "text": "发布"
+      },
+      "timeout": 30000,
+      "params": {
+        "successUrl": "https://creator.douyin.com/creator-micro/content/manage",
+        "verification": {
+          "selectors": [
+            "[class*='captcha']:not(input)",
+            "iframe[src*='captcha']",
+            "input[placeholder*='验证码']"
+          ],
+          "texts": [
+            "接收短信验证码",
+            "请完成下方验证",
+            "使用原设备扫码"
+          ],
+          "timeout": 300000
+        },
+        "activation": "mouseClickWithFallback"
+      },
+      "description": "发布图文并等待页面确认"
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "xiaohongshu-long-article-template",
+  "platform": "xiaohongshu",
+  "kind": "publish",
+  "name": "小红书 · 长文选择排版模板",
+  "description": "在已执行「长文创作 + 一键排版」后的模板页，按名称点击选择模板。",
+  "taskName": "xiaohongshu_long_article_template",
+  "variables": [
+    {
+      "key": "templateName",
+      "label": "模板名称（来自 xiaohongshu-long-article 返回的 templates 列表）",
+      "type": "text",
+      "placeholder": "简约"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_long_article_template"
+    }
+  },
+  "steps": [
+    {
+      "id": "selectTemplate",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "longArticleTemplatePick",
+        "fn": "function(ctx){\n  var name=String(ctx.templateName||'').trim();\n  if(!name){return {ok:false,error:'templateName 为空'};}\n  var cards=document.querySelectorAll('.template-card');\n  for(var i=0;i<cards.length;i++){\n    var t=cards[i].querySelector('.template-title');\n    if(t&&(t.textContent||'').trim()===name){cards[i].click();return {ok:true,template:name};}\n  }\n  return {ok:false,error:'未找到模板',template:name};\n}"
+      }
+    },
+    {
+      "action": "wait",
+      "duration": [800, 1500]
+    }
+  ]
+}

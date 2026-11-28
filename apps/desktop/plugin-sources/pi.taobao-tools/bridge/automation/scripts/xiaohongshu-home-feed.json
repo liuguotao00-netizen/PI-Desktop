@@ -1,0 +1,170 @@
+{
+  "id": "xiaohongshu-home-feed",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 首页推荐采集",
+  "description": "采集小红书首页「发现」推荐流。读页面 __INITIAL_STATE__.feed.feeds（SSR 注入 + 滚动增量），输出每条笔记的 id、xsec_token、标题、封面、互动数和作者，xsec_token 可直接拿去跑「笔记详情」。",
+  "contextSetup": {
+    "limitNotes": {
+      "type": "number",
+      "default": 30
+    }
+  },
+  "variables": [
+    {
+      "key": "limitNotes",
+      "label": "采集数量上限（默认 30；滚到该数或推荐流不再增加为止）",
+      "type": "text",
+      "default": "30"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_home_feed"
+    },
+    "csv": [
+      {
+        "type": "notes",
+        "source": "execute_xhsHomeFeeds",
+        "columns": [
+          {
+            "name": "note_id",
+            "from": "note_id"
+          },
+          {
+            "name": "xsec_token",
+            "from": "xsec_token"
+          },
+          {
+            "name": "note_url",
+            "from": "note_url"
+          },
+          {
+            "name": "title",
+            "from": "title"
+          },
+          {
+            "name": "type",
+            "from": "type"
+          },
+          {
+            "name": "cover",
+            "from": "cover"
+          },
+          {
+            "name": "liked_count",
+            "from": "liked_count"
+          },
+          {
+            "name": "comment_count",
+            "from": "comment_count"
+          },
+          {
+            "name": "author_id",
+            "from": "author_id"
+          },
+          {
+            "name": "author_name",
+            "from": "author_name"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "openExplore",
+      "description": "打开小红书发现页",
+      "action": "navigate",
+      "value": "https://www.xiaohongshu.com/explore",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".login-container"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*=\"login-mask\"]"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证"
+          },
+          {
+            "type": "exist",
+            "selector": ".captcha-container"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "id": "waitFeedState",
+      "description": "等 __INITIAL_STATE__.feed.feeds 注入（DOM 就绪早于数据）",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){try{var S=window.__INITIAL_STATE__;if(!S)return 0;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var f=u(u(S.feed).feeds);return Array.isArray(f)?f.length:0;}catch(e){return 0;}})() > 0",
+        "errorCode": "FEED_NOT_READY",
+        "errorMessage": "小红书首页推荐流没有在限定时间内加载出来"
+      }
+    },
+    {
+      "id": "scrollFeed",
+      "description": "滚动加载推荐流，直到够数量或不再增加",
+      "action": "scrollForState",
+      "timeout": 120000,
+      "params": {
+        "countExpr": "(function(){try{var S=window.__INITIAL_STATE__;if(!S)return 0;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var f=u(u(S.feed).feeds);return Array.isArray(f)?f.length:0;}catch(e){return 0;}})()",
+        "limitTotal": "{{limitNotes}}",
+        "limitScroll": 30,
+        "scrollStep": 1000,
+        "stallRounds": 3,
+        "saveAs": "xhsHomeScroll"
+      }
+    },
+    {
+      "id": "extractFeeds",
+      "description": "归一化首页推荐笔记",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "xhsHomeFeeds",
+        "fn": "(function(){\n  var S=window.__INITIAL_STATE__;\n  if(!S||typeof S!=='object')return [];\n  var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};\n  var arr=function(v){v=u(v);return Array.isArray(v)?v:[];};\n  var str=function(v){v=u(v);return v===undefined||v===null?'':String(v);};\n  var norm=function(v){v=str(v);return v.indexOf('http://')===0?'https://'+v.slice(7):v;};\n  var feeds=arr((u(S.feed)||{}).feeds);\n  var out=[];var seen={};\n  for(var i=0;i<feeds.length;i++){\n    var item=u(feeds[i]);\n    if(!item||typeof item!=='object')continue;\n    var card=u(item.noteCard||item.note_card)||{};\n    var id=str(card.noteId||card.note_id||item.id);\n    if(!id||seen[id])continue;\n    seen[id]=1;\n    var token=str(item.xsecToken||item.xsec_token||card.xsecToken||card.xsec_token);\n    var inter=u(card.interactInfo||card.interact_info)||{};\n    var user=u(card.user)||{};\n    var cover=u(card.cover)||{};\n    out.push({\n      note_id:id,\n      xsec_token:token,\n      note_url:'https://www.xiaohongshu.com/explore/'+id+(token?('?xsec_token='+encodeURIComponent(token)+'&xsec_source=pc_feed'):''),\n      title:str(card.displayTitle||card.display_title),\n      type:str(card.type),\n      cover:norm(cover.urlDefault||cover.url_default||cover.url||cover.urlPre),\n      liked_count:str(inter.likedCount||inter.liked_count),\n      collected_count:str(inter.collectedCount||inter.collected_count),\n      comment_count:str(inter.commentCount||inter.comment_count),\n      author_id:str(user.userId||user.user_id),\n      author_name:str(user.nickname||user.nickName)\n    });\n  }\n  return out;\n})"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

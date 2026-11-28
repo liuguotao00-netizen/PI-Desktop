@@ -1,0 +1,80 @@
+{
+  "activationEvents": [
+    "onStartup",
+    "onCommand:note.open"
+  ],
+  "author": "G1oow",
+  "categories": [
+    "agents-workflow",
+    "productivity",
+    "writing"
+  ],
+  "changelog": "- 修复：切换项目后侧边栏笔记仍在显示上一个项目的内容。宿主的 docked 视图按 `pluginId/viewId` 只缓存一份页面，切项目不会重建，此前只在 `workspace:changed` 里刷列表，编辑器里还是旧项目的笔记。\n- 新增 `project-state.json`（插件私有目录）：按规范化工作区路径记住每个项目「正在打开的笔记」，最多 200 个项目。切进某个项目时先保存上一个项目的改动，再恢复它自己那次打开的那条笔记；没有记忆就显示该项目列表。\n- 新增 `note:remember` 通道；打开 / 新建笔记时写记忆，返回列表时清掉。只记属于当前项目或跨项目收件箱的笔记，在 A 项目打开 B 项目的笔记不会污染 A 的记忆。\n- 删除笔记时同步清理指向它的记忆；记忆文件损坏、条目过期或指向已删除笔记时静默重建，不影响 `notes.json` 与快照回退。\n- 保存失败时不切项目：面板留在原处并提示「上一个项目的改动没保存成功」，避免改动丢失。\n- `flushSave()` 改为等待进行中的那次保存，切项目 / 切笔记前保证改动真的落盘。",
+  "contributes": {
+    "commands": [
+      {
+        "category": "Notes",
+        "id": "note.open",
+        "keywords": [
+          "note",
+          "notes",
+          "笔记",
+          "memo",
+          "scratch"
+        ],
+        "title": "Notes: Open notes"
+      }
+    ],
+    "settings": [
+      {
+        "command": "note.open",
+        "default": "Mod+Shift+N",
+        "description": "仅当 PI-Desktop 窗口获得焦点时生效。留空表示不绑定快捷键；也可以直接从 Ctrl+K 搜索里的“Notes: Open notes”打开。",
+        "key": "openShortcut",
+        "scope": "plugin",
+        "title": "打开笔记的快捷键",
+        "type": "shortcut"
+      }
+    ],
+    "views": [
+      {
+        "entry": "views/index.html",
+        "icon": "book",
+        "id": "note",
+        "order": 10,
+        "title": {
+          "en": "Notes",
+          "zh-CN": "笔记"
+        }
+      }
+    ]
+  },
+  "description": "工作面板里的笔记：按项目隔离的笔记列表加一个全局收件箱，Markdown 编辑与预览，自动保存。",
+  "engines": {
+    "piDesktop": ">=0.9.0"
+  },
+  "homepage": "https://github.com/G1oow/PI-desktop-Note",
+  "i18n": {
+    "en": {
+      "name": "Notes",
+      "description": "Notes in the work panel: per-project notes plus a global inbox, Markdown editing and preview, autosave.",
+      "safetyNotes": "Notes live in the plugin's own data directory (notes.json with automatic snapshots). The plugin does not read or write workspace files, makes no network requests, and never reads the clipboard; it writes to it only when the user clicks Copy."
+    },
+    "zh-CN": {
+      "name": "PI·侧边栏笔记",
+      "description": "工作面板里的笔记：按项目隔离的笔记列表加一个全局收件箱，Markdown 编辑与预览，自动保存。",
+      "safetyNotes": "笔记保存在插件自己的数据目录（notes.json，附自动快照），不读写工作区文件，不访问网络，不使用剪贴板读取。仅在用户主动点“复制”时写入剪贴板。"
+    }
+  },
+  "id": "io.github.g1oow.sidebar-note",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "PI·侧边栏笔记",
+  "permissions": [
+    "ui.view",
+    "clipboard.write"
+  ],
+  "safetyNotes": "笔记保存在插件自己的数据目录（notes.json，附自动快照），不读写工作区文件，不访问网络，不使用剪贴板读取。仅在用户主动点“复制”时写入剪贴板。",
+  "schemaVersion": 1,
+  "version": "0.1.2"
+}

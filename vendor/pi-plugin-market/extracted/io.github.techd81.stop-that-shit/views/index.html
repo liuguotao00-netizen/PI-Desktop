@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="pi-plugin-chrome" content="v2">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stop That Shit</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">
+      <span class="stamp" aria-hidden="true">STOP</span>
+      <div>
+        <h1 id="title">Stop That Shit</h1>
+        <p class="subtitle" id="subtitle">任务边界护栏 · 本地审计</p>
+      </div>
+    </div>
+    <div class="toolbar-actions">
+      <span class="badge" id="state-badge">loading</span>
+      <button type="button" id="locale" class="ghost" aria-label="Switch language" title="Switch language">EN</button>
+      <button type="button" id="refresh" class="ghost">刷新</button>
+    </div>
+  </header>
+
+  <main>
+    <p class="hint" id="data-dir">—</p>
+
+    <section class="cards" id="cards" aria-live="polite"></section>
+
+    <section class="split">
+      <div class="panel-column">
+        <div class="section-head">
+          <h2 id="events-title">审计事件</h2>
+          <span class="count" id="events-count"></span>
+        </div>
+        <div class="filters">
+          <input type="search" id="filter" placeholder="按工具、原因码、事件 ID 过滤" autocomplete="off">
+          <select id="outcome" aria-label="按结果过滤">
+            <option value="">全部结果</option>
+            <option value="allow">allow</option>
+            <option value="deny_and_explain">deny_and_explain</option>
+            <option value="require_user_approval">require_user_approval</option>
+            <option value="report_and_defer">report_and_defer</option>
+          </select>
+        </div>
+        <ol class="events" id="events"></ol>
+        <p class="empty" id="events-empty" hidden>还没有审计记录。装上 Guard 后，首行发送 <code>$stop-that-shit change -- …</code> 才会武装。</p>
+      </div>
+
+      <aside class="detail">
+        <div class="section-head">
+          <h2 id="detail-title">事件详情</h2>
+        </div>
+        <pre class="explain" id="explain">选择左侧一条事件查看判定原因。</pre>
+        <div class="labels" id="labels" hidden>
+      <button type="button" data-label="correct" data-i18n="label.correct">correct</button>
+      <button type="button" data-label="incorrect" data-i18n="label.incorrect">incorrect</button>
+      <button type="button" data-label="inconclusive" data-i18n="label.inconclusive">inconclusive</button>
+        </div>
+        <div class="section-head">
+          <h2 id="doctor-title">Doctor</h2>
+          <button type="button" id="doctor-refresh" class="ghost small">重跑</button>
+        </div>
+        <ul class="doctor" id="doctor"></ul>
+      </aside>
+    </section>
+
+    <section class="sessions">
+      <div class="section-head">
+        <h2 id="sessions-title">会话契约</h2>
+      </div>
+      <table class="table" id="sessions">
+        <thead>
+          <tr>
+            <th data-i18n="table.session">会话</th>
+            <th data-i18n="table.state">状态</th>
+            <th data-i18n="table.agents">Agents</th>
+            <th data-i18n="table.hash">Hash</th>
+            <th data-i18n="table.deps">Deps</th>
+            <th data-i18n="table.files">Files</th>
+            <th data-i18n="table.updated">更新</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="empty" id="sessions-empty" hidden>还没有会话契约。</p>
+    </section>
+  </main>
+
+  <script src="lib/view-model.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

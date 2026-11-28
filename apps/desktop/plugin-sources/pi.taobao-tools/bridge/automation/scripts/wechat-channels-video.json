@@ -1,0 +1,239 @@
+{
+  "id": "wechat-channels-video",
+  "platform": "wechat-channels",
+  "kind": "publish",
+  "name": "视频号 · 发布视频",
+  "description": "视频号助手创作页发布视频：上传 → 填短标题 → 填描述 → 发表（含二次确认弹窗）→ 等跳转作品列表。标题按平台实测规则校验（6–16 字、不含 # 和中文逗号），描述在 WUJIE 微前端的 shadow DOM 里。",
+  "dedupeWindowMs": 300000,
+  "variables": [
+    {
+      "key": "title",
+      "label": "短标题（6–16 字；不含 #、中文逗号、顿号）",
+      "type": "text",
+      "minChars": 6,
+      "forbidChars": [
+        "#",
+        "，",
+        "、"
+      ],
+      "default": ""
+    },
+    {
+      "key": "description",
+      "label": "描述（话题标签放这里，例如 #机械弹弓 #复合弓）",
+      "type": "textarea",
+      "default": ""
+    },
+    {
+      "key": "video",
+      "label": "视频（本机绝对路径，单个文件）",
+      "type": "files",
+      "accept": "video/*",
+      "placeholder": "[\"/absolute/path/video.mp4\"]"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "channels_video_publish"
+    }
+  },
+  "steps": [
+    {
+      "id": "openCreate",
+      "description": "打开视频号创作页",
+      "action": "navigate",
+      "value": "https://channels.weixin.qq.com/platform/post/create",
+      "timeout": 40000
+    },
+    {
+      "id": "assertLoggedIn",
+      "description": "登录页会跳 /platform/login.html；授权必须在微信里点允许",
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "url",
+            "includes": "/login.html"
+          },
+          {
+            "type": "text",
+            "value": "微信快捷登录"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "视频号助手未登录：请在页面/微信里完成授权后重试"
+      }
+    },
+    {
+      "id": "assertNoRisk",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          },
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "视频号触发安全验证，请先在浏览器里完成"
+      }
+    },
+    {
+      "id": "waitUploadInput",
+      "description": "上传控件在 wujie-app 的 shadow DOM 里",
+      "action": "waitForElement",
+      "timeout": 30000,
+      "target": {
+        "selector": "input[type='file']"
+      }
+    },
+    {
+      "id": "uploadVideo",
+      "description": "把本地视频交给页面；完成判定交给下一步（拖拽区消失/视频就绪）",
+      "action": "upload",
+      "inputSelector": "input[type='file']",
+      "value": "{{video}}",
+      "params": {
+        "verify": {
+          "allowedExtensions": [
+            ".mp4",
+            ".mov",
+            ".m4v",
+            ".avi",
+            ".mkv",
+            ".flv",
+            ".webm"
+          ],
+          "maxFiles": 1
+        }
+      }
+    },
+    {
+      "id": "waitVideoReady",
+      "description": "上传完成的可靠信号：拖拽区消失，或 video.readyState>=1，或出现「视频已上传」",
+      "action": "waitForState",
+      "timeout": 300000,
+      "params": {
+        "expression": "(function(){var wj=document.querySelector('wujie-app');var root=wj?(wj.shadowRoot||wj):document;var app=root&&root.querySelector?root.querySelector('#app'):null;if(!app)return false;var drag=app.querySelector('.ant-upload-drag');if(drag&&drag.offsetParent!==null)return false;var video=app.querySelector('video');if(video&&video.readyState>=1)return true;return (app.innerText||'').indexOf('视频已上传')>=0;})()",
+        "errorCode": "UPLOAD_NOT_READY",
+        "errorMessage": "视频没有在限定时间内上传完成"
+      }
+    },
+    {
+      "id": "fillTitle",
+      "description": "短标题：平台上限 16 字，超出截断（下限和禁用字符在准备阶段已校验）",
+      "action": "type",
+      "value": "{{title}}",
+      "maxChars": 16,
+      "maxLengthUnit": "chars",
+      "target": {
+        "selector": "input[placeholder*='短标题']"
+      }
+    },
+    {
+      "id": "think",
+      "action": "wait",
+      "duration": [
+        500,
+        1000
+      ]
+    },
+    {
+      "id": "fillDescription",
+      "description": "描述是 WUJIE shadow DOM 里的 contenteditable，走真实编辑命令",
+      "action": "type",
+      "value": "{{description}}",
+      "target": {
+        "selector": ".input-editor"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        800,
+        1400
+      ]
+    },
+    {
+      "id": "publish",
+      "description": "点发表。实测 2026-10 的版本没有二次确认弹窗，一次点击即发布；confirm 仍然保留，3 秒内没出现就继续，兼容会出现弹窗的账号",
+      "action": "activateAndWaitForNavigation",
+      "timeout": 60000,
+      "target": {
+        "selector": "button",
+        "text": "发表"
+      },
+      "params": {
+        "successUrl": "https://channels.weixin.qq.com/platform/post/list",
+        "activation": "mouseClickWithFallback",
+        "confirm": {
+          "timeout": 3000,
+          "target": {
+            "selector": ".ant-modal-confirm button",
+            "text": "发表"
+          }
+        },
+        "verification": {
+          "texts": [
+            "请完成验证",
+            "安全验证"
+          ],
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "assertLanded",
+      "description": "作品列表页是成功信号；兜底再看一眼有没有错误提示",
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "发表失败"
+          },
+          {
+            "type": "text",
+            "value": "操作频繁"
+          }
+        ],
+        "errorCode": "PUBLISH_REJECTED",
+        "errorMessage": "视频号没有接受这次发表"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "channelsPublishResult",
+        "fn": "function(ctx){return {url:location.href,title:String(ctx.title||''),description:String(ctx.description||''),video:String((ctx.video||[])[0]||'')};}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

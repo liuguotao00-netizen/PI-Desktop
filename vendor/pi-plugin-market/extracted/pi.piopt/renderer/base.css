@@ -1,0 +1,252 @@
+/*
+ * PiOpt shell: the product frame shared by every feature view.
+ * Feature styles live in market.css / motion.css and are scoped to their own view.
+ */
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-rows: 46px minmax(0, 1fr);
+  overflow: hidden;
+  padding: 0;
+  background: var(--ds-bg-primary);
+  color: var(--ds-text-primary);
+  font: var(--text-base)/var(--leading-body) -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+    "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+ * The panel is an instrument, not a document: dragging across labels, stats or
+ * chips must not paint a selection. Selection is off at the root, and only the
+ * values a user actually carries away — fields, endpoints, keys, hashes,
+ * changelogs and failure text — opt back in below.
+ */
+input,
+textarea,
+code,
+pre,
+.mono,
+.kvrow .v,
+.modal-title .sub,
+.pname .pid,
+.probe .m,
+.mrow-err {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/*
+ * The panel declares `pi-plugin-chrome: v3` (paint-through), so the host keeps
+ * its 46px band, splits it into drag segments around interactive elements, and
+ * no longer prints the development hint it adds to v2 panels. This strip
+ * carries the brand and nothing interactive; feature switching lives in the
+ * rail below, which is clickable.
+ */
+.opt-dragbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 148px 0 14px;
+  border-bottom: 1px solid var(--ds-border-default);
+  background: var(--ds-bg-secondary);
+  -webkit-app-region: drag;
+}
+
+.opt-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.opt-mark {
+  /* 3 bars + 2 gaps = 13px. Anything narrower and the grid overflows its own box,
+     which shifts the whole mark by half of the difference once it is centred. */
+  width: 13px;
+  height: 13px;
+  display: grid;
+  grid-template-columns: repeat(3, 3px);
+  align-items: end;
+  gap: 2px;
+}
+.opt-mark i { display: block; background: var(--ds-accent); border-radius: 1px; }
+.opt-mark i:nth-child(1) { height: 6px; opacity: 0.55; }
+.opt-mark i:nth-child(2) { height: 13px; }
+.opt-mark i:nth-child(3) { height: 9px; opacity: 0.75; }
+
+.opt-rail {
+  position: relative;
+  grid-column: 1;
+  grid-row: 2;
+  width: 48px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  /* 3px of side padding keeps the hover row from touching the rail edges; the
+     icon lands on the rail's centre line either way. */
+  padding: 8px 3px;
+  overflow: hidden;
+  border-right: 1px solid var(--ds-border-default);
+  background: var(--ds-bg-secondary);
+  transition: width 180ms cubic-bezier(0.22, 1, 0.36, 1), padding 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* The tabs keep their own stack so the toggle can sit above them without
+   breaking the tablist semantics. */
+.rail-tabs {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  min-height: 0;
+}
+
+.opt-rail button {
+  position: relative;
+  flex: none;
+  /* Full width in both states, so the row's left edge is fixed by the rail's
+     padding alone: the icon only has to travel the 3px -> 8px padding change
+     instead of jumping from a centred box to a stretched one. */
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ds-text-muted);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  /* Same easing as the rail, so the icon glides with the padding change. */
+  transition: padding 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.opt-rail button:hover { background: var(--ds-bg-hover); color: var(--ds-text-primary); }
+.opt-rail button[aria-selected="true"] {
+  background: var(--ds-bg-active);
+  color: var(--ds-text-primary);
+}
+/* The selection marker is one element that travels between the two rows, so the
+   change of view reads as a move rather than as a new bar appearing. shell.js
+   owns its offset; the CSS only gives it somewhere to land. */
+.rail-marker {
+  position: absolute;
+  left: 1px;
+  top: 0;
+  width: 2px;
+  height: 20px;
+  border-radius: 1px;
+  background: var(--ds-accent);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    height 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    left 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 100ms linear;
+}
+.rail-marker[data-ready="true"] { opacity: 1; }
+/* The rail's inner padding goes 3px -> 8px when it opens; the marker moves with
+   it so it keeps hugging the rail edge instead of drifting inward. */
+body[data-rail="expanded"] .rail-marker { left: 2px; }
+.opt-rail button:focus-visible { outline: 2px solid var(--ds-accent); outline-offset: -2px; }
+
+/* Collapsed, the rail is icons only; the names appear once it is open. */
+.rail-label {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  letter-spacing: -0.005em;
+}
+.rail-glyph {
+  flex: none;
+  transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* One row height in both states, and one gap everywhere: opening the rail must
+   not resize the rows it reveals. */
+
+body[data-rail="expanded"] .opt-rail { width: 176px; padding: 8px; }
+body[data-rail="expanded"] .opt-rail button { padding: 0 9px; }
+body[data-rail="expanded"] .rail-label {
+  display: inline;
+  animation: rail-label-in 120ms cubic-bezier(0.22, 1, 0.36, 1) 100ms both;
+}
+body[data-rail="expanded"] .rail-glyph { transform: rotate(180deg); }
+
+/* The names wait until the rail is most of the way open: shown any earlier they
+   are squeezed into a few pixels inside a still-narrow button, which reads as a
+   flicker. Closing hides them at once, so nothing trails behind the rail. */
+@keyframes rail-label-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .opt-rail,
+  .rail-glyph,
+  .rail-marker { transition-duration: 0.01ms; }
+  .rail-marker[data-ready="true"] { transition: opacity 0.01ms; }
+  body[data-rail="expanded"] .rail-label { animation: none; }
+  .opt-view[data-enter] { animation: none; }
+}
+
+.opt-view { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; overflow: hidden; }
+/* Replayed by shell.js on every switch: the incoming view lifts a few pixels
+   into place so the tab change has a direction. The attribute is removed on
+   animationend, which keeps the finished frame from pinning a transform. */
+.opt-view[data-enter] {
+  animation: opt-view-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes opt-view-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+#view-market { display: flex; flex-direction: column; }
+
+/* Only rendered when a feature view fails to boot. */
+.opt-error {
+  margin: 10px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-error);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ds-error) 10%, transparent);
+  color: var(--ds-error);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/*
+ * The host draws its own window controls (minimise / maximise / close) inside a
+ * closed shadow root, from two variables it copies off this page once, when the
+ * panel document is ready. PiOpt paints itself light or dark a moment later, as
+ * soon as the host reports its appearance, so those copies can end up inverted:
+ * white glyphs on the white title bar of a light panel, which is unreadable.
+ *
+ * The capsule is not addressable, but the variables it reads are inherited ones,
+ * so they are pinned here to our own tokens. `--ds-text-primary` and
+ * `--ds-bg-primary` already flip with `data-base`, which keeps the controls in
+ * step with whatever the panel is actually showing. `!important` is required to
+ * outrank the inline values the host wrote.
+ */
+pi-plugin-panel-chrome {
+  --pi-plugin-panel-page-foreground: var(--ds-text-primary) !important;
+  --pi-plugin-panel-page-background: var(--ds-bg-primary) !important;
+}

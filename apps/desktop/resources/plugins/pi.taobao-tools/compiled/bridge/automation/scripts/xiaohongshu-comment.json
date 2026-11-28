@@ -1,0 +1,294 @@
+{
+  "id": "xiaohongshu-comment",
+  "platform": "xiaohongshu",
+  "kind": "interact",
+  "name": "小红书 · 评论 / 回复笔记",
+  "description": "在笔记详情页发表评论；commentId 优先回复指定评论，否则可用 userId 定位评论再回复。发表后按评论数（回复按目标评论子树里的文字）确认。",
+  "contextSetup": {
+    "hasCommentId": {
+      "type": "derived",
+      "source": "commentId",
+      "op": "!=",
+      "value": ""
+    },
+    "hasUserId": {
+      "type": "derived",
+      "source": "userId",
+      "op": "!=",
+      "value": ""
+    },
+    "noCommentId": {
+      "type": "derived",
+      "source": "commentId",
+      "op": "==",
+      "value": ""
+    }
+  },
+  "variables": [
+    {
+      "key": "feedId",
+      "label": "笔记 ID",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "xsecToken",
+      "label": "xsec_token（和笔记 ID 配对）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "content",
+      "label": "评论内容",
+      "type": "textarea",
+      "default": ""
+    },
+    {
+      "key": "commentId",
+      "label": "要回复的评论 ID（与 userId 二选一；都留空=发表新评论）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "userId",
+      "label": "要回复的用户 ID（commentId 留空时可用）",
+      "type": "text",
+      "default": ""
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_comment"
+    }
+  },
+  "steps": [
+    {
+      "id": "openNote",
+      "action": "navigate",
+      "value": "https://www.xiaohongshu.com/explore/{{feedId}}?xsec_token={{xsecToken}}&xsec_source=pc_feed",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".login-container"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*=\"login-mask\"]"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证"
+          },
+          {
+            "type": "exist",
+            "selector": ".captcha-container"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".access-wrapper, .error-wrapper, .not-found-wrapper, .blocked-wrapper"
+          },
+          {
+            "type": "text",
+            "value": "当前笔记暂时无法浏览"
+          },
+          {
+            "type": "text",
+            "value": "笔记不存在"
+          }
+        ],
+        "errorCode": "NOTE_NOT_ACCESSIBLE",
+        "errorMessage": "这条笔记无法访问（可能已删除、设为私密或被屏蔽）"
+      }
+    },
+    {
+      "id": "waitNoteState",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){try{var S=window.__INITIAL_STATE__;if(!S||!S.note)return false;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var m=u(S.note.noteDetailMap);if(!m||typeof m!=='object')return false;var keys=Object.keys(m);if(!keys.length)return false;var first=u(m[keys[0]]);return !!(first&&u(first.note));}catch(e){return false;}})()",
+        "errorCode": "NOTE_NOT_READY",
+        "errorMessage": "笔记详情没有在限定时间内加载出来"
+      }
+    },
+    {
+      "id": "prepare",
+      "description": "记下当前评论数和要发的文字，供后面确认",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsCommentState",
+        "fn": "function(ctx){\n  var cid=String(ctx.commentId||'').trim();\n  var uid=String(ctx.userId||'').trim();\n  var mode='comment';\n  if(cid){mode='reply_id';}\n  else if(uid){mode='reply_user';}\n  window.__qiworkComment={\n    mode:mode,\n    commentId:cid,\n    userId:uid,\n    count:document.querySelectorAll('.parent-comment').length,\n    text:String(ctx.content||'')\n  };\n  return {mode:mode,count:window.__qiworkComment.count,commentId:cid,userId:uid};\n}"
+      }
+    },
+    {
+      "id": "scrollToUserComment",
+      "description": "按 userId 滚动定位评论",
+      "action": "execute",
+      "when": "noCommentId",
+      "whenState": "window.__qiworkComment&&window.__qiworkComment.mode==='reply_user'",
+      "timeout": 60000,
+      "params": {
+        "saveAs": "xhsReplyScroll",
+        "fn": "function(ctx){\n  var uid=String(ctx.userId||'').trim();\n  if(!uid){return {found:false};}\n  var container=document.querySelector('.comments-container');\n  if(container){container.scrollIntoView({block:'start'});}\n  var attempts=0;\n  var foundEl=null;\n  while(attempts<40&&!foundEl){\n    attempts++;\n    var nodes=document.querySelectorAll('.parent-comment,.comment-item,.comment');\n    for(var i=0;i<nodes.length;i++){\n      var el=nodes[i];\n      if(el.querySelector('[data-user-id=\"'+uid+'\"]')){foundEl=el;break;}\n    }\n    if(foundEl){break;}\n    window.scrollBy(0,Math.floor(window.innerHeight*0.75));\n  }\n  if(!foundEl){return {found:false,attempts:attempts};}\n  foundEl.scrollIntoView({block:'center'});\n  var id=foundEl.id||'';\n  if(id.indexOf('comment-')===0){window.__qiworkComment.commentId=id.slice(8);}\n  var reply=foundEl.querySelector('.right .interactions .reply,.interactions .reply');\n  if(reply){reply.click();}\n  return {found:true,attempts:attempts,commentId:window.__qiworkComment.commentId||''};\n}"
+      }
+    },
+    {
+      "id": "openReplyEditor",
+      "description": "回复模式：点目标评论的「回复」",
+      "action": "click",
+      "trusted": true,
+      "when": "hasCommentId",
+      "target": {
+        "selector": "#comment-{{commentId}} .right .interactions .reply"
+      }
+    },
+    {
+      "id": "openCommentEditor",
+      "description": "评论模式：点评论输入区",
+      "action": "click",
+      "trusted": true,
+      "whenState": "window.__qiworkComment&&window.__qiworkComment.mode==='comment'",
+      "target": {
+        "selector": "div.input-box div.content-edit span"
+      }
+    },
+    {
+      "id": "waitEditor",
+      "action": "waitForElement",
+      "timeout": 8000,
+      "target": {
+        "selector": "div.input-box div.content-edit p.content-input"
+      }
+    },
+    {
+      "id": "typeComment",
+      "description": "编辑器是 contenteditable，走真实编辑命令",
+      "action": "type",
+      "value": "{{content}}",
+      "maxChars": 1000,
+      "target": {
+        "selector": "div.input-box div.content-edit p.content-input"
+      }
+    },
+    {
+      "id": "think",
+      "action": "wait",
+      "duration": [
+        600,
+        1200
+      ]
+    },
+    {
+      "id": "submit",
+      "description": "点发送（真实指针）",
+      "action": "click",
+      "trusted": true,
+      "target": {
+        "selector": "div.bottom button.submit"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        1500,
+        2500
+      ]
+    },
+    {
+      "id": "assertNoError",
+      "description": "平台拒绝时给出明确原因",
+      "action": "assertPageState",
+      "timeout": 5000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "操作频繁"
+          },
+          {
+            "type": "text",
+            "value": "评论失败"
+          },
+          {
+            "type": "text",
+            "value": "发送失败"
+          },
+          {
+            "type": "text",
+            "value": "请输入评论内容"
+          },
+          {
+            "type": "text",
+            "value": "请先登录"
+          }
+        ],
+        "errorCode": "COMMENT_FAILED",
+        "errorMessage": "小红书没有接受这条评论（文案见页面提示）"
+      }
+    },
+    {
+      "id": "verify",
+      "description": "评论看评论数是否增加；回复看目标评论子树里是否出现这段文字",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){\n  var st=window.__qiworkComment;\n  if(!st)return false;\n  if(st.mode==='comment'){\n    return document.querySelectorAll('.parent-comment').length > st.count;\n  }\n  var node=document.querySelector('#comment-'+st.commentId);\n  if(!node)return false;\n  if((node.innerText||'').indexOf(st.text)<0)return false;\n  var field=document.querySelector('div.input-box div.content-edit p.content-input');\n  var still=field&&(field.innerText||'').indexOf(st.text)>=0;\n  return !still;\n})()",
+        "errorCode": "COMMENT_NOT_CONFIRMED",
+        "errorMessage": "评论没有在限定时间内确认，请在页面上看一眼再决定是否重试"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsCommentResult",
+        "fn": "function(){\n  var st=window.__qiworkComment||{};\n  return {\n    mode:st.mode||'',\n    comment_id:st.commentId||'',\n    user_id:st.userId||'',\n    comments_before:st.count||0,\n    comments_after:document.querySelectorAll('.parent-comment').length,\n    text:st.text||''\n  };\n}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

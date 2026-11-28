@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v3" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' file:; style-src 'self' file: 'unsafe-inline'; img-src 'self' file: data:; connect-src 'none';" />
+    <title>剪映助手</title>
+    <link rel="stylesheet" href="./panel.css" />
+    <link rel="stylesheet" href="./theme.css" />
+  </head>
+  <body>
+    <header class="titlebar">
+      <span class="brand-mark" aria-hidden="true">剪</span>
+      <h1>剪映助手</h1>
+      <span class="title-note">本地草稿工作台</span>
+    </header>
+    <main>
+      <div class="intro">
+        <div><p class="eyebrow">从时间轴到可编辑工程</p><h2>准备素材，交给时间轴。</h2></div>
+        <span class="tag">JSON → 剪映草稿</span>
+      </div>
+      <p id="previewNotice" class="notice" hidden>浏览器预览，不连接本地剪映。可编辑和检查 JSON；本地操作已禁用。</p>
+      <p id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true">正在读取插件状态…</p>
+
+      <div class="workspace">
+        <section class="card status-card" aria-labelledby="statusHeading">
+          <div class="section-head">
+            <h2 id="statusHeading"><span class="step">01</span>状态检测</h2>
+            <span id="connection" class="badge" data-tone="neutral">未连接</span>
+          </div>
+          <div class="status-row">
+            <div class="status-copy"><p id="doctorStatus">尚未诊断。连接成功不代表环境已就绪。</p><p class="hint">工作区：<span id="workspacePath">尚未读取</span></p></div>
+            <div class="actions"><button id="refresh" type="button" data-action data-host>刷新状态</button><button id="doctor" type="button" data-action data-host>运行诊断</button></div>
+          </div>
+          <details id="diagnostics"><summary>最近操作 · 原始返回</summary><pre id="diagnosticOutput" tabindex="0">尚无诊断或操作结果。</pre></details>
+        </section>
+
+        <section class="card settings-card" aria-labelledby="settingsHeading">
+          <div class="section-head"><h2 id="settingsHeading"><span class="step">02</span>环境设置</h2><span id="settingsState" class="hint">尚未读取</span></div>
+          <p class="hint">填写本机路径后保存，再安装依赖或生成草稿。</p>
+          <form id="settingsForm">
+            <div class="field"><label for="pythonPath">Python 解释器</label><input id="pythonPath" name="pythonPath" placeholder="D:\Python\python.exe" spellcheck="false" autocomplete="off" /></div>
+            <div class="field"><label for="draftRoot">剪映草稿目录</label><input id="draftRoot" name="draftRoot" placeholder="填写本机剪映草稿根目录" spellcheck="false" autocomplete="off" /></div>
+            <div class="field"><label for="jianyingPath">剪映程序</label><input id="jianyingPath" name="jianyingPath" placeholder="D:\JianyingPro\JianyingPro.exe" spellcheck="false" autocomplete="off" /></div>
+            <div class="field"><label for="workDir">生成工作目录</label><input id="workDir" name="workDir" placeholder="填写草稿生成的工作目录" spellcheck="false" autocomplete="off" /></div>
+            <div class="actions"><button id="saveSettings" type="submit" data-action data-host>保存设置</button><button id="setup" type="button" data-action data-host>安装 Python 依赖…</button></div>
+          </form>
+          <p class="hint">依赖安装需要联网下载 Python 包；不包含 Python 本体安装。</p>
+          <div class="divider"></div>
+          <label for="probePath">检查单个素材</label>
+          <div class="probe-row"><input id="probePath" placeholder="D:\素材\片段.mp4" spellcheck="false" autocomplete="off" /><button id="probe" type="button" data-action data-host>探测</button></div>
+          <p class="hint">读取素材信息，结果显示在「原始返回」。</p>
+        </section>
+
+        <section class="card timeline-card" aria-labelledby="timelineHeading">
+          <div class="section-head"><h2 id="timelineHeading"><span class="step">03</span>时间轴</h2><span class="tag">JSON</span></div>
+          <div class="editor-toolbar"><label for="timeline">时间轴 JSON</label><div class="actions"><button id="loadExample" class="quiet" type="button" data-action>载入示例</button><button id="checkJson" class="quiet" type="button" data-action>检查 JSON</button></div></div>
+          <textarea id="timeline" rows="19" spellcheck="false" autocomplete="off" aria-describedby="timelineHelp jsonMessage" aria-invalid="false"></textarea>
+          <p id="jsonMessage" class="inline-message" role="status" aria-live="polite">示例数据，请先替换素材路径；示例不会创建素材。</p>
+          <p id="timelineHelp" class="hint">单位为秒；视频按顺序拼接。输出时长 = duration ÷ speed。音频 at 为放置时间，start 为源素材起点。</p>
+          <div class="actions editor-actions"><button id="validate" type="button" data-action data-host>校验时间轴</button><button id="build" class="primary" type="button" data-action data-host>生成草稿 <span aria-hidden="true">↗</span></button></div>
+        </section>
+
+        <section class="card result-card" aria-labelledby="resultHeading">
+          <div class="section-head"><h2 id="resultHeading"><span class="step">04</span>生成结果</h2><span id="resultState" class="badge" data-tone="neutral">等待生成</span></div>
+          <p id="resultEmpty" class="empty">还没有生成结果。校验时间轴后，生成可编辑的剪映草稿。</p>
+          <div id="resultContent" hidden>
+            <dl class="result-grid"><div><dt>工程名称</dt><dd id="resultTitle"></dd></div><div><dt>输出时长</dt><dd id="resultDuration"></dd></div><div class="wide"><dt>任务目录</dt><dd id="resultJob"></dd></div><div class="wide"><dt>草稿目录</dt><dd id="resultDraft"></dd></div></dl>
+            <p id="staleResult" class="notice" hidden>时间轴已有修改，下方仍是上次生成的结果；导入不会包含当前修改。</p>
+            <ul id="warnings" class="warnings" aria-label="生成警告" hidden></ul>
+            <details><summary>生成结果 JSON</summary><pre id="resultOutput" tabindex="0"></pre></details>
+          </div>
+          <div class="actions result-actions"><button id="publish" class="primary" type="button" data-action data-host disabled>导入剪映草稿…</button><button id="launch" type="button" data-action data-host>启动剪映</button><span id="publishState" class="hint"></span></div>
+          <p class="hint">导入会复制为新工程，不覆盖原工程。启动仅打开剪映程序，不保证打开指定草稿。</p>
+          <p class="export-note"><strong>草稿不是 MP4。</strong>请在剪映中检查并导出；新版剪映自动导出需要另行使用桌面自动化，本面板不提供自动导出。</p>
+        </section>
+      </div>
+      <footer>素材留在本机 · 以实际诊断和操作返回为准</footer>
+    </main>
+    <dialog id="confirmDialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+      <form method="dialog"><h2 id="confirmTitle"></h2><p id="confirmMessage"></p><div class="actions"><button value="cancel" autofocus>取消</button><button id="confirmAccept" class="primary" value="confirm">确认</button></div></form>
+    </dialog>
+    <script src="./panel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,134 @@
+{
+  "id": "xiaohongshu-long-article-finish",
+  "platform": "xiaohongshu",
+  "kind": "publish",
+  "name": "小红书 · 长文发布（下一步 + 描述 + 发布）",
+  "description": "在已选模板后点击「下一步」，填写发布页描述，可选定时/可见性/原创，再发布或暂存。",
+  "taskName": "xiaohongshu_long_article_finish",
+  "dedupeWindowMs": 300000,
+  "contextSetup": {
+    "submitPublish": {
+      "type": "derived",
+      "source": "submitAction",
+      "op": "==",
+      "value": "publish"
+    },
+    "submitDraft": {
+      "type": "derived",
+      "source": "submitAction",
+      "op": "==",
+      "value": "draft"
+    }
+  },
+  "variables": [
+    {
+      "key": "description",
+      "label": "发布页笔记描述（最多 1000 字，超出会在页面侧截断）",
+      "type": "textarea",
+      "placeholder": "补充描述…"
+    },
+    {
+      "key": "scheduleAt",
+      "label": "定时发布 ISO8601（留空=立即）",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "visibility",
+      "label": "可见范围：留空或公开可见 / 仅自己可见 / 仅互关好友可见",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "original",
+      "label": "声明原创：true 开启",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "submitAction",
+      "label": "publish / draft / fill（只填描述不提交）",
+      "type": "text",
+      "required": false,
+      "default": "publish"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_long_article_finish"
+    }
+  },
+  "steps": [
+    {
+      "id": "nextStep",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "longArticleNext",
+        "fn": "function(){\n  var elems=document.querySelectorAll('button,[role=\"button\"],span,div,a');\n  for(var i=0;i<elems.length;i++){\n    if((elems[i].textContent||'').trim()==='下一步'){\n      elems[i].click();\n      return {ok:true};\n    }\n  }\n  return {ok:false,error:'未找到下一步'};\n}"
+      }
+    },
+    {
+      "action": "waitForLoad",
+      "timeout": 25000
+    },
+    {
+      "action": "wait",
+      "duration": [1200, 2000]
+    },
+    {
+      "id": "fillDescription",
+      "action": "type",
+      "target": { "selector": ".ProseMirror" },
+      "value": "{{description}}",
+      "maxChars": 1000,
+      "description": "填写发布页描述"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "id": "applyPublishOptions",
+      "action": "execute",
+      "timeout": 30000,
+      "params": {
+        "saveAs": "publishOptions",
+        "fn": "function(ctx){\n  var out={schedule:false,visibility:false,original:false,errors:[]};\n  var schedule=String(ctx.scheduleAt||'').trim();\n  if(schedule){\n    try{\n      var d=new Date(schedule);\n      if(isNaN(d.getTime()))throw new Error('bad');\n      var pad=function(n){return n<10?'0'+n:String(n);};\n      var text=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());\n      var sw=document.querySelector('.post-time-wrapper .d-switch');\n      if(sw){sw.click();}\n      var input=document.querySelector('.date-picker-container input');\n      if(input){input.focus();input.value=text;input.dispatchEvent(new Event('input',{bubbles:true}));out.schedule=true;}\n      else{out.errors.push('未找到定时输入框');}\n    }catch(e){out.errors.push('定时格式无效');}\n  }\n  var vis=String(ctx.visibility||'').trim();\n  if(vis&&vis!=='公开可见'){\n    var dd=document.querySelector('div.permission-card-wrapper div.d-select-content');\n    if(dd){dd.click();}\n    var opts=document.querySelectorAll('div.d-options-wrapper div.d-grid-item div.custom-option');\n    for(var i=0;i<opts.length;i++){\n      if((opts[i].textContent||'').indexOf(vis)>=0){opts[i].click();out.visibility=true;break;}\n    }\n  }\n  if(String(ctx.original||'').trim().toLowerCase()==='true'){\n    var toggle=document.querySelector('div.custom-switch-card div.d-switch');\n    if(toggle){toggle.click();out.original=true;}\n  }\n  return out;\n}"
+      }
+    },
+    {
+      "id": "publishNote",
+      "when": "submitPublish",
+      "action": "activateAndWaitForResponse",
+      "target": {
+        "shadowHost": "xhs-publish-btn:not([is-publish='false']):not([submit-disabled='true'])",
+        "selector": "button.bg-red:not(:disabled):not([aria-disabled='true'])",
+        "text": "发布"
+      },
+      "timeout": 30000,
+      "params": {
+        "activation": "mouseClickWithFallback",
+        "urlPattern": "*/web_api/sns/v2/note*",
+        "successPath": "success",
+        "successEquals": true,
+        "requiredPaths": [],
+        "saveAs": "publishReceipt"
+      }
+    },
+    {
+      "id": "saveDraft",
+      "when": "submitDraft",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "draftResult",
+        "fn": "function(){\n  var buttons=document.querySelectorAll('button.custom-button');\n  for(var i=0;i<buttons.length;i++){\n    if((buttons[i].textContent||'').trim()==='暂存离开'){buttons[i].click();return {saved:true};}\n  }\n  return {saved:false};\n}"
+      }
+    }
+  ]
+}

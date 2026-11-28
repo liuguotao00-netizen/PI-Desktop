@@ -1,0 +1,283 @@
+{
+  "id": "xiaohongshu-video",
+  "platform": "xiaohongshu",
+  "kind": "publish",
+  "name": "小红书 · 发布视频笔记",
+  "taskName": "xiaohongshu_publish_video",
+  "dedupeWindowMs": 300000,
+  "startUrl": "https://creator.xiaohongshu.com/new/home",
+  "humanize": {
+    "mouseSpeed": "normal",
+    "typingSpeed": "normal",
+    "mistakeRate": 0.03,
+    "extraPauseRate": 0.1
+  },
+  "variables": [
+    {
+      "key": "title",
+      "label": "笔记标题（生成时含标点不超过 20 个 UTF-16 字符；按最终原字符串的 JavaScript title.length 复核，不要凭分组口算；不确定时不要输出分项总数；超限需重新生成标题）",
+      "type": "text",
+      "placeholder": "填写标题会有更多赞哦"
+    },
+    {
+      "key": "content",
+      "label": "正文内容（不含话题标签，最多 1000 字，超出截断）",
+      "type": "textarea",
+      "placeholder": "分享你的故事…"
+    },
+    {
+      "key": "video",
+      "label": "视频（单个文件，最大 20GB，支持时长 4 小时以内）",
+      "type": "files",
+      "placeholder": "运行 Desktop 的本机文件绝对路径数组，如 [\"/path/video.mp4\"]；不要传相对路径、文件 ID 或 URL",
+      "accept": ".mp4,.mov,.flv,.f4v,.mkv,.rm,.rmvb,.m4v,.mpg,.mpeg,.ts"
+    },
+    {
+      "key": "tags",
+      "label": "话题标签（生成时最多 10 个有效话题；显式 tags 与正文 hashtag 合并归一化去重，#、空格和重复项不重复计数；超限需重新生成话题）",
+      "type": "text",
+      "placeholder": "#话题1 #话题2"
+    }
+  ],
+  "steps": [
+    {
+      "id": "assertXhsReady",
+      "description": "等待小红书登录与风控状态可判定",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "passWhen": [
+          {
+            "type": "visible",
+            "selector": ".btn-wrapper",
+            "value": "发布笔记"
+          }
+        ],
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": ".captcha-container",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": ".login-container",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": "[class*=\"login-mask\"]",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          }
+        ],
+        "errorCode": "PUBLISH_BUTTON_UNAVAILABLE",
+        "errorMessage": "小红书创作页未在限定时间内进入可发布状态"
+      }
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": ".btn-wrapper",
+        "text": "发布笔记"
+      },
+      "timeout": 10000,
+      "description": "等待发布笔记按钮"
+    },
+    {
+      "action": "hover",
+      "target": {
+        "selector": ".btn-wrapper",
+        "text": "发布笔记"
+      },
+      "description": "悬停展开发布菜单"
+    },
+    {
+      "action": "wait",
+      "duration": [
+        400,
+        700
+      ]
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": ".publish-video-popover .container",
+        "text": "上传视频"
+      },
+      "timeout": 5000,
+      "description": "等待下拉菜单"
+    },
+    {
+      "action": "click",
+      "target": {
+        "selector": ".publish-video-popover .container",
+        "text": "上传视频"
+      },
+      "description": "点击上传视频"
+    },
+    {
+      "action": "wait",
+      "duration": [
+        600,
+        1000
+      ]
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": "button.upload-button",
+        "text": "上传视频"
+      },
+      "timeout": 12000,
+      "description": "等待视频上传区域"
+    },
+    {
+      "action": "upload",
+      "inputSelector": "input.upload-input[type='file'][accept*='.mp4']",
+      "value": "{{video}}",
+      "params": {
+        "verify": {
+          "mediaType": "video",
+          "uploadedSelector": "xhs-publish-btn[is-publish='true'][submit-disabled='false'][submit-loading='false']",
+          "pendingSelectors": [
+            ".cover-container [class*='uploading']",
+            ".cover-container [class*='progress']",
+            ".cover-container [class*='processing']"
+          ],
+          "failureSelectors": [
+            ".d-toast",
+            ".d-message",
+            ".d-notification",
+            "[role='alert']",
+            "[class*='toast']",
+            ".cover-container [class*='error']",
+            ".cover-container [class*='fail']"
+          ],
+          "failureTexts": [
+            "视频上传失败",
+            "上传视频失败",
+            "视频处理失败",
+            "上传失败",
+            "重试上传",
+            "请重新上传"
+          ],
+          "allowedExtensions": [
+            ".mp4",
+            ".mov",
+            ".flv",
+            ".f4v",
+            ".mkv",
+            ".rm",
+            ".rmvb",
+            ".m4v",
+            ".mpg",
+            ".mpeg",
+            ".ts"
+          ],
+          "maxFiles": 1,
+          "stabilityMs": 3000,
+          "timeout": 600000,
+          "pollInterval": 1000
+        }
+      },
+      "description": "上传视频并等待平台上传、处理完成"
+    },
+    {
+      "action": "waitForElement",
+      "target": {
+        "selector": "input[placeholder='填写标题会有更多赞哦']"
+      },
+      "timeout": 30000,
+      "description": "等待视频编辑区域加载"
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": "input[placeholder='填写标题会有更多赞哦']"
+      },
+      "value": "{{title}}",
+      "maxChars": 20,
+      "maxLengthUnit": "xhs",
+      "description": "输入标题（按小红书计数：非 ASCII 记 2、ASCII 记 1，合计不超过 20）"
+    },
+    {
+      "action": "wait",
+      "duration": [
+        800,
+        1500
+      ]
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": ".ProseMirror"
+      },
+      "value": "{{content}}",
+      "maxChars": 1000,
+      "description": "输入正文"
+    },
+    {
+      "action": "wait",
+      "duration": [
+        600,
+        1200
+      ]
+    },
+    {
+      "action": "type",
+      "target": {
+        "selector": ".ProseMirror"
+      },
+      "value": "\n{{tags}}",
+      "noClick": true,
+      "tagMode": true,
+      "description": "输入已通过数量校验的话题标签（正文中的 hashtag 已移出）"
+    },
+    {
+      "action": "wait",
+      "duration": [
+        400,
+        800
+      ]
+    },
+    {
+      "action": "activateAndWaitForResponse",
+      "target": {
+        "shadowHost": "xhs-publish-btn:not([is-publish='false']):not([submit-disabled='true'])",
+        "selector": "button.bg-red:not(:disabled):not([aria-disabled='true'])",
+        "text": "发布"
+      },
+      "timeout": 30000,
+      "params": {
+        "activation": "mouseClickWithFallback",
+        "urlPattern": "*/web_api/sns/v2/note*",
+        "successPath": "success",
+        "successEquals": true,
+        "requiredPaths": [],
+        "saveAs": "publishReceipt"
+      },
+      "description": "激活发布按钮并等待发布结果"
+    }
+  ]
+}

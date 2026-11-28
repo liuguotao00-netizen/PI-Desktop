@@ -1,0 +1,12 @@
+{
+  "id": "local.pi-bot",
+  "version": "0.3.110",
+  "publishedAt": "2026-11-14T08:37:41Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.pi-bot-0.3.110.piplug",
+  "shasum": "56130f4b3078ec05fd483ebbd7c81eea7f6938952f637e423f7249eb16407df0",
+  "repository": null,
+  "homepage": "https://github.com/vsd269/PI-Bot",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.pi-bot/0.3.110",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "local.terminal",
+  "version": "0.5.0",
+  "publishedAt": "2026-11-19T06:50:00Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.terminal-0.5.0.piplug",
+  "shasum": "9c5db7c480c78b9e67f928f833bd243b1c72aa7f910a439baff2e669e86ed6c5",
+  "repository": null,
+  "homepage": "https://github.com/zwwangoo/pi-terminal",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.terminal/0.5.0",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

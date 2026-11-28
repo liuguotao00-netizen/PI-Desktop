@@ -1,0 +1,12 @@
+{
+  "id": "demo.workspace-summary",
+  "version": "0.2.3",
+  "publishedAt": "2026-09-12T17:13:25Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/demo.workspace-summary-0.2.3.piplug",
+  "shasum": "41d951ab4d95ead69f4f9a7d6fb0ba18a560185919fca7ce076c13e8c4d84711",
+  "repository": "https://plugins.aiuo.net/plugins/demo.workspace-summary",
+  "homepage": "https://plugins.aiuo.net/plugins/demo.workspace-summary",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/demo.workspace-summary/0.2.3",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

@@ -1,0 +1,832 @@
+{
+  "activationEvents": [
+    "onStartup"
+  ],
+  "author": "taokoplay",
+  "categories": [
+    "ai",
+    "media"
+  ],
+  "changelog": "# Changelog\n## 0.8.0\n\n- Add a confirmed Regenerate action to failed generation record details for image, speech and ComfyUI workflow tasks.\n- Preserve the original failed record while creating a new request with fresh request identity and refresh the local records view after submission.\n## 0.7.9\n\n- Fall back to bounded per-node ComfyUI `/object_info/<class>` reads when the full node catalog returns a server error, while preserving complete mapping validation.\n- Persist preflight workflow failures as local `wf-*` records with `not-submitted` or `unknown` charging state, and reuse them for stable request keys without duplicate reads or prompts.\n## 0.7.8\n\n- Fix remote ComfyUI workflow reads by preserving path separators in `/userdata` requests while encoding each path segment safely.\n- Add a regression covering image-to-video reference upload and single-prompt submission through the corrected path.\n## 0.7.7\n\n- Increase the in-plugin Canvas conversion `/object_info` response budget for large ComfyUI node libraries.\n- Preserve safe diagnostics for oversized or invalid Host responses instead of collapsing them into an unavailable generation result.\n## 0.7.6\n\n- Add safe in-plugin Canvas-to-API conversion using ComfyUI `/object_info` metadata, link validation and widget mapping.\n- Allow Canvas workflows to enter the existing local import review or remote temporary execution flow when every mapping is proven; unresolved, bypassed or missing nodes remain blocked without saving or submitting.\n- Add Canvas conversion diagnostics, reference-image upload coverage and settings/browser regression coverage.\n## 0.7.5\n\n- Add direct execution of synchronized ComfyUI API-format workflows without importing them into the local workflow list.\n- Expose stable remote names, IDs, paths, formats, content hashes and node-match candidates through `list_remote_workflows`; duplicate names require a path or stable ID.\n- Lock remote request identity to the synchronized workflow content hash, reject Canvas execution, and preserve single-submission behavior for image-to-video uploads.\n- Validate persisted workflow content hashes against their definitions and keep older snapshots readable by deriving missing hashes.\n\n## 0.7.4\n\n- Import API-format ComfyUI workflows directly from the service editor into Local workflows and show a saved-status result.\n- Explain why canvas-format workflows cannot be imported, while preserving remote workflow read-only behavior and snapshot recovery.\n\n## 0.7.3\n\n- Match ComfyUI API-format node fields and output candidates for prompt, dimensions, sampling, timing, frame and reference-image bindings.\n- Add guarded image-to-video reference upload through the Host binary request contract; validate the returned ComfyUI input reference before writing it into a cloned prompt.\n- Reject workflow inputs that contain the saved ComfyUI credential, preserve single-submission idempotency, and expose the new matching flow in the bilingual settings page.\n\n## 0.7.2\n\n- Remove the fixed per-media and unified generation-record caps; existing records remain readable and new records are retained until explicitly deleted.\n- Add guarded batch deletion for local image, audio and ComfyUI records through the records page and `delete_generation_records` Agent tool.\n- Keep unresolved submissions, unknown outcomes and result-recovery states protected from deletion; terminal record deletion removes associated private result files.\n\n## 0.7.1\n\n- Fix Agent image generation failures that were returned as completed tool calls when multiple models had no selected default.\n- Return `MODEL_SELECTION_REQUIRED` or `MODEL_UNAVAILABLE`, mark structured failures as tool errors, and keep provider submission at zero until a model is explicitly selected.\n\n## 0.7.0\n\n- Add ComfyUI API workflow execution for image, video and audio outputs.\n- Synchronize remote workflow definitions into local snapshots with source hashes and explicit output rules.\n- Submit once, retain the ComfyUI prompt ID, reconcile the same task after reload, and download results through the host bounded binary response contract.\n- Validate output paths, media signatures and SHA-256 before adding independent `wf-` jobs to unified Generation Records.\n- Add `generate_workflow_media`, `workflow_job`, `cancel_workflow_job` and `export_workflow_result` while preserving the existing sixteen tools and image/audio records.\n- Keep canvas workflows preview-only, server-wide history/queue separate, and unknown outcomes free of automatic resubmission.\n- Mark structured Agent generation failures as tool errors so model-selection failures are not reported as successful calls.\n\n## 0.6.2\n\n- Support reference-image edits on text-only Hosts through the official JSON\n  `images[].image_url` data-URL format, retaining multipart on capable Hosts.\n- Keep scoped image reads, original-byte hashes, ordered request identity and\n  existing task formats; missing binary fields select JSON with error redirects.\n- Select a transport before submission and never retry another format after a\n  provider rejection or unknown result. Preserve text/speech and all sixteen tools.\n- Correct capability diagnostics and Agent guidance; binary upload is optional.\n\n## 0.6.1\n\n- Show the running plugin version in the panel badge and localized window title\n  using the existing status handshake, replacing the stale fixed 0.5.4 label.\n- Hide unavailable or invalid version metadata, discard obsolete handshake\n  replies, and preserve active editor contents and focus during version updates.\n- Add bridge and browser regressions for both locales, reloads and disposal.\n\n## 0.6.0\n\n- Add ordered GPT reference-image input to Agent and legacy preparation tools,\n  with scoped PNG/JPEG/WebP reads, content hashes and multipart image edits.\n- Require explicitly advertised Host binary HTTP capability; older Hosts keep\n  text/speech generation and reject references before submission.\n- Preserve text-only job formats and single-submission behavior; use version-3\n  records for reference jobs and document the downgrade boundary.\n- Keep plugin startup and text/speech tools available when optional reference\n  capability discovery fails; report shared, sanitized Host support diagnostics.\n- Remove redundant workspace queries before Host-pinned image reads while\n  retaining post-read checks, content verification and cancellation handling.\n\n## 0.5.4\n\n- Keep only Configuration and Generation Records in the panel. Create images and\n  speech from Agent conversations; remove the redundant manual forms/controllers.\n- Preserve all sixteen Agent tools, compatible backend routes, project badges,\n  compact columns, local progress, image preview, speech playback and downloads.\n- Allow the configuration search field to shrink at 320px while keeping the add\n  action readable, removing a narrow-screen horizontal overflow.\n- Supply English and Simplified Chinese marketplace metadata and panel copy for\n  publication. Preserve Chinese fallback on hosts without a locale API.\n- Exercise Agent-to-record user paths, keyboard navigation and media cleanup in\n  isolated browser tests. Existing credentials, tasks and permissions are unchanged.\n\n## 0.5.3\n\n- Rebalance records-table columns so channel/model no longer consumes most of\n  the available width. Move status and time closer while preserving project\n  badges, header alignment and narrow layouts.\n\n## 0.5.2\n\n- Show a small project-name badge below each image/speech task type. Long names\n  truncate in the list and remain available through the title and accessible label.\n- Capture the project at task preparation using host context. Preserve snapshots\n  across project switches and restart; legacy or unverified associations remain\n  explicitly unknown. Existing task formats, generation and permissions are unchanged.\n\n## 0.5.1\n\n- Republish the verified image/speech workflow with intact UTF-8 source files.\n  The initial marketplace 0.5.0 MCP upload incorrectly converted non-ASCII\n  text during request transport; the GitHub 0.5.0 asset was unaffected.\n- Keep generation behavior, credentials, task storage and permissions unchanged.\n  Prefer 0.5.1 when installing from the marketplace.\n\n## 0.5.0\n\n- Add MiniMax speech synthesis through configured models and explicit voice IDs,\n  with Agent generation, voice discovery, session-scoped jobs and MP3 export.\n- Unify local image and audio records with state filters, modal playback/download,\n  byte-derived audio metadata and local polling for newly created Agent jobs.\n- Share durable storage, request lifecycle, concurrency and export safety while\n  preserving image formats, old interfaces and credentials without migration.\n- Add a speech page and regression coverage. Environmental sound effects, music,\n  video and workflow execution remain unavailable; no local synthesis fallback.\n\n## 0.4.3\n\n- Combine the channel and model into one records-table cell: channel above,\n  smaller muted model below. Preserve this order on narrow screens and keep\n  status filtering, local updates and modal details unchanged.\n\n## 0.4.2\n\n- Merge Records and Task Queue into one local Generation Records page with\n  compact channel/model/time columns and Generating/Completed/Failed filters.\n  Uncertain outcomes remain visibly unresolved instead of being called failures.\n- Open details in an accessible modal with image preview/download, requested and\n  actual dimensions, and collapsible prompt/technical data. Preserve list scroll,\n  dialog focus and stale-read protection during status updates.\n- Remove mixed ComfyUI remote activity from the records page; keep the existing\n  backend inspection contracts and configuration/resource browsing unchanged.\n\n## 0.4.1\n\n- Fix lost slow GPT image responses: Agent generation and legacy submit tools now\n  retain their originating invocation until the single HTTP exchange and result\n  persistence settle. The panel still submits asynchronously through the same engine.\n- Bound HTTP waiting to 90 seconds inside the installed host's 110-second tool\n  deadline; keep existing-job wait parameters without truncating new submissions.\n- Classify host invocation interruption as TOOL_ABORTED/unknown, distinct from\n  network failure and timeout. Preserve durable claims and never resubmit unknown jobs.\n- Add lifecycle regressions and delayed real-client Agent acceptance.\n\n## 0.4.0\n\n- Add Agent-first model discovery, single-call generation, bounded local waiting\n  and image result tools. Select explicit/session/default/unique models in order;\n  return choices on ambiguity instead of silently switching services.\n- Persist hashed session/request provenance in compatible version-2 image jobs.\n  Retry stable request keys across turns/restarts without a second provider call.\n- Return bounded typed PNG content and provide permission-scoped original export\n  through a fixed decoder; the Agent never transcribes Base64 into a file.\n- Retain all eight 0.3 tools and existing UI. Declare read-only plan-safe actions\n  and narrow workspace export permissions; document installed-client boundaries.\n\n\n## 0.3.0\n\n- Add single-output GPT text-to-image through configured OpenAI-compatible services.\n  Prepare requests locally, confirm billable submission, and persist exclusive\n  dispatch claims so duplicate calls and restarts cannot resend the same task.\n- Validate and store PNG bytes, dimensions and hashes; provide local job records,\n  result preview/download and bounded Agent result reads without private paths.\n- Add generation UI and five task tools. Report uncertain outcomes without retries;\n  preserve existing credentials, settings, ComfyUI browsing and workflow behavior.\n- Document usage, billing limits, unsupported URL-only output and later phases.\n\n## 0.2.2\n\n- Fix ComfyUI workflow previews rejected by filename-style text restrictions:\n  preserve multiline notes, ordinary HTTP links and emoji in validated bodies.\n  Keep credential/path/size protections, cache accepted previews across restart,\n  and distinguish missing files, invalid content and HTTP failures in the UI.\n- Restore read-only configuration loading when new page files meet an older\n  resident entry. Keep load failures and retry actions visible across navigation,\n  and recheck the protocol after backend recovery without changing saved data.\n- Preserve media-panel business error codes across Electron IPC using a versioned\n  JSON response. Show specific credential/permission failures without locking the\n  editor as an unknown save; detect an outdated resident entry before writing.\n  Retain uncertain-save protection for transport loss and ambiguous storage errors.\n- Persist API credentials without a client upgrade: keep a random AES-256 key in\n  macOS Keychain and atomically commit authenticated ciphertext with configuration.\n  Remove the unsupported host secret permissions. Restore after reload/restart,\n  preserve old data on failure, and report actual storage support/access status.\n  Legacy host-encrypted data is retained and requires its original environment.\n- Test ComfyUI connections with the lightweight system endpoint so large node\n  catalogs do not falsely fail reachable services. Keep workflow checks separate.\n- Persist and apply ComfyUI none/Bearer/custom-header authentication; preserve\n  legacy optional Bearer behavior and revoke credentials on identity changes.\n- Show safe, localized connection diagnostics and invalidate stale probe results\n  when connection settings change.\n- Update inline ComfyUI resource lists locally; retain editor/sidebar focus and\n  scrolling during folder loads, and avoid page rebuilds on toast dismissal.\n- Persist complete ComfyUI model catalogs, workflow listings and viewed workflow\n  JSON in a private snapshot file. Reopen offline, show sync timestamps, retain\n  successful snapshots on sync failure, and invalidate them on identity changes.\n- Query MiniMax cloud models and account voices independently without requiring\n  a selected audio model; preserve partial results and filter chat-only models.\n- Merge remote MiniMax models with 18 labeled builtin candidates, display voices\n  separately, and refresh credential state after save-before-discovery.\n- Give MiniMax models and voices separate fetch buttons. Make the voice catalog\n  read-only, remove the MiniMax default-voice control, and preserve legacy values.\n\n## 0.2.1\n\n- Refresh the configuration UI to a unified service list with a dedicated DutyDeck-style model configuration page.\n- Add local provider icons, service-row editing, enable/disable toggles and custom provider selection.\n- Add GPT Image 2 to the OpenAI image model catalog and support adding available models into enabled models.\n- Keep generation execution unimplemented; this release changes configuration UX and model discovery presentation only.\n\n## 0.2.0\n\n- Separate Configuration, Records and Task Queue navigation. Combine image/video/\n  audio model providers under Model Services; give Dreamina and LibTV dedicated\n  singleton entries without deleting existing duplicate configurations.\n- Verify LibTV's public HTTP MCP/OAuth metadata and official marketplace model;\n  distinguish this plugin's single-entry policy from a global account restriction.\n- Add explicit read-only ComfyUI model-folder/file browsing, remote workflow\n  listings/details and safe API-workflow draft import. Canvas JSON is preview-only.\n- Browse server-wide history and pending/running queues without exposing prompt\n  payloads or claiming task ownership. No generation, remote cancellation or\n  automatic background polling is introduced.\n- Validate listed paths, response limits, endpoint compatibility and asynchronous\n  configuration changes before displaying resource data.\n\n## 0.1.0\n\n- Establish an independent media configuration plugin with DutyDeck-inspired\n  list/edit pages for generation models, audio, LibTV, connections and workflows.\n- Migrate provider validation, atomic configuration storage, temporary credentials\n  and explicit directory probes without importing any user configuration.\n- Store standalone ComfyUI workflows with validated bindings and protected\n  connection references. Node discovery does not execute workflows.\n- Expose three read-only Agent discovery tools and accurate generation-unavailable\n  capabilities. No paid generation, subprocess execution or result export.\n- Provide isolated backend, entry-contract and browser user-path tests; keep\n  production data, credentials and test servers out of distributable packages.\n",
+  "contributes": {
+    "agentTools": [
+      {
+        "description": "读取媒体服务的实际执行能力、GPT 文生图/参考图约束、宿主缺口和配置状态；不联网、不返回密钥、不生成。已配置不等于供应商实测通过。",
+        "name": "get_capabilities",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读列出媒体服务与模型配置、默认项和加密凭据是否已设置。不返回密钥，不探测网络；配置或目录可达不等于生成可用。",
+        "name": "list_profiles",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "description": "可选媒体类型；省略返回全部",
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读列出本地 ComfyUI 工作流摘要与连接引用，不返回工作流正文，不执行或验证远端工作流。",
+        "name": "list_workflows",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "description": "可选媒体类型；省略返回全部",
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [],
+          "type": "object"
+        }
+      },
+      {
+        "description": "准备一张 GPT 生图请求，可选参考图；本地校验并持久化参数，不调用供应商、不收费。必须指定已保存服务、配置版本和该服务的 GPT 图片模型。返回任务 ID 和请求哈希供确认。",
+        "name": "prepare_image",
+        "risk": "medium",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "modelId": {
+              "description": "已配置的 gpt-image-* 模型 ID",
+              "type": "string"
+            },
+            "profileId": {
+              "description": "已启用的 OpenAI 服务 ID",
+              "type": "string"
+            },
+            "prompt": {
+              "maxLength": 8000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "quality": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "type": "string"
+            },
+            "referenceImages": {
+              "description": "Ordered local reference images staged under bone-media/references/. Each SHA-256 must match the original bytes. The plugin sends validated images internally; never paste image Base64 into tool arguments.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[a-f0-9]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              },
+              "maxItems": 16,
+              "minItems": 1,
+              "type": "array"
+            },
+            "requestId": {
+              "description": "每次新请求生成 UUID v4；相同请求重试使用原 UUID",
+              "type": "string"
+            },
+            "size": {
+              "enum": [
+                "1024x1024",
+                "1536x1024",
+                "1024x1536"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "requestId",
+            "profileId",
+            "expectedRevision",
+            "modelId",
+            "prompt",
+            "size",
+            "quality"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "按准备好的任务提交一次 GPT 生图，可能收费；须已有用户授权并传 confirm=true。保持调用直至本次请求结束并保存结果，网络上限90秒。同一任务不会重复生成。超时或 unknown 不得盲目新建重试。",
+        "name": "submit_image",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "confirm": {
+              "enum": [
+                true
+              ],
+              "type": "boolean"
+            },
+            "jobId": {
+              "description": "prepare_image 返回的任务 ID",
+              "type": "string"
+            },
+            "requestHash": {
+              "description": "准备阶段返回的精确请求哈希",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId",
+            "requestHash",
+            "confirm"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读本地 GPT 生图任务状态与结果元数据；不联网、不重新提交。unknown 表示结果与扣费尚不确定，不代表失败或退款。",
+        "name": "get_image_job",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "description": "任务 ID",
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读列出本插件的 GPT 生图记录，不读取 ComfyUI 服务端任务、不返回凭据或私有路径。",
+        "name": "list_image_jobs",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {},
+          "required": [],
+          "type": "object"
+        }
+      },
+      {
+        "description": "分块读取已成功生成并验证的 PNG，每次最多 64 KiB 的 Base64；校验结果哈希，无网络请求。Agent 用自身获准的文件工具保存，不读取插件私有目录。",
+        "name": "read_image_result",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedSha256": {
+              "description": "任务结果的 SHA-256",
+              "type": "string"
+            },
+            "jobId": {
+              "description": "成功任务 ID",
+              "type": "string"
+            },
+            "offset": {
+              "description": "字节偏移，从 0 开始，后续使用 nextOffset",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "jobId",
+            "expectedSha256",
+            "offset"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "查询本插件已配置的媒体模型、稳定 modelRef、默认项、参数范围与不可用原因。Agent 生图或语音生成先调用此工具。只读、不联网、不返回密钥；配置可用不等于供应商实测通过。",
+        "name": "media_catalog",
+        "planSafeActions": [
+          "list"
+        ],
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "list"
+              ],
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "按用户已授权的要求，用已配置 GPT 模型生成一张 PNG，可用 referenceImages 引用已暂存参考图；先用 media_catalog 核对宿主支持。可能收费；无需面板。modelRef 可指定模型，省略按会话选择、默认、唯一候选解析；若存在多个 ready 候选且没有会话选择或具体默认，返回 MODEL_SELECTION_REQUIRED 并且不会提交，必须先让用户选择或传入 media_catalog 返回的完整 modelRef。相同 requestKey 重试不重复生成。新提交保持调用直到请求结束（网络上限90秒）并保存结果；waitMs 仅用于已有任务的本地等待。完成返回图片，否则返回原任务状态，unknown 不得盲目新建重试。",
+        "name": "generate_image",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "modelRef": {
+              "description": "media_catalog 返回的完整 modelRef；用户指定模型时必须提供",
+              "type": "string"
+            },
+            "prompt": {
+              "maxLength": 8000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "quality": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ],
+              "type": "string"
+            },
+            "referenceImages": {
+              "description": "Ordered local reference images staged under bone-media/references/. Each SHA-256 must match the original bytes. The plugin sends validated images internally; never paste image Base64 into tool arguments.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[a-f0-9]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              },
+              "maxItems": 16,
+              "minItems": 1,
+              "type": "array"
+            },
+            "requestKey": {
+              "description": "稳定请求名，如 blue-cup-1；相同请求重试不变，不能因超时更换",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$",
+              "type": "string"
+            },
+            "size": {
+              "enum": [
+                "1024x1024",
+                "1536x1024",
+                "1024x1536"
+              ],
+              "type": "string"
+            },
+            "waitMs": {
+              "description": "已有任务的本地等待；不截断本次新提交的网络请求",
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "prompt",
+            "requestKey"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "读取当前会话的既有生图任务；wait 有限等待最多15秒，result 返回已验证图片内容块（大图提示导出），list 不含提示词。全部为本地只读，不重新提交。unknown 不代表失败或退款，不能盲目新建重试。",
+        "name": "image_job",
+        "planSafeActions": [
+          "get",
+          "wait",
+          "list",
+          "result"
+        ],
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "get",
+                "wait",
+                "list",
+                "result"
+              ],
+              "type": "string"
+            },
+            "jobId": {
+              "type": "string"
+            },
+            "waitMs": {
+              "maximum": 15000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "将当前会话已生成图片写入授权工作区 bone-media/exports 下的唯一交接文件，返回解码命令和哈希；Agent 用自身获准的执行工具生成原始 PNG。无生成费用，不返回 Base64 文本，不允许任意目标路径或覆盖现有 PNG。缺少工作区或权限时导出单独报错。",
+        "name": "export_image_result",
+        "risk": "medium",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "按用户授权用已配置 MiniMax 语音模型将 text 朗读为一段 MP3，可能收费。仅 operation=speech；不支持脚步、环境音效或音乐，不得将音效描述当作朗读文本。必须明确 voiceId，可先查询 audio_voices。稳定 requestKey 防止重复提交。新请求保持调用至网络/保存结束（网络上限90秒）；unknown 不得新建重试。成功后导出音频。",
+        "name": "generate_audio",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "modelRef": {
+              "type": "string"
+            },
+            "operation": {
+              "enum": [
+                "speech"
+              ],
+              "type": "string"
+            },
+            "requestKey": {
+              "description": "相同请求重试保持原值，不因超时换名",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$",
+              "type": "string"
+            },
+            "speed": {
+              "maximum": 2,
+              "minimum": 0.5,
+              "type": "number"
+            },
+            "text": {
+              "description": "需要逐字朗读的文本，不是音效描述",
+              "maxLength": 1000,
+              "minLength": 1,
+              "type": "string"
+            },
+            "voiceId": {
+              "description": "明确指定的 MiniMax 音色 ID，可通过 audio_voices 查询",
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            "waitMs": {
+              "maximum": 10000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "operation",
+            "text",
+            "voiceId",
+            "requestKey"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读当前会话语音任务；wait 最多15秒，result 核对已保存 MP3 后返回元数据和导出入口，list 不含朗读文本。不联网、不生成、不返回 Base64。unknown 不代表失败或退款。",
+        "name": "audio_job",
+        "planSafeActions": [
+          "get",
+          "wait",
+          "list",
+          "result"
+        ],
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "get",
+                "wait",
+                "list",
+                "result"
+              ],
+              "type": "string"
+            },
+            "jobId": {
+              "type": "string"
+            },
+            "waitMs": {
+              "maximum": 15000,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "导出当前会话已生成 MP3 到授权工作区 bone-media/exports。返回唯一交接文件和固定解码命令，Agent 用获准执行工具生成原始音频并核对哈希。无生成费用，不返回 Base64，不接受任意目标路径或覆盖已有文件。",
+        "name": "export_audio_result",
+        "risk": "medium",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "按已配置 MiniMax 语音 modelRef 显式联网查询可用音色 ID 和名称；不生成、不修改默认音色、不返回密钥。供用户选择 generate_audio 的 voiceId。",
+        "name": "audio_voices",
+        "risk": "medium",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "modelRef": {
+              "description": "media_catalog 返回的 MiniMax 语音模型引用",
+              "type": "string"
+            }
+          },
+          "required": [
+            "modelRef"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "使用已同步的 ComfyUI API 或可安全转换的 Canvas 工作流生成一项图片、视频或音频；本地模式使用 workflowId，远端模式使用 profileId 配合 remotePath、唯一 remoteName 或 list_remote_workflows 返回的 remoteWorkflowId。Canvas 转换会先读取 ComfyUI /object_info 并验证连线与 widgets，无法证明安全时停止；图生视频会先将已暂存参考图上传到 ComfyUI，再把返回的安全文件引用填入克隆工作流。仅提交一次，稳定 requestKey 重试不会重复提交；结果未知时必须查询原任务。",
+        "name": "generate_workflow_media",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "inputs": {
+              "type": "object"
+            },
+            "kind": {
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            },
+            "profileId": {
+              "type": "string"
+            },
+            "referenceImages": {
+              "description": "Ordered local reference images staged under bone-media/references/. Each SHA-256 must match the original bytes. The plugin sends validated images internally; never paste image Base64 into tool arguments.",
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "path": {
+                    "maxLength": 512,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sha256": {
+                    "pattern": "^[a-f0-9]{64}$",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "path",
+                  "sha256"
+                ],
+                "type": "object"
+              },
+              "maxItems": 16,
+              "minItems": 1,
+              "type": "array"
+            },
+            "remoteName": {
+              "maxLength": 128,
+              "type": "string"
+            },
+            "remotePath": {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            "remoteWorkflowId": {
+              "pattern": "^remote-[a-f0-9]{32}$",
+              "type": "string"
+            },
+            "requestKey": {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$",
+              "type": "string"
+            },
+            "waitMs": {
+              "maximum": 60000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "workflowId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "requestKey"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "只读列出已同步快照中的 ComfyUI 远端工作流名称、稳定 ID、路径、格式、内容哈希和字段匹配候选；唯一名称可用于 remoteName，重复名称必须使用路径或稳定 ID。API 格式可直接调用，Canvas 只有在插件完成安全转换后才可执行。不会联网读取未同步内容、返回凭据或暴露默认输入值。",
+        "name": "list_remote_workflows",
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "expectedRevision": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "enum": [
+                "image",
+                "video",
+                "audio"
+              ],
+              "type": "string"
+            },
+            "profileId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "profileId",
+            "expectedRevision"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "查询当前会话的 ComfyUI 工作流任务、等待结果或读取已保存的媒体；不创建新任务。",
+        "name": "workflow_job",
+        "planSafeActions": [
+          "get",
+          "list",
+          "result",
+          "reconcile"
+        ],
+        "risk": "low",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "enum": [
+                "get",
+                "list",
+                "result",
+                "reconcile"
+              ],
+              "type": "string"
+            },
+            "expectedSha256": {
+              "type": "string"
+            },
+            "jobId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "取消明确仍在 ComfyUI 队列中的工作流任务。运行中的任务不会被全局中断；取消后结果和扣费状态仍需核对。",
+        "name": "cancel_workflow_job",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "confirm": {
+              "enum": [
+                true
+              ],
+              "type": "boolean"
+            },
+            "jobId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId",
+            "confirm"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "将已完成的 ComfyUI 图片、视频或音频结果交接到授权工作区 bone-media/exports/**，不重新提交任务。",
+        "name": "export_workflow_result",
+        "risk": "medium",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "jobId": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "jobId"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "永久删除指定的本地图片、音频或 ComfyUI 生成记录及其私有结果文件；不会取消供应商任务。必须明确提供记录 kind、jobId 和 confirm=true。仍在提交、状态未知或结果待恢复的任务会被拒绝删除。",
+        "name": "delete_generation_records",
+        "risk": "high",
+        "schema": {
+          "additionalProperties": false,
+          "properties": {
+            "confirm": {
+              "enum": [
+                true
+              ],
+              "type": "boolean"
+            },
+            "records": {
+              "items": {
+                "additionalProperties": false,
+                "properties": {
+                  "jobId": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "kind": {
+                    "enum": [
+                      "image",
+                      "audio",
+                      "workflow"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "jobId"
+                ],
+                "type": "object"
+              },
+              "minItems": 1,
+              "type": "array"
+            }
+          },
+          "required": [
+            "records",
+            "confirm"
+          ],
+          "type": "object"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "id": "bone.aimedia.services.open",
+        "keywords": [
+          "bone",
+          "aimedia",
+          "媒体",
+          "图片",
+          "视频",
+          "配音"
+        ],
+        "title": "Bone AI 媒体服务: 打开配置"
+      }
+    ],
+    "skills": [
+      "skills/ai-media-services/SKILL.md"
+    ],
+    "views": [
+      {
+        "entry": "renderer/index.html",
+        "icon": "image",
+        "id": "settings",
+        "order": 11,
+        "title": {
+          "en": "Bone AI Media Services",
+          "zh-CN": "Bone AI 媒体服务"
+        }
+      }
+    ]
+  },
+  "description": "Agent-driven GPT images, scoped reference-image edits, MiniMax speech and validated ComfyUI workflow media, with encrypted configuration, project-aware records and original-file export.",
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "fs": {
+    "read": {
+      "root": "workspace",
+      "scope": [
+        "bone-media/exports/**",
+        "bone-media/references/**"
+      ]
+    },
+    "write": {
+      "root": "workspace",
+      "scope": [
+        "bone-media/exports/**"
+      ]
+    }
+  },
+  "homepage": "https://github.com/taokoplay/bone-aimedia-services",
+  "i18n": {
+    "en": {
+      "name": "AI Media Services",
+      "description": "Generate GPT images, scoped reference-image edits, MiniMax speech and validated ComfyUI workflow media from Agent conversations. JSON reference uploads work with text-only Host HTTP. Keep encrypted services, project labels, bilingual records, previews and exports.",
+      "safetyNotes": "Authorized generation sends prompts, speech text, reference images or ComfyUI workflow inputs to the selected provider and may incur charges. Credentials use a macOS Keychain-backed encryption key. Workspace reads are limited to bone-media/references/** and bone-media/exports/**; writes stay under bone-media/exports/**. ComfyUI results use host-bounded binary responses and hash/signature checks. Unknown tasks are never automatically resubmitted. Masks, sound effects, music and arbitrary remote URLs are unavailable."
+    },
+    "zh-CN": {
+      "name": "AI媒体生成服务",
+      "description": "通过 Agent 对话生成 GPT 图片、参考图编辑、MiniMax 语音及经校验的 ComfyUI 图片、视频和音频工作流结果；JSON 参考图请求兼容仅支持文本 HTTP 的宿主。",
+      "safetyNotes": "经授权的生成会将提示词、朗读文本、参考图或 ComfyUI 工作流输入发送至所选供应商，可能产生费用。凭据使用 macOS 钥匙串主密钥加密。工作区读取仅限 bone-media/references/** 和 bone-media/exports/**，写入仍限 bone-media/exports/**。ComfyUI 结果通过宿主受限二进制响应下载，并在写入记录前校验哈希与格式。结果未知的任务不会自动重试。暂不支持蒙版、环境音效、音乐及任意远程 URL。"
+    }
+  },
+  "id": "bone.aimedia.services",
+  "license": "AGPL-3.0-only",
+  "main": "main.js",
+  "name": "AI媒体生成服务",
+  "permissions": [
+    "ui.view",
+    "agent.tool.register",
+    "agent.prompt.inject",
+    "net.fetch",
+    "net.anyHost",
+    "fs.read",
+    "fs.write"
+  ],
+  "safetyNotes": "Authorized generation sends prompts, speech text, reference images or ComfyUI workflow inputs to the selected provider and may incur charges. Credentials use a macOS Keychain-backed encryption key. Workspace reads are limited to bone-media/references/** and bone-media/exports/**; writes stay under bone-media/exports/**. ComfyUI results are downloaded only through the host bounded binary response and are hash/signature checked before local records. Unknown tasks are never automatically resubmitted. Masks, sound effects, music and arbitrary remote URLs are unavailable.",
+  "schemaVersion": 1,
+  "version": "0.8.0"
+}

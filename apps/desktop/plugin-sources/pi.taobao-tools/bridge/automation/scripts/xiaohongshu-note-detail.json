@@ -1,0 +1,235 @@
+{
+  "id": "xiaohongshu-note-detail",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 采集笔记详情与评论",
+  "description": "按笔记 id + xsec_token 打开详情页，读 __INITIAL_STATE__.note.noteDetailMap 取正文、图片、互动数据和评论；评论在详情页的滚动容器里，用 anchorSelector 把最后一条评论滚进视野来加载。",
+  "contextSetup": {
+    "limitComments": {
+      "type": "number",
+      "default": 50
+    },
+    "shouldLoadComments": {
+      "type": "derived",
+      "source": "limitComments",
+      "op": ">",
+      "value": 0
+    }
+  },
+  "variables": [
+    {
+      "key": "feedId",
+      "label": "笔记 ID（搜索或首页结果里的 note_id）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "xsecToken",
+      "label": "xsec_token（必须和笔记 ID 配对，从同一份结果里取）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "limitComments",
+      "label": "评论数量上限（0=不加载评论，默认 50）",
+      "type": "text",
+      "default": "50"
+    },
+    {
+      "key": "expandReplies",
+      "label": "每轮展开子评论的按钮数（0=不展开，默认 5）",
+      "type": "text",
+      "default": "5"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_note_detail"
+    },
+    "csv": [
+      {
+        "type": "note",
+        "source": "execute_xhsNoteDetail.note",
+        "columns": [
+          {
+            "name": "note_id",
+            "from": "note_id"
+          },
+          {
+            "name": "title",
+            "from": "title"
+          },
+          {
+            "name": "author_name",
+            "from": "author_name"
+          },
+          {
+            "name": "liked_count",
+            "from": "liked_count"
+          },
+          {
+            "name": "comment_count",
+            "from": "comment_count"
+          },
+          {
+            "name": "publish_time",
+            "from": "publish_time"
+          }
+        ]
+      },
+      {
+        "type": "comments",
+        "source": "execute_xhsNoteDetail.comments",
+        "columns": [
+          {
+            "name": "comment_id",
+            "from": "comment_id"
+          },
+          {
+            "name": "content",
+            "from": "content"
+          },
+          {
+            "name": "nickname",
+            "from": "nickname"
+          },
+          {
+            "name": "like_count",
+            "from": "like_count"
+          },
+          {
+            "name": "create_time",
+            "from": "create_time"
+          },
+          {
+            "name": "ip_location",
+            "from": "ip_location"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "openNote",
+      "description": "打开笔记详情页",
+      "action": "navigate",
+      "value": "https://www.xiaohongshu.com/explore/{{feedId}}?xsec_token={{xsecToken}}&xsec_source=pc_feed",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".login-container"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*=\"login-mask\"]"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证"
+          },
+          {
+            "type": "exist",
+            "selector": ".captcha-container"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "id": "assertNoteAccessible",
+      "description": "笔记被删除/私密/屏蔽时给出明确错误",
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".access-wrapper, .error-wrapper, .not-found-wrapper, .blocked-wrapper"
+          },
+          {
+            "type": "text",
+            "value": "当前笔记暂时无法浏览"
+          },
+          {
+            "type": "text",
+            "value": "笔记不存在"
+          }
+        ],
+        "errorCode": "NOTE_NOT_ACCESSIBLE",
+        "errorMessage": "这条笔记无法访问（可能已删除、设为私密或被屏蔽）"
+      }
+    },
+    {
+      "id": "waitNoteState",
+      "description": "等 noteDetailMap 注入（DOM 早于数据）",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){try{var S=window.__INITIAL_STATE__;if(!S||!S.note)return false;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var m=u(S.note.noteDetailMap);if(!m||typeof m!=='object')return false;var keys=Object.keys(m);if(!keys.length)return false;var first=u(m[keys[0]]);return !!(first&&u(first.note));}catch(e){return false;}})()",
+        "errorCode": "NOTE_NOT_READY",
+        "errorMessage": "笔记详情没有在限定时间内加载出来"
+      }
+    },
+    {
+      "id": "scrollComments",
+      "description": "评论在详情页的滚动容器里：把最后一条评论滚进视野来触发加载，同时展开子评论",
+      "action": "scrollForState",
+      "when": "shouldLoadComments",
+      "timeout": 180000,
+      "params": {
+        "countExpr": "(function(){try{return document.querySelectorAll('.parent-comment').length;}catch(e){return 0;}})()",
+        "anchorSelector": ".parent-comment",
+        "expandSelector": ".show-more",
+        "expandMaxPerRound": "{{expandReplies}}",
+        "limitTotal": "{{limitComments}}",
+        "limitScroll": 60,
+        "stallRounds": 3,
+        "saveAs": "xhsCommentScroll"
+      }
+    },
+    {
+      "id": "extractDetail",
+      "description": "归一化正文、图片、互动数据和评论",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "xhsNoteDetail",
+        "fn": "(function(ctx){\n  var S=window.__INITIAL_STATE__;\n  var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};\n  var arr=function(v){v=u(v);return Array.isArray(v)?v:[];};\n  var str=function(v){v=u(v);return v===undefined||v===null?'':String(v);};\n  var norm=function(v){v=str(v);return v.indexOf('http://')===0?'https://'+v.slice(7):v;};\n  var timeStr=function(v){v=u(v);if(v===undefined||v===null||v==='')return '';var n=Number(v);if(!isNaN(n)&&n>100000000000)return new Date(n).toISOString();return String(v);};\n  var map=u((u(S.note)||{}).noteDetailMap)||{};\n  var wanted=str(ctx.feedId);\n  var keys=Object.keys(map);\n  var entry=null;\n  if(wanted&&map[wanted])entry=u(map[wanted]);\n  if(!entry&&keys.length)entry=u(map[keys[0]]);\n  if(!entry)return {note:null,comments:[],comment_total:0,error:'NOTE_STATE_MISSING'};\n  var note=u(entry.note)||{};\n  var bodyEl=document.querySelector('#detail-desc');\n  var body='';var tags=[];\n  if(bodyEl){\n    tags=Array.from(bodyEl.querySelectorAll('a.tag'))\n      .map(function(a){return (a.textContent||'').trim();})\n      .filter(Boolean);\n    var clone=bodyEl.cloneNode(true);\n    Array.from(clone.querySelectorAll('a.tag')).forEach(function(el){\n      if(el.parentNode)el.parentNode.removeChild(el);\n    });\n    body=(clone.textContent||'').replace(/\\n{3,}/g,'\\n\\n').trim();\n  }\n  var inter=u(note.interactInfo||note.interact_info)||{};\n  var user=u(note.user)||{};\n  var avatar=u(user.avatar)||{};\n  var images=arr(note.imageList||note.image_list).map(function(img){\n    img=u(img);\n    return norm(img.urlDefault||img.url_default||img.url||img.urlPre||img.url_pre);\n  }).filter(Boolean);\n  var list=arr((u(entry.comments)||{}).list);\n  var comments=[];var seen={};\n  for(var i=0;i<list.length;i++){\n    var c=u(list[i]);\n    if(!c)continue;\n    var cid=str(c.id);\n    if(!cid||seen[cid])continue;\n    seen[cid]=1;\n    var cu=u(c.userInfo||c.user_info)||{};\n    var subs=arr(c.subComments||c.sub_comments).slice(0,3).map(function(sub){\n      sub=u(sub);\n      var su=u(sub.userInfo||sub.user_info)||{};\n      return {\n        comment_id:str(sub.id),\n        content:str(sub.content),\n        nickname:str(su.nickname),\n        like_count:str(sub.likeCount||sub.like_count)\n      };\n    });\n    comments.push({\n      comment_id:cid,\n      content:str(c.content),\n      create_time:timeStr(c.createTime||c.create_time),\n      ip_location:str(c.ipLocation||c.ip_location),\n      like_count:str(c.likeCount||c.like_count),\n      user_id:str(cu.userId||cu.user_id),\n      nickname:str(cu.nickname),\n      sub_comment_count:str(c.subCommentCount||c.sub_comment_count),\n      sub_comments:subs\n    });\n  }\n  var limit=Number(ctx.limitComments)||comments.length;\n  return {\n    note:{\n      note_id:str(note.noteId||note.note_id)||wanted,\n      title:str(note.title),\n      desc:str(note.desc),\n      body:body||str(note.desc),\n      tags:tags,\n      type:str(note.type),\n      note_url:location.href,\n      cover:images[0]||'',\n      images:images,\n      liked_count:str(inter.likedCount||inter.liked_count),\n      collected_count:str(inter.collectedCount||inter.collected_count),\n      comment_count:str(inter.commentCount||inter.comment_count),\n      share_count:str(inter.shareCount||inter.share_count),\n      author_id:str(user.userId||user.user_id),\n      author_name:str(user.nickname||user.nickName),\n      author_avatar:norm(avatar.url||avatar),\n      publish_time:timeStr(note.time||note.createTime||note.create_time)\n    },\n    comments:comments.slice(0,limit),\n    comment_total:comments.length,\n    dom_comments:document.querySelectorAll('.parent-comment').length\n  };\n})"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

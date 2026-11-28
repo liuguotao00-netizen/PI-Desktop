@@ -1,0 +1,173 @@
+{
+  "id": "xiaohongshu-favorite",
+  "platform": "xiaohongshu",
+  "kind": "interact",
+  "name": "小红书 · 收藏 / 取消收藏",
+  "description": "按笔记 id + xsec_token 打开详情，读 interactInfo.collected 判断当前状态，和目标不一致才点，点完复读确认。已收藏时再收藏不会取消。",
+  "variables": [
+    {
+      "key": "feedId",
+      "label": "笔记 ID",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "xsecToken",
+      "label": "xsec_token（和笔记 ID 配对）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "action",
+      "label": "动作：favorite（收藏）/ unfavorite（取消收藏）",
+      "type": "text",
+      "default": "favorite"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_favorite"
+    }
+  },
+  "steps": [
+    {
+      "id": "openNote",
+      "action": "navigate",
+      "value": "https://www.xiaohongshu.com/explore/{{feedId}}?xsec_token={{xsecToken}}&xsec_source=pc_feed",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".login-container"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*=\"login-mask\"]"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证"
+          },
+          {
+            "type": "exist",
+            "selector": ".captcha-container"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".access-wrapper, .error-wrapper, .not-found-wrapper, .blocked-wrapper"
+          },
+          {
+            "type": "text",
+            "value": "当前笔记暂时无法浏览"
+          },
+          {
+            "type": "text",
+            "value": "笔记不存在"
+          }
+        ],
+        "errorCode": "NOTE_NOT_ACCESSIBLE",
+        "errorMessage": "这条笔记无法访问（可能已删除、设为私密或被屏蔽）"
+      }
+    },
+    {
+      "id": "waitNoteState",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){try{var S=window.__INITIAL_STATE__;if(!S||!S.note)return false;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var m=u(S.note.noteDetailMap);if(!m||typeof m!=='object')return false;var keys=Object.keys(m);if(!keys.length)return false;var first=u(m[keys[0]]);return !!(first&&u(first.note));}catch(e){return false;}})()",
+        "errorCode": "NOTE_NOT_READY",
+        "errorMessage": "笔记详情没有在限定时间内加载出来"
+      }
+    },
+    {
+      "id": "readState",
+      "description": "读当前状态，和目标不一致才点（幂等）",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsInteractState",
+        "fn": "function(ctx){var S=window.__INITIAL_STATE__;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var map=u((u(S.note)||{}).noteDetailMap)||{};var wanted=String(ctx.feedId||'');var keys=Object.keys(map);var entry=wanted&&map[wanted]?u(map[wanted]):(keys.length?u(map[keys[0]]):null);var note=entry?(u(entry.note)||{}):{};var inter=u(note.interactInfo||note.interact_info)||{};\n  var want=String(ctx.action||'favorite')==='favorite';\n  var current=Boolean(inter.collected);\n  window.__qiworkInteract={kind:'collect',feedId:wanted,current:current,target:want,needed:current!==want};\n  return {collected:current,target:want,needed:current!==want};\n}"
+      }
+    },
+    {
+      "id": "toggle",
+      "description": "真实指针点击；已达成目标时这一步会跳过",
+      "action": "click",
+      "trusted": true,
+      "whenState": "window.__qiworkInteract && window.__qiworkInteract.needed",
+      "target": {
+        "selector": ".interact-container .left .reds-icon.collect-icon"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        1200,
+        2000
+      ]
+    },
+    {
+      "id": "verify",
+      "description": "复读互动状态，确认确实变了",
+      "action": "waitForState",
+      "timeout": 12000,
+      "params": {
+        "expression": "(function(){try{if(!window.__qiworkInteract)return false;var S=window.__INITIAL_STATE__;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var map=u((u(S.note)||{}).noteDetailMap)||{};var key=window.__qiworkInteract.feedId;var entry=key&&map[key]?u(map[key]):null;if(!entry){var keys=Object.keys(map);if(!keys.length)return false;entry=u(map[keys[0]]);}var note=u(entry.note)||{};var inter=u(note.interactInfo||note.interact_info)||{};return Boolean(inter.collected)===Boolean(window.__qiworkInteract.target);}catch(e){return false;}})()",
+        "errorCode": "INTERACT_NOT_CONFIRMED",
+        "errorMessage": "互动状态没有在限定时间内变成目标状态，请在页面上确认"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsInteractResult",
+        "fn": "function(ctx){var S=window.__INITIAL_STATE__;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var map=u((u(S.note)||{}).noteDetailMap)||{};var wanted=String(ctx.feedId||'');var keys=Object.keys(map);var entry=wanted&&map[wanted]?u(map[wanted]):(keys.length?u(map[keys[0]]):null);var note=entry?(u(entry.note)||{}):{};var inter=u(note.interactInfo||note.interact_info)||{};\n  return {kind:window.__qiworkInteract?window.__qiworkInteract.kind:'collected',collected:Boolean(inter.collected),target:window.__qiworkInteract?window.__qiworkInteract.target:null};\n}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

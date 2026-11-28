@@ -1,0 +1,776 @@
+﻿"use strict";
+
+/**
+ * Query layer: one pass over the normalized records produces everything the
+ * panel draws (totals, previous-period totals, the trend series, the source /
+ * model / project rankings and the activity heatmap).
+ *
+ * Bucketing is calendar based (local time), never `floor((ts - from) / width)`:
+ * day/hour keys are built from the local `Date` parts so a DST switch can neither
+ * create an empty phantom bucket nor merge two real ones.
+ */
+
+const { projectNameOf } = require("./normalize.js");
+const { mergePricing, createResolver, estimateCost } = require("./pricing.js");
+
+const RANGE_DAYS = { "7d": 7, "30d": 30, "90d": 90 };
+const HEATMAP_MAX_DAYS = 366;
+const MAX_BUCKETS = 400;
+const MAX_ROWS = 50;
+/** Models listed under one heatmap square; the rest fold into one remainder row. */
+const HEAT_MODEL_ROWS = 5;
+
+/** @param {number} ms */
+function startOfDay(ms) {
+  const date = new Date(ms);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/** @param {number} ms */
+function startOfHour(ms) {
+  const date = new Date(ms);
+  date.setMinutes(0, 0, 0);
+  return date.getTime();
+}
+
+/** @param {number} ms */
+function startOfMonth(ms) {
+  const date = new Date(ms);
+  date.setDate(1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/**
+ * @param {number} ms
+ * @param {number} days
+ */
+function addDays(ms, days) {
+  const date = new Date(ms);
+  date.setDate(date.getDate() + days);
+  return date.getTime();
+}
+
+/**
+ * Local midnight on January 1st of the year containing `ms`. The heatmap shows
+ * the current year to date, which is what makes month headers meaningful.
+ * @param {number} ms
+ * @returns {number}
+ */
+function startOfYear(ms) {
+  const date = new Date(ms);
+  date.setMonth(0, 1);
+  date.setHours(0, 0, 0, 0);
+  return date.getTime();
+}
+
+/**
+ * @param {number} ms
+ * @param {number} hours
+ */
+function addHours(ms, hours) {
+  const date = new Date(ms);
+  date.setHours(date.getHours() + hours);
+  return date.getTime();
+}
+
+/**
+ * @param {number} ms
+ * @param {number} months
+ */
+function addMonths(ms, months) {
+  const date = new Date(ms);
+  date.setMonth(date.getMonth() + months);
+  return date.getTime();
+}
+
+/**
+ * @param {number} ms
+ * @param {"hour" | "day" | "month"} bucket
+ * @returns {string}
+ */
+function bucketKey(ms, bucket) {
+  const date = new Date(ms);
+  if (bucket === "hour") {
+    // The absolute hour, not the wall clock: when a DST fall-back repeats 01:00
+    // two different hours would otherwise collapse into one bucket.
+    return String(startOfHour(ms));
+  }
+  if (bucket === "month") return `${date.getFullYear()}-${date.getMonth()}`;
+  return `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+}
+
+/** @returns {object} a zeroed totals accumulator */
+function emptyTotals() {
+  return {
+    tokens: 0,
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    requests: 0,
+    cost: 0,
+    costMissing: 0,
+    costEstimated: 0,
+    costComplete: true,
+  };
+}
+
+/**
+ * @param {ReturnType<typeof emptyTotals>} totals
+ * @param {import("./normalize.js").UsageRecord} record
+ * @param {{ cost: number | null, estimated: boolean }} priced
+ */
+function accumulate(totals, record, priced) {
+  totals.tokens += record.totalTokens;
+  totals.input += record.inputTokens;
+  totals.output += record.outputTokens;
+  totals.cacheRead += record.cacheReadTokens;
+  totals.cacheWrite += record.cacheWriteTokens;
+  totals.requests += record.requestCount ?? 1;
+  if (priced.cost !== null) {
+    totals.cost += priced.cost;
+    if (priced.estimated) totals.costEstimated += 1;
+  } else totals.costMissing += 1;
+  totals.costComplete = totals.costMissing === 0 && totals.costEstimated === 0;
+}
+
+/**
+ * Resolve the window and the trend bucket for one range preset.
+ *
+ * @param {"today" | "7d" | "30d" | "90d" | "all"} range
+ * @param {number} nowMs
+ * @param {number} earliestMs
+ * @returns {{ fromMs: number, toMs: number, bucket: "hour" | "day" | "month", previousFromMs: number, previousToMs: number }}
+ */
+function resolveWindow(range, nowMs, earliestMs) {
+  const toMs = nowMs;
+  if (range === "today") {
+    const fromMs = startOfDay(nowMs);
+    // Equal-length previous window: a partial day must not be compared to a full one.
+    const spanMs = toMs - fromMs;
+    return { fromMs, toMs, bucket: "hour", previousFromMs: fromMs - spanMs - 1, previousToMs: fromMs - 1 };
+  }
+  if (range === "all") {
+    const todayStart = startOfDay(nowMs);
+    // A record carrying a clock-skewed future timestamp must not invert the
+    // window: an inverted window renders zero buckets and a silently empty view.
+    const earliestDay = Number.isFinite(earliestMs) && earliestMs > 0 ? startOfDay(earliestMs) : NaN;
+    const fromMs = Number.isFinite(earliestDay) ? Math.min(earliestDay, todayStart) : todayStart;
+    const spanDays = Math.max(1, Math.round((toMs - fromMs) / 86400000));
+    return {
+      fromMs,
+      toMs,
+      bucket: spanDays > 366 ? "month" : "day",
+      previousFromMs: 0,
+      previousToMs: 0,
+    };
+  }
+  const days = RANGE_DAYS[range] ?? 7;
+  const fromMs = startOfDay(addDays(nowMs, -(days - 1)));
+  const spanMs = toMs - fromMs;
+  return { fromMs, toMs, bucket: "day", previousFromMs: fromMs - spanMs - 1, previousToMs: fromMs - 1 };
+}
+
+/**
+ * @param {{ fromMs: number, toMs: number, bucket: "hour" | "day" | "month" }} options
+ * @returns {Array<{ startMs: number, key: string }>}
+ */
+function buildBuckets({ fromMs, toMs, bucket }) {
+  const buckets = [];
+  if (bucket === "hour") {
+    let cursor = startOfHour(fromMs);
+    while (cursor <= toMs && buckets.length < 50) {
+      buckets.push({ startMs: cursor, key: bucketKey(cursor, "hour") });
+      cursor = addHours(cursor, 1);
+    }
+    return buckets;
+  }
+  if (bucket === "month") {
+    let cursor = startOfMonth(fromMs);
+    while (cursor <= toMs && buckets.length < MAX_BUCKETS) {
+      buckets.push({ startMs: cursor, key: bucketKey(cursor, "month") });
+      cursor = addMonths(cursor, 1);
+    }
+    return buckets;
+  }
+  let cursor = startOfDay(fromMs);
+  while (cursor <= toMs && buckets.length < MAX_BUCKETS) {
+    buckets.push({ startMs: cursor, key: bucketKey(cursor, "day") });
+    cursor = addDays(cursor, 1);
+  }
+  return buckets;
+}
+
+/**
+ * Explicit window coming from the custom range picker. Two days or less is
+ * bucketed by hour so a short window still shows a useful curve.
+ * @param {number} fromMs
+ * @param {number} toMs
+ * @returns {{ fromMs: number, toMs: number, bucket: "hour" | "day" | "month", previousFromMs: number, previousToMs: number }}
+ */
+function resolveCustomWindow(fromMs, toMs) {
+  const span = toMs - fromMs;
+  // Buckets are capped, so the bucket size has to grow with the window: otherwise
+  // the tail of a long custom range would land in totals but in no bucket.
+  const bucket = span <= 2 * 86400000 ? "hour" : span > 366 * 86400000 ? "month" : "day";
+  return {
+    fromMs,
+    toMs,
+    bucket,
+    previousFromMs: fromMs - span - 1,
+    previousToMs: fromMs - 1,
+  };
+}
+
+/**
+ * The price table only fills what the sessions did not record: a recorded price
+ * always wins, so editing the table can never rewrite history. Built-in list
+ * prices come first, the user's own rates on top of them.
+ *
+ * @param {Record<string, any> | undefined} pricing
+ * @returns {(record: import("./normalize.js").UsageRecord) => { cost: number | null, estimated: boolean }}
+ */
+function makePricer(pricing) {
+  const table = mergePricing(pricing);
+  const modelCount = Object.keys(table).length;
+  const resolve = modelCount === 0 ? null : createResolver(table);
+  return (record) => {
+    // A number the host flags as its own estimate is still the best figure there
+    // is, but it must not pass itself off as a recorded price; a number it flags
+    // as unknown is no figure at all, so the table gets the say.
+    if (typeof record.costUsd === "number" && record.costStatus !== "unknown") {
+      return { cost: record.costUsd, estimated: record.costStatus !== "recorded" };
+    }
+    const cost = resolve === null ? null : estimateCost(resolve(record.model), record);
+    return cost === null ? { cost: null, estimated: false } : { cost, estimated: true };
+  };
+}
+
+/**
+ * The window a request covers, shared by the aggregates and the request log so
+ * the two can never disagree about which records belong on screen.
+ *
+ * The earliest timestamp only matters for the "all" window, where it decides
+ * where the series starts; scanning for it on every request would double the
+ * pass over the whole cache for nothing.
+ *
+ * @param {import("./normalize.js").UsageRecord[]} records
+ * @param {string} range
+ * @param {number} nowMs
+ * @param {{ fromMs?: number, toMs?: number }} [options]
+ */
+function resolveQueryWindow(records, range, nowMs, options = {}) {
+  if (Number.isFinite(options.fromMs) && Number.isFinite(options.toMs) && options.toMs > options.fromMs) {
+    return resolveCustomWindow(options.fromMs, options.toMs);
+  }
+  let earliestMs = 0;
+  if (range === "all") {
+    for (const record of records) {
+      if (record.timestampMs > 0 && (earliestMs === 0 || record.timestampMs < earliestMs)) {
+        earliestMs = record.timestampMs;
+      }
+    }
+  }
+  const preset = /** @type {"today" | "7d" | "30d" | "90d" | "all"} */ (range === "custom" ? "7d" : range);
+  return resolveWindow(preset, nowMs, earliestMs);
+}
+
+/**
+ * @param {import("./normalize.js").UsageRecord[]} records
+ * @param {{
+ *   range?: "today" | "7d" | "30d" | "90d" | "all" | "custom",
+ *   sources?: string[],
+ *   nowMs?: number,
+ *   fromMs?: number,
+ *   toMs?: number,
+ *   pricing?: Record<string, any>,
+ * }} options
+ */
+function query(records, options = {}) {
+  const range = options.range ?? "7d";
+  const nowMs = options.nowMs ?? Date.now();
+  const sourceFilter =
+    Array.isArray(options.sources) && options.sources.length > 0 ? new Set(options.sources) : null;
+
+  const relevant = sourceFilter ? records.filter((record) => sourceFilter.has(record.source)) : records;
+
+  const priceOf = makePricer(options.pricing);
+
+  /**
+   * Fold one record's cost into a bucket, keeping "priced by the table" apart
+   * from "priced by the provider" so the row still shows the approximate mark.
+   *
+   * @param {any} bucket
+   * @param {{ cost: number | null, estimated: boolean }} priced
+   */
+  const addCost = (bucket, priced) => {
+    if (priced.cost !== null) {
+      bucket.cost += priced.cost;
+      if (priced.estimated) bucket.costEstimated = (bucket.costEstimated ?? 0) + 1;
+    } else bucket.costMissing += 1;
+    bucket.costComplete = bucket.costMissing === 0 && (bucket.costEstimated ?? 0) === 0;
+  };
+
+  const window = resolveQueryWindow(relevant, range, nowMs, options);
+  const { fromMs, toMs, bucket, previousFromMs, previousToMs } = window;
+
+
+  const buckets = buildBuckets({ fromMs, toMs, bucket });
+  const series = buckets.map((entry) => ({
+    startMs: entry.startMs,
+    total: 0,
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    cost: 0,
+    costMissing: 0,
+    costEstimated: 0,
+    costComplete: true,
+    requests: 0,
+  }));
+  const indexByKey = new Map(buckets.map((entry, index) => [entry.key, index]));
+
+  const totals = emptyTotals();
+  const previous = emptyTotals();
+  /** @type {Map<string, any>} */
+  const bySource = new Map();
+  /** @type {Map<string, any>} */
+  const byModel = new Map();
+  /** @type {Map<string, any>} */
+  const byProject = new Map();
+
+  /** @type {Map<string, any>} */
+  const heatmapByDay = new Map();
+  const heatmapStart = startOfYear(nowMs);
+
+  for (const record of relevant) {
+    const ts = record.timestampMs;
+    const priced = priceOf(record);
+    // One `Date` per record feeds every calendar bucket it lands in: building a
+    // second one for the heatmap would double the allocation on the hot path.
+    const localDate = new Date(ts);
+
+    if (ts >= heatmapStart && ts <= toMs) {
+      const key = `${localDate.getFullYear()}-${localDate.getMonth()}-${localDate.getDate()}`;
+      const dayRow = heatmapByDay.get(key) ?? {
+        tokens: 0,
+        cost: 0,
+        requests: 0,
+        costMissing: 0,
+        costEstimated: 0,
+        /** @type {Map<string, any>} */
+        models: new Map(),
+      };
+      dayRow.tokens += record.totalTokens;
+      dayRow.requests += record.requestCount ?? 1;
+      if (priced.cost !== null) {
+        dayRow.cost += priced.cost;
+        if (priced.estimated) dayRow.costEstimated += 1;
+      } else dayRow.costMissing += 1;
+      const dayModelKey = `${record.source}|${record.model || ""}`;
+      const dayModel = dayRow.models.get(dayModelKey) ?? {
+        model: record.model || "",
+        source: record.source,
+        provider: record.provider || "",
+        tokens: 0,
+      };
+      dayModel.tokens += record.totalTokens;
+      if (!dayModel.provider && record.provider) dayModel.provider = record.provider;
+      dayRow.models.set(dayModelKey, dayModel);
+      heatmapByDay.set(key, dayRow);
+    }
+
+    if (ts >= fromMs && ts <= toMs) {
+      accumulate(totals, record, priced);
+
+      const index =
+        bucket === "hour"
+          ? indexByKey.get(String(startOfHour(ts)))
+          : indexByKey.get(
+              bucket === "month"
+                ? `${localDate.getFullYear()}-${localDate.getMonth()}`
+                : `${localDate.getFullYear()}-${localDate.getMonth()}-${localDate.getDate()}`,
+            );
+      if (index !== undefined) {
+        const point = series[index];
+        point.total += record.totalTokens;
+        point.input += record.inputTokens;
+        point.output += record.outputTokens;
+        point.cacheRead += record.cacheReadTokens;
+        point.cacheWrite += record.cacheWriteTokens;
+        point.requests += record.requestCount ?? 1;
+        addCost(point, priced);
+      }
+
+      const sourceRow = bySource.get(record.source) ?? {
+        source: record.source,
+        tokens: 0,
+        cost: 0,
+        requests: 0,
+        costMissing: 0,
+        costEstimated: 0,
+        costComplete: true,
+      };
+      sourceRow.tokens += record.totalTokens;
+      sourceRow.requests += record.requestCount ?? 1;
+      addCost(sourceRow, priced);
+      bySource.set(record.source, sourceRow);
+
+      const modelKey = `${record.source}|${record.model || ""}`;
+      const modelRow = byModel.get(modelKey) ?? {
+        model: record.model || "",
+        source: record.source,
+        provider: record.provider || "",
+        tokens: 0,
+        cost: 0,
+        requests: 0,
+        costMissing: 0,
+        costEstimated: 0,
+        costComplete: true,
+      };
+      modelRow.tokens += record.totalTokens;
+      modelRow.requests += record.requestCount ?? 1;
+      if (!modelRow.provider && record.provider) modelRow.provider = record.provider;
+      addCost(modelRow, priced);
+      byModel.set(modelKey, modelRow);
+
+      const projectKey = `${record.source}|${record.projectPath ?? ""}`;
+      const projectRow = byProject.get(projectKey) ?? {
+        projectPath: record.projectPath ?? null,
+        projectName: projectNameOf(record.projectPath ?? null),
+        source: record.source,
+        tokens: 0,
+        cost: 0,
+        requests: 0,
+        costMissing: 0,
+        costEstimated: 0,
+        costComplete: true,
+      };
+      projectRow.tokens += record.totalTokens;
+      projectRow.requests += record.requestCount ?? 1;
+      addCost(projectRow, priced);
+      byProject.set(projectKey, projectRow);
+    } else if (previousFromMs > 0 && ts >= previousFromMs && ts <= previousToMs) {
+      accumulate(previous, record, priced);
+    }
+  }
+
+  const heatmap = [];
+  for (let day = heatmapStart, guard = 0; day <= toMs && guard < HEATMAP_MAX_DAYS; day = addDays(day, 1), guard += 1) {
+    const row = heatmapByDay.get(bucketKey(day, "day"));
+    // The square's tooltip names the models behind the day; only the largest few
+    // are kept per day, so a whole year of detail still fits one panel payload.
+    const ranked = row ? [...row.models.values()].sort((a, b) => b.tokens - a.tokens) : [];
+    heatmap.push({
+      dateMs: day,
+      tokens: row?.tokens ?? 0,
+      cost: row?.cost ?? 0,
+      requests: row?.requests ?? 0,
+      costComplete: (row?.costMissing ?? 0) === 0 && (row?.costEstimated ?? 0) === 0,
+      costMissing: row?.costMissing ?? 0,
+      models: ranked.slice(0, HEAT_MODEL_ROWS),
+      otherTokens: ranked.slice(HEAT_MODEL_ROWS).reduce((sum, entry) => sum + entry.tokens, 0),
+    });
+  }
+
+  const rankedModels = [...byModel.values()]
+    .map((row) => ({
+      model: row.model,
+      source: row.source,
+      provider: row.provider,
+      tokens: row.tokens,
+      cost: row.cost,
+      requests: row.requests,
+      avgCost: row.requests > 0 ? row.cost / row.requests : 0,
+      costComplete: row.costComplete,
+      costMissing: row.costMissing,
+      costEstimated: row.costEstimated ?? 0,
+    }))
+    .sort(
+      (a, b) =>
+        b.tokens - a.tokens ||
+        (a.model < b.model ? -1 : a.model > b.model ? 1 : 0) ||
+        (a.source < b.source ? -1 : a.source > b.source ? 1 : 0),
+    );
+  const modelRows = rankedModels.slice(0, MAX_ROWS);
+  // The list is capped, the ring is not: whatever fell off the end still has to
+  // reach the "other models" slice, or the ring's centre would quietly report
+  // less than the window total.
+  const droppedModels = rankedModels.slice(MAX_ROWS);
+  const byModelRest = droppedModels.length
+    ? droppedModels.reduce(
+        (rest, row) => {
+          rest.tokens += row.tokens;
+          rest.cost += row.cost;
+          rest.requests += row.requests;
+          rest.costMissing += row.costMissing;
+          rest.costEstimated += row.costEstimated;
+          rest.costComplete = rest.costComplete && row.costComplete === true;
+          return rest;
+        },
+        { tokens: 0, cost: 0, requests: 0, costMissing: 0, costEstimated: 0, costComplete: true },
+      )
+    : null;
+
+  const projectRows = [...byProject.values()]
+    .sort(
+      (a, b) =>
+        b.tokens - a.tokens ||
+        (a.projectPath < b.projectPath ? -1 : a.projectPath > b.projectPath ? 1 : 0) ||
+        (a.source < b.source ? -1 : a.source > b.source ? 1 : 0),
+    )
+    .slice(0, MAX_ROWS)
+    .map((row) => ({
+      projectPath: row.projectPath,
+      projectName: row.projectName,
+      source: row.source,
+      tokens: row.tokens,
+      cost: row.cost,
+      requests: row.requests,
+      costComplete: row.costComplete,
+      costMissing: row.costMissing,
+      costEstimated: row.costEstimated ?? 0,
+    }));
+
+  return {
+    range,
+    fromMs,
+    toMs,
+    bucket,
+    totals,
+    previous,
+    series,
+    bySource: [...bySource.values()].sort((a, b) => b.tokens - a.tokens),
+    byModel: modelRows,
+    byModelRest,
+    byProject: projectRows,
+    heatmap,
+  };
+}
+
+/* ------------------------------------------------------------ request log */
+
+/** Page size the log opens with, and the largest page it will serve. */
+const LOG_PAGE_SIZE = 20;
+const LOG_MAX_PAGE_SIZE = 200;
+/** Provider / model groups kept in one payload; the rest fold into a count. */
+const LOG_MAX_GROUPS = 200;
+const LOG_STATUSES = ["complete", "error", "aborted", "unknown"];
+
+/** @returns {any} a zeroed provider/model group accumulator */
+function emptyLogGroup(key) {
+  return {
+    key,
+    requests: 0,
+    tokens: 0,
+    input: 0,
+    output: 0,
+    cacheRead: 0,
+    cacheWrite: 0,
+    cost: 0,
+    costMissing: 0,
+    costEstimated: 0,
+    costComplete: true,
+    complete: 0,
+    error: 0,
+    aborted: 0,
+    unknown: 0,
+    /** Turns whose host recorded a duration; the speed divides by this only. */
+    timedRequests: 0,
+    timedMs: 0,
+    timedOutput: 0,
+  };
+}
+
+/**
+ * @param {any} group
+ * @param {import("./normalize.js").UsageRecord} record
+ * @param {{ cost: number | null, estimated: boolean }} priced
+ */
+function foldLogGroup(group, record, priced) {
+  group.requests += record.requestCount ?? 1;
+  group.tokens += record.totalTokens;
+  group.input += record.inputTokens;
+  group.output += record.outputTokens;
+  group.cacheRead += record.cacheReadTokens;
+  group.cacheWrite += record.cacheWriteTokens;
+  if (priced.cost !== null) {
+    group.cost += priced.cost;
+    if (priced.estimated) group.costEstimated += 1;
+  } else group.costMissing += 1;
+  group.costComplete = group.costMissing === 0 && group.costEstimated === 0;
+  const status = LOG_STATUSES.includes(record.status) ? record.status : "unknown";
+  group[status] += 1;
+  if (typeof record.durationMs === "number" && record.durationMs > 0) {
+    group.timedRequests += 1;
+    group.timedMs += record.durationMs;
+    group.timedOutput += record.outputTokens;
+  }
+}
+
+/**
+ * One page of the request log, plus the provider and model roll-ups the same
+ * dialog shows on its other two tabs.
+ *
+ * Paging happens here rather than in the panel: a busy machine holds tens of
+ * thousands of records, and shipping them all to draw twenty rows would cost
+ * more than every other channel combined.
+ *
+ * @param {import("./normalize.js").UsageRecord[]} records
+ * @param {{
+ *   range?: "today" | "7d" | "30d" | "90d" | "all" | "custom",
+ *   sources?: string[],
+ *   status?: string,
+ *   code?: number,
+ *   page?: number,
+ *   pageSize?: number,
+ *   nowMs?: number,
+ *   fromMs?: number,
+ *   toMs?: number,
+ *   pricing?: Record<string, any>,
+ * }} [options]
+ */
+function queryLog(records, options = {}) {
+  const range = options.range ?? "7d";
+  const nowMs = options.nowMs ?? Date.now();
+  const sourceFilter =
+    Array.isArray(options.sources) && options.sources.length > 0 ? new Set(options.sources) : null;
+  const statusFilter =
+    typeof options.status === "string" && LOG_STATUSES.includes(options.status) ? options.status : null;
+  const requestedCode = Number(options.code);
+  const codeFilter = Number.isInteger(requestedCode) && requestedCode >= 100 ? requestedCode : null;
+  const pageSize = Math.min(
+    LOG_MAX_PAGE_SIZE,
+    Math.max(1, Math.round(Number(options.pageSize) || LOG_PAGE_SIZE)),
+  );
+
+  const relevant = sourceFilter ? records.filter((record) => sourceFilter.has(record.source)) : records;
+  const window = resolveQueryWindow(relevant, range, nowMs, options);
+  const { fromMs, toMs } = window;
+  const priceOf = makePricer(options.pricing);
+
+  const counts = { all: 0, complete: 0, error: 0, aborted: 0, unknown: 0 };
+  /** @type {Map<number, number>} */
+  const codeCounts = new Map();
+  /** @type {import("./normalize.js").UsageRecord[]} */
+  const matched = [];
+  /** @type {Map<string, any>} */
+  const providers = new Map();
+  /** @type {Map<string, any>} */
+  const models = new Map();
+
+  for (const record of relevant) {
+    const ts = record.timestampMs;
+    if (ts < fromMs || ts > toMs) continue;
+    const status = LOG_STATUSES.includes(record.status) ? record.status : "unknown";
+    counts.all += 1;
+    counts[status] += 1;
+    if (typeof record.statusCode === "number") {
+      codeCounts.set(record.statusCode, (codeCounts.get(record.statusCode) ?? 0) + 1);
+    }
+    if (statusFilter && status !== statusFilter) continue;
+    if (codeFilter !== null && record.statusCode !== codeFilter) continue;
+
+    const priced = priceOf(record);
+    matched.push(record);
+
+    const providerKey = record.provider || "";
+    const providerGroup = providers.get(providerKey) ?? emptyLogGroup(providerKey);
+    foldLogGroup(providerGroup, record, priced);
+    providers.set(providerKey, providerGroup);
+
+    const modelKey = `${record.source}\u0000${record.model || ""}`;
+    const modelGroup = models.get(modelKey) ?? {
+      ...emptyLogGroup(modelKey),
+      source: record.source,
+      model: record.model || "",
+      provider: record.provider || "",
+    };
+    if (!modelGroup.provider && record.provider) modelGroup.provider = record.provider;
+    foldLogGroup(modelGroup, record, priced);
+    models.set(modelKey, modelGroup);
+  }
+
+  // Newest first, and stable for records that share a timestamp: a log that
+  // reshuffles equal rows between pages would hide entries behind the pager.
+  matched.sort((a, b) => b.timestampMs - a.timestampMs || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+  const total = matched.length;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const page = Math.min(pageCount, Math.max(1, Math.round(Number(options.page) || 1)));
+  const start = (page - 1) * pageSize;
+
+  const rows = matched.slice(start, start + pageSize).map((record) => {
+    const priced = priceOf(record);
+    return {
+      id: record.id,
+      timestampMs: record.timestampMs,
+      source: record.source,
+      provider: record.provider || "",
+      model: record.model || "",
+      projectPath: record.projectPath ?? null,
+      kind: record.kind,
+      status: LOG_STATUSES.includes(record.status) ? record.status : "unknown",
+      statusCode: typeof record.statusCode === "number" ? record.statusCode : null,
+      errorCode: record.errorCode ?? "",
+      inputTokens: record.inputTokens,
+      outputTokens: record.outputTokens,
+      cacheReadTokens: record.cacheReadTokens,
+      cacheWriteTokens: record.cacheWriteTokens,
+      totalTokens: record.totalTokens,
+      cost: priced.cost,
+      costEstimated: priced.estimated,
+      durationMs: typeof record.durationMs === "number" ? record.durationMs : null,
+      ttftMs: typeof record.ttftMs === "number" ? record.ttftMs : null,
+      requestCount: record.requestCount ?? 1,
+    };
+  });
+
+  const byRequests = (a, b) => b.requests - a.requests || b.tokens - a.tokens;
+  const providerGroups = [...providers.values()].sort(byRequests);
+  const modelGroups = [...models.values()].sort(byRequests);
+
+  return {
+    range,
+    fromMs,
+    toMs,
+    page,
+    pageSize,
+    pageCount,
+    total,
+    counts,
+    codes: [...codeCounts.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([code, count]) => ({ code, count })),
+    rows,
+    providers: providerGroups.slice(0, LOG_MAX_GROUPS),
+    providerCount: providerGroups.length,
+    models: modelGroups.slice(0, LOG_MAX_GROUPS),
+    modelCount: modelGroups.length,
+  };
+}
+
+module.exports = {
+  RANGE_DAYS,
+  HEATMAP_MAX_DAYS,
+  startOfYear,
+  startOfDay,
+  startOfHour,
+  addDays,
+  addHours,
+  bucketKey,
+  buildBuckets,
+  resolveWindow,
+  resolveCustomWindow,
+  emptyTotals,
+  query,
+  queryLog,
+  makePricer,
+  resolveQueryWindow,
+  LOG_PAGE_SIZE,
+  LOG_MAX_PAGE_SIZE,
+  LOG_STATUSES,
+};

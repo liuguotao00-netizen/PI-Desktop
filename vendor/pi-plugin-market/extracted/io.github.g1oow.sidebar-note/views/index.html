@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>笔记</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <!--
+      Iconoir 图标（MIT，https://iconoir.com）以内联 symbol 形式打包，避免任何外链请求。
+      描边由 .icon 的 CSS 提供，symbol 内只保留路径。
+    -->
+    <svg class="icon-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <path d="M17 17L21 21" />
+        <path d="M3 11C3 15.4183 6.58172 19 11 19C13.213 19 15.2161 18.1015 16.6644 16.6493C18.1077 15.2022 19 13.2053 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11Z" />
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path d="M6 12H12M18 12H12M12 12V6M12 12V18" />
+      </symbol>
+      <symbol id="i-back" viewBox="0 0 24 24">
+        <path d="M15 6L9 12L15 18" />
+      </symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24">
+        <path d="M9.5 14.5L3 21" />
+        <path d="M5.00007 9.48528L14.1925 18.6777L15.8895 16.9806L15.4974 13.1944L21.0065 8.5211L15.1568 2.67141L10.4834 8.18034L6.69713 7.78823L5.00007 9.48528Z" />
+      </symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <path d="M19.4 20H9.6C9.26863 20 9 19.7314 9 19.4V9.6C9 9.26863 9.26863 9 9.6 9H19.4C19.7314 9 20 9.26863 20 9.6V19.4C20 19.7314 19.7314 20 19.4 20Z" />
+        <path d="M15 9V4.6C15 4.26863 14.7314 4 14.4 4H4.6C4.26863 4 4 4.26863 4 4.6V14.4C4 14.7314 4.26863 15 4.6 15H9" />
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path d="M20 9L18.005 20.3463C17.8369 21.3026 17.0062 22 16.0353 22H7.96474C6.99379 22 6.1631 21.3026 5.99496 20.3463L4 9" />
+        <path d="M21 6L15.375 6M3 6L8.625 6M8.625 6V4C8.625 2.89543 9.52043 2 10.625 2H13.375C14.4796 2 15.375 2.89543 15.375 4V6M8.625 6L15.375 6" />
+      </symbol>
+      <symbol id="i-page" viewBox="0 0 24 24">
+        <path d="M4 21.4V2.6C4 2.26863 4.26863 2 4.6 2H16.2515C16.4106 2 16.5632 2.06321 16.6757 2.17574L19.8243 5.32426C19.9368 5.43679 20 5.5894 20 5.74853V21.4C20 21.7314 19.7314 22 19.4 22H4.6C4.26863 22 4 21.7314 4 21.4Z" />
+        <path d="M8 10L16 10" />
+        <path d="M8 18L16 18" />
+        <path d="M8 14L12 14" />
+        <path d="M16 2V5.4C16 5.73137 16.2686 6 16.6 6H20" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path d="M5 13L9 17L19 7" />
+      </symbol>
+      <symbol id="i-zoom" viewBox="0 0 24 24">
+        <path d="M8 11H11M14 11H11M11 11V8M11 11V14" />
+        <path d="M17 17L21 21" />
+        <path d="M3 11C3 15.4183 6.58172 19 11 19C13.213 19 15.2161 18.1015 16.6644 16.6493C18.1077 15.2022 19 13.2053 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11Z" />
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2V4M12 20V22M2 12H4M20 12H22M4.9 4.9L6.3 6.3M17.7 17.7L19.1 19.1M19.1 4.9L17.7 6.3M6.3 17.7L4.9 19.1" />
+      </symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24">
+        <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4A8.5 8.5 0 1 0 20 14.5Z" />
+      </symbol>
+      <symbol id="i-save" viewBox="0 0 24 24">
+        <path d="M3 19V5.6C3 5.26863 3.26863 5 3.6 5H15.4142C15.7392 5 16.0508 5.12898 16.2806 5.35872L19.6413 8.7194C19.871 8.94914 20 9.26079 20 9.58579V19.4C20 19.7314 19.7314 20 19.4 20H3.6C3.26863 20 3 19.7314 3 19.4Z" />
+        <path d="M6 5V9.5H14.5V5" />
+        <path d="M6 20V14.5H17V20" />
+      </symbol>
+    </svg>
+
+    <div class="shell" id="shell">
+      <header class="bar" id="listBar">
+        <div class="bar-line">
+          <label class="search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input
+              id="searchInput"
+              type="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="搜索笔记"
+              aria-label="搜索笔记"
+            />
+            <button id="clearSearch" class="ghost tiny" type="button" aria-label="清除搜索" hidden>×</button>
+          </label>
+          <button id="themeBtn" class="ghost icon-only" type="button" aria-label="切换深浅色" data-tip="切换深浅色">
+            <svg class="icon" aria-hidden="true"><use href="#i-sun"></use></svg>
+          </button>
+          <button id="zoomBtn" class="ghost icon-only" type="button" data-zoom-trigger data-tip="缩放">
+            <svg class="icon" aria-hidden="true"><use href="#i-zoom"></use></svg>
+          </button>
+          <button id="newNote" class="primary" type="button" data-tip="新建笔记 (Ctrl+N)">
+            <svg class="icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+            <span id="newNoteLabel">新建</span>
+          </button>
+        </div>
+        <div class="bar-line">
+          <div class="seg seg--block" role="tablist" id="scopeTabs">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button type="button" class="seg-option" role="tab" data-scope="inbox" aria-selected="false">
+              <span id="tabInbox">收件箱</span><span class="count" data-count="inbox">0</span>
+            </button>
+            <button type="button" class="seg-option" role="tab" data-scope="project" aria-selected="true">
+              <span id="tabProject">项目</span><span class="count" data-count="project">0</span>
+            </button>
+            <button type="button" class="seg-option" role="tab" data-scope="all" aria-selected="false">
+              <span id="tabAll">全部</span><span class="count" data-count="all">0</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="pane" id="listPane">
+        <p class="scope-hint" id="scopeHint" hidden></p>
+        <div class="groups" id="listGroups"></div>
+        <div class="empty" id="emptyState" hidden>
+          <svg class="empty-icon" aria-hidden="true"><use href="#i-page"></use></svg>
+          <p class="empty-title" id="emptyTitle">还没有笔记</p>
+          <p class="empty-sub" id="emptySub"></p>
+          <button id="emptyNew" class="primary" type="button">新建笔记</button>
+        </div>
+      </main>
+
+      <main class="pane editor" id="editorPane" hidden>
+        <div class="editor-bar">
+          <button id="backBtn" class="ghost icon-only" type="button" aria-label="返回列表" data-tip="返回列表 (Esc)">
+            <svg class="icon" aria-hidden="true"><use href="#i-back"></use></svg>
+          </button>
+          <span class="crumb" id="editorCrumb"></span>
+          <span class="spacer"></span>
+          <div class="seg" id="modeSwitch" data-value="edit" role="group" aria-label="编辑与预览切换">
+            <span class="seg-thumb" aria-hidden="true"></span>
+            <button type="button" class="seg-option" data-value="edit" aria-pressed="true">编辑</button>
+            <button type="button" class="seg-option" data-value="preview" aria-pressed="false">预览</button>
+          </div>
+          <button id="saveBtn" class="ghost icon-only" type="button" aria-label="保存" data-tip="保存 (Ctrl+S)">
+            <svg class="icon" aria-hidden="true"><use href="#i-save"></use></svg>
+          </button>
+          <button id="zoomBtnEditor" class="ghost icon-only" type="button" data-zoom-trigger data-tip="缩放">
+            <svg class="icon" aria-hidden="true"><use href="#i-zoom"></use></svg>
+          </button>
+          <button id="pinBtn" class="ghost icon-only" type="button" aria-label="置顶" data-tip="置顶">
+            <svg class="icon" aria-hidden="true"><use href="#i-pin"></use></svg>
+          </button>
+          <button id="copyBtn" class="ghost icon-only" type="button" aria-label="复制正文" data-tip="复制正文">
+            <svg class="icon" aria-hidden="true"><use href="#i-copy"></use></svg>
+          </button>
+          <button id="deleteBtn" class="ghost icon-only danger" type="button" aria-label="删除笔记" data-tip="删除笔记">
+            <svg class="icon" aria-hidden="true"><use href="#i-trash"></use></svg>
+          </button>
+        </div>
+        <input
+          id="titleInput"
+          class="title"
+          type="text"
+          maxlength="200"
+          autocomplete="off"
+          spellcheck="false"
+          placeholder="标题（可留空）"
+          aria-label="笔记标题"
+        />
+        <div class="body-wrap">
+          <div class="gutter" id="lineGutter" aria-hidden="true">
+            <div class="gutter-inner" id="lineGutterInner"></div>
+          </div>
+          <textarea
+            id="bodyInput"
+            class="body"
+            spellcheck="false"
+            maxlength="200000"
+            placeholder="开始写…支持 Markdown"
+            aria-label="笔记正文"
+          ></textarea>
+          <div class="editor-mirror" id="editorMirror" aria-hidden="true"></div>
+          <div id="previewPane" class="preview" hidden></div>
+        </div>
+        <footer class="status">
+          <span id="statusLeft" class="status-left"></span>
+          <span id="statusRight" class="status-right"></span>
+        </footer>
+      </main>
+    </div>
+
+    <div class="popover" id="zoomPanel" role="dialog" aria-label="缩放" hidden>
+      <div class="popover-row">
+        <span class="popover-label" id="zoomAutoLabel">自适应</span>
+        <button
+          id="autoSwitch"
+          class="toggle"
+          type="button"
+          role="switch"
+          aria-checked="true"
+          aria-label="自适应缩放"
+        >
+          <span class="toggle-thumb" aria-hidden="true"></span>
+        </button>
+      </div>
+      <div class="popover-row">
+        <input
+          id="zoomRange"
+          class="range"
+          type="range"
+          min="80"
+          max="160"
+          step="5"
+          value="100"
+          aria-label="缩放比例"
+        />
+        <output id="zoomValue" class="popover-value" for="zoomRange">100%</output>
+      </div>
+      <div class="popover-row popover-foot">
+        <span class="popover-hint" id="zoomHint"></span>
+        <button id="zoomReset" class="ghost small" type="button">重置</button>
+      </div>
+    </div>
+
+    <div class="dialog-backdrop" id="unsavedDialog" hidden>
+      <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="unsavedTitle">
+        <p class="dialog-title" id="unsavedTitle">有未保存的修改</p>
+        <p class="dialog-body" id="unsavedBody">这篇笔记还没保存，要先保存再离开吗？</p>
+        <div class="dialog-actions">
+          <button id="unsavedCancel" class="ghost small" type="button">取消</button>
+          <button id="unsavedDiscard" class="ghost small danger" type="button">放弃修改</button>
+          <button id="unsavedSave" class="primary" type="button">保存并离开</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="snack" id="snack" role="status" hidden>
+      <span id="snackText"></span>
+      <button id="snackAction" class="ghost small" type="button" hidden></button>
+    </div>
+
+    <div class="zoom-hud" id="zoomHud" role="status" aria-live="polite" hidden>
+      <span id="zoomHudValue">100%</span>
+    </div>
+
+    <div class="tip" id="tip" role="tooltip" hidden><span id="tipText"></span></div>
+  </body>
+</html>

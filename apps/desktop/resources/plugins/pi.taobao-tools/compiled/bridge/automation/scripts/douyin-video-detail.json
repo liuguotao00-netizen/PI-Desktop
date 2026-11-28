@@ -1,0 +1,118 @@
+{
+  "id": "douyin-video-detail",
+  "platform": "douyin",
+  "name": "抖音 · 作品详情采集",
+  "description": "按作品 ID 打开公开作品页，取标题、文案描述、评论和页面摘要。只读；评论按需滚动加载。",
+  "contextSetup": {
+    "limitComments": {
+      "type": "number",
+      "default": 20
+    },
+    "shouldLoadComments": {
+      "type": "derived",
+      "source": "limitComments",
+      "op": ">",
+      "value": 0
+    }
+  },
+  "variables": [
+    {
+      "key": "videoId",
+      "label": "作品 ID（纯数字，从「抖音搜索」结果的 video_id 取）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "limitComments",
+      "label": "评论数量上限（0=不加载评论，默认 20）",
+      "type": "text",
+      "default": "20"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "douyin_video_detail"
+    }
+  },
+  "steps": [
+    {
+      "id": "openVideo",
+      "action": "navigate",
+      "value": "https://www.douyin.com/video/{{videoId}}",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          },
+          {
+            "type": "text",
+            "value": "身份验证"
+          },
+          {
+            "type": "text",
+            "value": "接收短信验证码"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*='captcha'], iframe[src*='captcha']"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "抖音触发了验证码/风控，请先在浏览器里完成验证"
+      }
+    },
+    {
+      "id": "waitDetail",
+      "action": "waitForState",
+      "timeout": 30000,
+      "params": {
+        "expression": "(function(){try{var el=document.querySelector('h1');return !!(el&&(el.innerText||'').trim());}catch(e){return false;}})()",
+        "errorCode": "DETAIL_NOT_READY",
+        "errorMessage": "作品详情没有加载出来（作品可能不可见，或页面改版）"
+      }
+    },
+    {
+      "id": "scrollComments",
+      "description": "评论区在右侧面板里，把最后一条评论滚进视野",
+      "action": "scrollForState",
+      "when": "shouldLoadComments",
+      "timeout": 120000,
+      "params": {
+        "countExpr": "(function(){try{return document.querySelectorAll('[data-e2e=\"comment-item\"]').length;}catch(e){return 0;}})()",
+        "anchorSelector": "[data-e2e=\"comment-item\"]",
+        "limitTotal": "{{limitComments}}",
+        "limitScroll": 40,
+        "stallRounds": 3,
+        "saveAs": "douyinCommentScroll"
+      }
+    },
+    {
+      "id": "extractDetail",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "douyinVideoDetail",
+        "fn": "function(ctx){\n  var descSelectors=['h1'];\n  var desc='';\n  for(var i=0;i<descSelectors.length;i++){\n    var el=document.querySelector(descSelectors[i]);\n    if(el&&(el.innerText||el.textContent||'').trim()){\n      var value=(el.innerText||el.textContent||'').trim();\n      if(value){desc=value;break;}\n    }\n  }\n  var commentSelectors=['[data-e2e=\"comment-item\"]'];\n  var limit=Number(ctx.limitComments)||20;\n  var comments=[];var seen={};\n  for(var s=0;s<commentSelectors.length&&!comments.length;s++){\n    var nodes=Array.from(document.querySelectorAll(commentSelectors[s]));\n    for(var n=0;n<nodes.length&&comments.length<limit;n++){\n      var txt=(nodes[n].innerText||'').trim();\n      if(!txt||seen[txt])continue;\n      seen[txt]=1;\n      comments.push({text:txt.slice(0,300)});\n    }\n  }\n  return {\n    video_id:String(ctx.videoId||''),\n    url:location.href,\n    title:document.title||'',\n    description:desc,\n    comments:comments,\n    comment_count:document.querySelectorAll('[data-e2e=\"comment-item\"]').length,\n    raw_excerpt:(document.body?document.body.innerText:'').slice(0,1500)\n  };\n}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

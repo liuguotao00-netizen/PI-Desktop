@@ -1,0 +1,12 @@
+{
+  "id": "demo.hello",
+  "version": "0.3.3",
+  "publishedAt": "2026-09-12T17:13:25Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/demo.hello-0.3.3.piplug",
+  "shasum": "6c3d3fcded92d15ab78552671fcac4687e26324d8ac6ed5df5452dffb153ee4b",
+  "repository": "https://plugins.aiuo.net/plugins/demo.hello",
+  "homepage": "https://plugins.aiuo.net/plugins/demo.hello",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/demo.hello/0.3.3",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

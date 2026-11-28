@@ -1,0 +1,52 @@
+{
+  "id": "xiaohongshu-login-qrcode",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 获取登录二维码",
+  "description": "打开发现页读取登录二维码；run 结果 files 含 xhs_login_qrcode.png（勿用 bash 解码）。已登录则 logged_in。扫码后运行 xiaohongshu-wait-login。",
+  "startUrl": "https://www.xiaohongshu.com/explore",
+  "variables": [],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_login_qrcode"
+    }
+  },
+  "steps": [
+    {
+      "action": "waitForLoad",
+      "timeout": 20000
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "id": "probeLoggedIn",
+      "action": "execute",
+      "timeout": 10000,
+      "params": {
+        "saveAs": "xhsLoginProbe",
+        "fn": "function(){\n  var loginVisible=!!document.querySelector('.login-container,[class*=\"login-mask\"],.qrcode-img');\n  var body=(document.body&&document.body.innerText)||'';\n  if(body.indexOf('扫码登录')>=0)loginVisible=true;\n  var profile=document.querySelector('a.link-wrapper[href*=\"/user/profile/\"],.main-container .user a[href*=\"/user/profile/\"]');\n  return {logged_in:!!profile&&!loginVisible};\n}"
+      }
+    },
+    {
+      "id": "waitQr",
+      "action": "waitForElement",
+      "timeout": 20000,
+      "whenState": "!document.querySelector('a.link-wrapper[href*=\"/user/profile/\"],.main-container .user a[href*=\"/user/profile/\"]')",
+      "target": {
+        "selector": ".qrcode-img"
+      }
+    },
+    {
+      "id": "readQr",
+      "action": "execute",
+      "timeout": 15000,
+      "whenState": "!document.querySelector('a.link-wrapper[href*=\"/user/profile/\"],.main-container .user a[href*=\"/user/profile/\"]')",
+      "params": {
+        "saveAs": "xhsLoginQrcode",
+        "fn": "function(){\n  var img=document.querySelector('.qrcode-img');\n  if(!img){return {logged_in:false,error:'未找到二维码'};}\n  var src=img.src||'';\n  if(src.indexOf('base64,')<0){return {logged_in:false,error:'二维码 src 无效'};}\n  return {logged_in:false,qrcode_data_url:src};\n}"
+      }
+    }
+  ]
+}

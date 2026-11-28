@@ -1,0 +1,273 @@
+{
+  "activationEvents": [
+    "onStartup",
+    "onCommand:piopt.open",
+    "onCommand:pimarket.open",
+    "onCommand:pimarket.prepare-updates",
+    "onCommand:pi-modify.open",
+    "onCommand:piopt.glass",
+    "onCommand:remote.open"
+  ],
+  "author": "Lu-Mine",
+  "categories": [
+    "productivity",
+    "themes",
+    "developer-tools"
+  ],
+  "changelog": "## 2.0.0\n\nPiOpt 在官方目录里的第一个版本：一个面板里集成外观、行为、插件市场与局域网远程四栏。\n\n- 版本号从 2.0.0 起：插件 id 定为 `pi.piopt`，对以前装过 `local.piopt` 的安装是不兼容变更。\n- 以前装过 `local.piopt` 的，先在 Plugins 页卸载它，再把 `~/.pi-desktop/plugins/data/local.piopt/` 复制成 `~/.pi-desktop/plugins/data/pi.piopt/`，然后装本版本。两个 id 同时启用会抢同一批命令和同一张主题。\n- 说明文档为纯 Markdown：宿主渲染时丢弃 HTML、主窗口 CSP 只允许 `data:` / `blob:` 图片，所以不放徽章与外链图。\n",
+  "contributes": {
+    "agentTools": [
+      {
+        "description": "List installed PI-Desktop plugins that have a newer non-yanked version in the official catalog, with version, size, sha256 and changelog. Reads only local registry/catalog files and returns, for each entry, whether a verified package is already downloaded.",
+        "name": "list_plugin_updates",
+        "risk": "low",
+        "schema": {
+          "properties": {
+            "includeInstalled": {
+              "description": "Also list installed plugins that are already current or absent from the catalog.",
+              "type": "boolean"
+            }
+          },
+          "type": "object"
+        }
+      },
+      {
+        "description": "Download one plugin package into this plugin's data folder, verify sizeBytes and sha256 against the official catalog, and return the absolute .piplug path for the user to install from the Plugins page. Never installs, never edits registry.json, and never keeps a package that fails verification.",
+        "name": "prepare_plugin_update",
+        "risk": "low",
+        "schema": {
+          "properties": {
+            "id": {
+              "description": "Plugin id, e.g. pi.file-manager.",
+              "type": "string"
+            },
+            "version": {
+              "description": "Exact version to fetch. Defaults to the newest non-yanked catalog version.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "type": "object"
+        }
+      },
+      {
+        "description": "Report whether the PiOpt phone gateway is running: on/off, port, the LAN addresses a phone can open, the pairing code, and how many devices are paired. Read-only.",
+        "name": "remote_status",
+        "risk": "low",
+        "schema": {
+          "properties": {},
+          "type": "object"
+        }
+      },
+      {
+        "description": "Start or stop the PiOpt phone gateway, or rotate its pairing code. Starting exposes a LAN page that can read sessions and send prompts until it is stopped.",
+        "name": "remote_control",
+        "risk": "medium",
+        "schema": {
+          "properties": {
+            "action": {
+              "description": "start | stop | rotate-code",
+              "type": "string"
+            }
+          },
+          "required": [
+            "action"
+          ],
+          "type": "object"
+        }
+      }
+    ],
+    "commands": [
+      {
+        "category": "PiOpt",
+        "id": "piopt.open",
+        "keywords": [
+          "piopt",
+          "market",
+          "appearance",
+          "控制台",
+          "市场",
+          "外观"
+        ],
+        "title": "PiOpt: 打开控制台"
+      },
+      {
+        "id": "pimarket.open",
+        "keywords": [
+          "pimarket",
+          "market",
+          "plugin",
+          "update",
+          "市场",
+          "插件",
+          "更新"
+        ],
+        "title": "Pimarket: 打开市场与更新面板"
+      },
+      {
+        "id": "pimarket.prepare-updates",
+        "keywords": [
+          "pimarket",
+          "update",
+          "全部",
+          "更新"
+        ],
+        "title": "Pimarket: 准备全部可用更新"
+      },
+      {
+        "category": "Appearance",
+        "id": "pi-modify.open",
+        "keywords": [
+          "piopt",
+          "pi-modify",
+          "appearance",
+          "motion",
+          "animation",
+          "外观",
+          "动效",
+          "动画",
+          "减弱动态"
+        ],
+        "title": "PiOpt: 打开外观"
+      },
+      {
+        "category": "Appearance",
+        "id": "piopt.glass",
+        "keywords": [
+          "piopt",
+          "glass",
+          "mica",
+          "acrylic",
+          "外观",
+          "磨砂",
+          "玻璃",
+          "材质"
+        ],
+        "title": "PiOpt: 打开窗口材质"
+      },
+      {
+        "category": "PiOpt",
+        "id": "remote.open",
+        "keywords": [
+          "remote",
+          "phone",
+          "mobile",
+          "远程",
+          "手机",
+          "局域网",
+          "配对"
+        ],
+        "title": "PiOpt: 打开远程访问"
+      }
+    ],
+    "launcherTriggers": [
+      {
+        "id": "open-console",
+        "pattern": "^(?:piopt|PiOpt 控制台)$",
+        "title": {
+          "en": "Open PiOpt console",
+          "zh-CN": "打开 PiOpt 控制台"
+        }
+      }
+    ],
+    "settings": [
+      {
+        "default": "AIUO-Net/pi-desktop-plugins",
+        "description": "GitHub 上的插件包镜像仓库，格式 owner/repo。默认 AIUO-Net/pi-desktop-plugins，与官方 catalog 的内容一致。",
+        "key": "mirrorRepo",
+        "scope": "plugin",
+        "title": "镜像仓库",
+        "type": "string"
+      },
+      {
+        "default": "main",
+        "description": "镜像仓库的 ref，默认 main。",
+        "key": "mirrorRef",
+        "scope": "plugin",
+        "title": "镜像分支或标签",
+        "type": "string"
+      },
+      {
+        "default": "",
+        "description": "留空使用 ~/.pi-desktop/plugins/data/pi.piopt。下载的包放在其下的 downloads/。",
+        "key": "dataDir",
+        "scope": "plugin",
+        "title": "数据目录（可选）",
+        "type": "string"
+      }
+    ],
+    "skills": [
+      "skills/piopt.md"
+    ]
+  },
+  "description": "PiOpt 是 PI-Desktop 的控制台插件：外观（界面动效的克制预设与实时预览、减弱动态保护、推理强度滑杆的吸附动效，以及可即时开关的窗口磨砂材质、背景图与 Wallpaper Engine 壁纸（video 直接播放、scene 由随插件分发的 WebWallGL 引擎渲染），以及按帧率重绘视频壁纸的性能模式）、行为（聊天框的模型浮窗始终列出全部模型，可按默认顺序 / 供应商 / 厂商 / 名称排列，选中标记可用圆角框替代对勾，推理强度滑杆的档位可译成中文，窗口入口（新建任务、搜索）可从会话标题栏搬进侧边栏）、远程（同一局域网里配对后的设备可以看会话、发指令、停止运行，电脑浏览器同样可用）与插件市场（读取官方目录，经镜像下载并按 sha256 校验），并在侧边栏左下角第二个按钮后提供一个控制台入口。",
+  "engines": {
+    "piDesktop": ">=0.21.0"
+  },
+  "homepage": "https://github.com/Lu-Mine/PiOpt",
+  "i18n": {
+    "en": {
+      "name": "PiOpt",
+      "description": "PiOpt is the PI-Desktop control console: appearance (unified symmetric motion language at 0.4–2.0x speed applied live with reduced-motion protection, a snap on the reasoning-effort slider, plus an instantly switchable frosted window material with an optional wallpaper, a Wallpaper Engine clip or a rendered Wallpaper Engine scene), behavior (the chat composer's model popup always lists every model in host order, by provider, by vendor or by name, with an optional rounded frame instead of the selected row's check and Chinese names for the reasoning-effort ticks), the phone (a paired phone on the same LAN can read sessions, send prompts and stop a turn), and a plugin market and update preparer (official catalog, mirrored downloads verified by sha256), plus a console entry in the sidebar footer, right after the second of the host's buttons.",
+      "safetyNotes": "The file context menu can open allowlisted files from the active session scratch or project directory using the system default application. The plugin process resolves real paths and refuses directory escapes. The market feature reads the plugin registry and catalog with Node fs inside the plugin process, writes only its own data folder, and downloads packages over https from four hard-coded hosts, verifying sizeBytes and sha256; it never installs. The appearance feature registers one runtime theme containing motion CSS (including the reasoning-effort slider's snap) and an optional glass layer built only from background fills, gradients and backdrop filters, with no color tokens, network or file access outside its own data folder; it also reads Steam's 431960 workshop folder, read-only, to list projects, read their square cover images and, for a picked scene, write that project's scene.pkg into its own data folder as one base64 payload file, keeping only the newest. ui.theme is used only for that one runtime theme, and agent.prompt.inject only indexes skills/piopt.md for on-demand loading. renderer.extension is used for one module that mounts a single entry button into the host window's sidebar footer and removes it on unload; the same module coordinates reversible animations on inert clones while motion optimization is active and rewrites the chat composer's model popup in that window using cloned buttons, hiding the selected row's check in favour of a ring and relabelling the reasoning slider's ticks when asked, with RPC actions going through plugin.call back to the plugin process. The module reads no files and sends no network requests, and touches no other plugin's UI; its wallpaper layer is either a single video element pointed at the path the plugin process hands it, decoded by the host's Chromium rather than by the module, or a WebGL2 canvas driven by the bundled WebWallGL engine (MIT) over the bytes that same process streams to it."
+    },
+    "zh-CN": {
+      "name": "PiOpt 控制台",
+      "description": "PiOpt 是 PI-Desktop 的控制台插件：外观（0.4–2.0× 统一对称界面动效、推理强度滑杆的吸附动效、窗口磨砂材质与 Wallpaper Engine 壁纸（video 直接播放、scene 由内置引擎渲染），改完即时生效）、行为（聊天框的模型浮窗始终列出全部模型，可按默认顺序、供应商、厂商或名称排列，选中标记可用圆角框替代对勾，推理强度滑杆的档位可译成中文，窗口入口可搬进侧边栏）、远程（同一局域网里配对后的设备可以看会话、发指令、停止运行，电脑浏览器同样可用）与插件市场（官方目录、镜像下载并按 sha256 校验），并在侧边栏左下角第二个按钮后提供一个控制台入口。",
+      "safetyNotes": "文件右键菜单可通过系统默认程序打开当前会话临时目录或当前项目目录内允许的文件类型；插件进程解析真实路径并拒绝越界。市场功能在插件进程内用 Node fs 读取插件注册表与官方目录，只写自己的数据目录；.piplug 只从四个硬编码域名走 https 下载，且只有 sizeBytes 与 sha256 校验通过才会保留，从不安装、不改 registry.json。外观功能只注册一个运行时主题，其中只有动效规则（含推理强度滑杆停在每一格时的吸附）与可选的玻璃层（背景填充、渐变、backdrop-filter），不含颜色 token，除自己的数据目录（存放用户选的背景图）与 Steam 的 431960 创意工坊目录（只读：列出项目、读它的 project.json 与方形封面；选中 scene 时把它的 scene.pkg 转成数据目录里的一份 scene-payload-{id}.js（base64，只留最近一份））外不访问文件或网络。每个功能的状态都存放在插件自己的 settings 中。ui.theme 仅用于这一个外观主题，agent.prompt.inject 仅用于收录 skills/piopt.md。renderer.extension 只用于一个渲染模块：它在宿主窗口侧边栏左下角的按钮栏里挂一个入口按钮，卸载时移除；在开启载荷动效时用惰性克隆协调可往返动画的对称退回与打断；并改写聊天框的模型浮窗（展开全部模型、用克隆按钮按所选方式排列，需要时把选中行的对勾换成圆角边框、把推理强度的档位换成中文、把「新建任务」与「搜索」搬进侧边栏并按实测偏差摆正面板开关的图标），以及壁纸层——video 是一个指向插件进程给出的路径的视频元素，由宿主自己的 Chromium 解码；scene 是一块由随插件分发的 WebWallGL（MIT）绘制的 WebGL2 画布，画的是插件进程分块送来的 scene.pkg 字节；两种情况下模块自己都不做文件读写——RPC 均经 plugin.call 交回插件进程。模块不读文件、不访问网络、不触碰其他插件的界面。"
+    }
+  },
+  "id": "pi.piopt",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "PiOpt",
+  "net": {
+    "domains": [
+      "plugins.aiuo.net",
+      "cdn.jsdelivr.net",
+      "raw.githubusercontent.com",
+      "api.github.com"
+    ]
+  },
+  "permissions": [
+    "ui.panel",
+    "renderer.extension",
+    "ui.theme",
+    "clipboard.write",
+    "net.fetch",
+    "shell.openExternal",
+    "agent.tool.register",
+    "agent.prompt.inject",
+    "desktop.control",
+    "session.read"
+  ],
+  "renderer": "renderer/entry.mjs",
+  "rendererActions": [
+    "plugin.call",
+    "composer.insertText"
+  ],
+  "rendererCallMethods": [
+    "openConsole",
+    "openSessionOutput",
+    "modelPickerState",
+    "setModelPickerGrouping",
+    "engineWallpaperState",
+    "enginePkg",
+    "reportEngineStatus",
+    "reportEngineStats"
+  ],
+  "safetyNotes": "A user can open allowlisted files in the active session scratch or project directory via the file context menu and the system default application. The plugin process resolves real paths and rejects paths outside that directory. PiOpt bundles three features that each stay inside their own boundary. The market feature reads the plugin registry and market catalog with Node fs inside the plugin process, writes only its own data folder, and downloads .piplug files over https from four hard-coded hosts, verifying sizeBytes and sha256 before a package is kept; it never installs and never edits registry.json. The appearance feature registers one runtime theme whose CSS carries motion rules (including the snap the reasoning-effort slider makes between stops) and an optional glass layer made only of background fills, gradients and backdrop filters: no color tokens of its own, no remote resources, no file or network access outside its own data folder, where an uploaded wallpaper is written, plus read-only access to Steam's 431960 workshop folder to list projects, read each project.json and its square cover image, and - for a scene the user picks - write that project's scene.pkg into its own data folder as one base64 payload file, keeping only the newest. Each feature keeps its state in the plugin's own settings. ui.theme is used only for that one PiOpt Appearance runtime theme. agent.prompt.inject only indexes skills/piopt.md for on-demand loading. renderer.extension is used for one module that mounts a single entry button into the host window's sidebar footer, right after the second button, coordinates reversible exit/interruption animations on inert clones while motion optimization is active, and rewrites the chat composer's model popup in that window — expanding it, building a sorted list out of cloned buttons, hiding the selected row's check in favour of a ring, and relabelling the reasoning slider's ticks — with RPC actions going through plugin.call back to the plugin process. The module reads no files and sends no network requests, and touches no other plugin's UI; it does mount one wallpaper layer: for a clip, a video element pointed at the absolute path the plugin process hands it, decoded by the host's own Chromium; for a scene, a WebGL2 canvas driven by the bundled WebWallGL engine (MIT) over the scene.pkg bytes that same process streams to it. The module itself never opens a file. The remote feature runs one HTTP server on the LAN only while the user turns it on in the panel: it serves a small phone page plus an API that lists sessions, reads one transcript, sends a prompt and aborts a turn. Sessions and their metadata come from the desktop channel (session/list, session/get); a transcript is read from that session's own jsonl in the PI-Desktop data folder with Node fs - the tail only (256 KB, cached by file size) - the same way the market feature reads the plugin registry, because the desktop channel does not carry message bodies. Prompts and aborts go through desktop.invoke. It never approves tool permissions or plans, never deletes, configures or renames anything, and requires a device token minted by pairing with a six-digit code shown in the panel; pairing is rate limited per address, and the server stops listening on unload or when the panel switch is turned off.",
+  "schemaVersion": 1,
+  "ui": {
+    "height": 800,
+    "panel": "renderer/index.html",
+    "title": {
+      "en": "PiOpt",
+      "zh-CN": "PiOpt 控制台"
+    },
+    "width": 1180
+  },
+  "version": "2.0.0"
+}

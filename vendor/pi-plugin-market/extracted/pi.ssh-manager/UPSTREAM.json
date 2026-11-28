@@ -1,0 +1,12 @@
+{
+  "id": "pi.ssh-manager",
+  "version": "0.1.6",
+  "publishedAt": "2026-10-06T15:15:25Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/pi.ssh-manager-0.1.6.piplug",
+  "shasum": "3c2eb91e4d295015514aad707cf1020b2eef30d1adfb20e71e2c8b60a15658f6",
+  "repository": "https://plugins.aiuo.net/plugins/pi.ssh-manager",
+  "homepage": "https://plugins.aiuo.net/plugins/pi.ssh-manager",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/pi.ssh-manager/0.1.6",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

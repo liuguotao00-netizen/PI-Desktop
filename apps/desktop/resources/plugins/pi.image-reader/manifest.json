@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.image-reader",
+  "name": "Image Reader",
+  "version": "1.0.0",
+  "description": "Attach a local image to the conversation as a multimodal image block.",
+  "author": "PI-Desktop",
+  "main": "main.js",
+  "permissions": ["fs.read", "agent.tool.register"],
+  "fs": {
+    "read": {
+      "root": "workspace",
+      "scope": ["**/*.png", "**/*.jpg", "**/*.jpeg", "**/*.webp", "**/*.gif"]
+    }
+  },
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "read_image",
+        "description": "Read one local image as a visual input block.",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": { "path": { "type": "string" } },
+          "required": ["path"]
+        }
+      }
+    ]
+  }
+}

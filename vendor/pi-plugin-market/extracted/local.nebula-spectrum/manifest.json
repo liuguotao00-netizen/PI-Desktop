@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "id": "local.nebula-spectrum",
+  "name": "Nebula Spectrum",
+  "version": "0.9.0",
+  "description": "A vibrant, high-tech appearance theme for PI-Desktop in eight editions: Rainbow, Sunrise, Glacier and Rose (light), plus Indigo, Ember, Crimson and Neon (dark). Each keeps its own spectrum at the window edges.",
+  "i18n": {
+    "en": {
+      "name": "Nebula Spectrum",
+      "description": "A vibrant, high-tech appearance theme for PI-Desktop in eight editions: Rainbow, Sunrise, Glacier and Rose (light), plus Indigo, Ember, Crimson and Neon (dark). Each keeps its own spectrum at the window edges.",
+      "safetyNotes": "Appearance only. Ships no code beyond an empty lifecycle entry, makes no network requests, reads no files, and injects nothing but CSS custom properties scoped to its own theme id. Declares ui.window.appearance so the native window background can match the theme."
+    },
+    "zh-CN": {
+      "name": "Nebula 光谱",
+      "description": "炫彩科技感的 PI-Desktop 主题，共八套：光谱·彩虹 / 暖阳 / 冰蓝 / 玫瑰（浅色），光谱·青蓝 / 余烬 / 朱红 / 霓虹（深色）。每套都保留窗口边缘的光谱极光。",
+      "safetyNotes": "只改外观。除空的生命周期入口外不含任何代码，不发起网络请求，不读取文件，只注入限定在本主题 id 下的 CSS 变量。声明 ui.window.appearance 仅用于让原生窗口底色跟随主题。"
+    }
+  },
+  "author": "LiuHongXuMaritime",
+  "categories": [
+    "themes"
+  ],
+  "changelog": "0.9.0 — Themes renamed to 光谱·<palette>; Onyx removed; new Crimson palette (red-and-black with the full spectrum at the window edge). 0.8.0 — Ember and Rose added. 0.7.0 — Sunrise, Glacier and Neon added. 0.6.0 — Marketplace metadata: bilingual name/description/safety notes, category and host version range.",
+  "engines": {
+    "piDesktop": ">=0.2.0"
+  },
+  "main": "main.js",
+  "permissions": [
+    "ui.theme",
+    "ui.window.appearance"
+  ],
+  "contributes": {
+    "themes": [
+      {
+        "id": "nebula",
+        "label": "光谱·青蓝",
+        "base": "dark",
+        "path": "theme/nebula.css"
+      },
+      {
+        "id": "nebula-light",
+        "label": "光谱·彩虹",
+        "base": "light",
+        "path": "theme/nebula-light.css"
+      },
+      {
+        "id": "nebula-sunrise",
+        "label": "光谱·暖阳",
+        "base": "light",
+        "path": "theme/nebula-sunrise.css"
+      },
+      {
+        "id": "nebula-glacier",
+        "label": "光谱·冰蓝",
+        "base": "light",
+        "path": "theme/nebula-glacier.css"
+      },
+      {
+        "id": "nebula-rose",
+        "label": "光谱·玫瑰",
+        "base": "light",
+        "path": "theme/nebula-rose.css"
+      },
+      {
+        "id": "nebula-ember",
+        "label": "光谱·余烬",
+        "base": "dark",
+        "path": "theme/nebula-ember.css"
+      },
+      {
+        "id": "nebula-crimson",
+        "label": "光谱·朱红",
+        "base": "dark",
+        "path": "theme/nebula-crimson.css"
+      },
+      {
+        "id": "nebula-neon",
+        "label": "光谱·霓虹",
+        "base": "dark",
+        "path": "theme/nebula-neon.css"
+      }
+    ],
+    "windowAppearance": {
+      "backgroundColor": {
+        "dark": "#080506",
+        "light": "#fcfbfd"
+      }
+    }
+  }
+}

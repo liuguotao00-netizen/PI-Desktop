@@ -1,0 +1,75 @@
+{
+  "activationEvents": [
+    "onStartup",
+    "onCommand:wechat-assistant.openPanel"
+  ],
+  "author": "Xidea",
+  "contributes": {
+    "agentExtensions": [
+      "extensions/agent.js"
+    ],
+    "agentTools": [
+      {
+        "description": "将当前电脑上的生成文件（如 PDF 报告、zip 包、导出的数据）作为原生文件卡片直接发送到手机微信。",
+        "name": "send_file_to_wechat"
+      },
+      {
+        "description": "将当前电脑上的生成图片或渲染截图作为原生图片直接发送到手机微信。",
+        "name": "send_image_to_wechat"
+      }
+    ],
+    "commands": [
+      {
+        "id": "wechat-assistant.openPanel",
+        "keywords": [
+          "wechat",
+          "微信",
+          "bot",
+          "pi_wechatbot",
+          "xidea",
+          "助手"
+        ],
+        "title": "微信 BOT: 打开控制面板"
+      }
+    ]
+  },
+  "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
+  "engines": {
+    "piDesktop": ">=0.14.0"
+  },
+  "homepage": "https://www.ifolo.cn",
+  "i18n": {
+    "en": {
+      "name": "PI_WeChatBot",
+      "description": "PI_WeChatBot: Connect WeChat to PI-Desktop for remote coding tasks, two-way sync, and mobile workflow control.",
+      "safetyNotes": "Official iLink Bot connector by Xidea. Injects prompts and captures model responses securely."
+    },
+    "zh-CN": {
+      "name": "微信 BOT",
+      "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
+      "safetyNotes": "Xidea 团队出品。通过微信官方 iLink Bot 协议安全连接手机与桌面智能体。"
+    }
+  },
+  "id": "io.github.xideadev.pi-wechatbot",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "微信 BOT",
+  "permissions": [
+    "ui.panel",
+    "desktop.control",
+    "agent.extension",
+    "agent.tool.register"
+  ],
+  "safetyNotes": "Xidea 团队出品。通过微信官方 iLink Bot 协议安全连接手机与桌面智能体。",
+  "schemaVersion": 1,
+  "ui": {
+    "height": 720,
+    "panel": "renderer/index.html",
+    "title": {
+      "en": "PI_WeChatBot",
+      "zh-CN": "微信 BOT"
+    },
+    "width": 540
+  },
+  "version": "1.4.0"
+}

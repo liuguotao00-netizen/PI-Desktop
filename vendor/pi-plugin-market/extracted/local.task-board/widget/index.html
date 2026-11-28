@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>任务看板 · 浮窗</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --panel: var(--ds-bg-elevated, #ffffff);
+        --fg: var(--ds-fg, #1a1c1f);
+        --muted: var(--ds-muted, #5f6673);
+        --line: var(--ds-border, rgba(20, 24, 31, 0.14));
+        --line-soft: rgba(20, 24, 31, 0.07);
+        --hover: var(--ds-bg-hover, rgba(20, 24, 31, 0.05));
+        --accent: var(--ds-accent, #3f6ef0);
+        --warn: #a0680f;
+        --warn-soft: rgba(160, 104, 15, 0.12);
+        --ok: #2f7a4f;
+      }
+      /* 浮窗是独立透明窗口：必须自己判深浅色，不能指望宿主注入 --ds-*。 */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --panel: var(--ds-bg-elevated, #171a20);
+          --fg: var(--ds-fg, #e8eaed);
+          --muted: var(--ds-muted, #9aa1ac);
+          --line: var(--ds-border, rgba(255, 255, 255, 0.16));
+          --line-soft: rgba(255, 255, 255, 0.1);
+          --hover: var(--ds-bg-hover, rgba(255, 255, 255, 0.07));
+          --warn: #e0b060;
+          --warn-soft: rgba(224, 176, 96, 0.16);
+          --ok: #74c69d;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        /* 透明窗口：body 不能有不透明底色，否则矩形边界会露出来。 */
+        background: transparent;
+      }
+      body {
+        padding: 6px;
+        color: var(--fg);
+        font: 12px/1.45 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* 卡片自己画轮廓：圆角 + 底色 + 一圈细边（宿主关掉了原生阴影）。 */
+      .card {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: var(--panel);
+        overflow: hidden;
+      }
+
+      /* 拖拽条：浮窗没有胶囊，这里就是唯一的拖动把手。 */
+      .grab {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 7px 9px 6px;
+        border-bottom: 1px solid var(--line-soft);
+        -webkit-app-region: drag;
+      }
+      .grab > * {
+        -webkit-app-region: no-drag;
+      }
+      .grab .title {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        min-width: 0;
+        -webkit-app-region: drag;
+      }
+      .grab h1 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .grab .sum {
+        color: var(--muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .grow {
+        flex: 1;
+        min-width: 4px;
+        -webkit-app-region: drag;
+      }
+      button.icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: none;
+        width: 22px;
+        height: 22px;
+        padding: 0;
+        border: 1px solid transparent;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        cursor: pointer;
+      }
+      button.icon:hover {
+        border-color: var(--line-soft);
+        background: var(--hover);
+        color: var(--fg);
+      }
+      button.icon:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      button.icon[data-busy="1"] .spin {
+        animation: spin 700ms linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spin {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border: 1.5px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+      }
+
+      .body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 4px;
+        overscroll-behavior: contain;
+      }
+      .body::-webkit-scrollbar {
+        width: 8px;
+      }
+      .body::-webkit-scrollbar-thumb {
+        border: 2px solid transparent;
+        border-radius: 999px;
+        background-clip: content-box;
+        background-color: var(--line);
+      }
+
+      section {
+        padding: 2px 0 4px;
+      }
+      section + section {
+        border-top: 1px solid var(--line-soft);
+      }
+      section h2 {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin: 0;
+        padding: 4px 6px 2px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.02em;
+      }
+      section h2 .n {
+        padding: 0 5px;
+        border-radius: 999px;
+        background: var(--line-soft);
+        color: var(--fg);
+        font-size: 10px;
+        line-height: 15px;
+        font-variant-numeric: tabular-nums;
+      }
+      section h2 .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      section[data-kind="running"] h2 .dot {
+        background: var(--accent);
+      }
+      section[data-kind="plans"] h2 .dot {
+        background: var(--warn);
+      }
+
+      /* 等你回复最要紧（琥珀），刚完成是收尾（绿）。 */
+      section[data-kind="waiting"] h2 .dot {
+        background: var(--warn);
+      }
+      section[data-kind="done"] h2 .dot {
+        background: var(--ok);
+      }
+
+      ul {
+        margin: 0;
+        padding: 0 2px;
+        list-style: none;
+      }
+      .row {
+        display: block;
+        width: 100%;
+        padding: 4px 6px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .row:hover {
+        background: var(--hover);
+      }
+      .row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .row .t {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .m {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 1px;
+        color: var(--muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .row .m .p {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .m .warn {
+        flex: none;
+        color: var(--warn);
+      }
+      .row .m .time {
+        flex: none;
+        margin-left: auto;
+      }
+      .live {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        margin-right: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        vertical-align: middle;
+      }
+      .blank {
+        padding: 4px 8px 6px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .more {
+        padding: 0 8px 4px;
+        color: var(--muted);
+        font-size: 10px;
+      }
+
+      .foot {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 9px 6px;
+        border-top: 1px solid var(--line-soft);
+        color: var(--muted);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+      }
+      .foot .grow {
+        flex: 1;
+      }
+      /* 窗口被拖窄/拖矮时逐级让位：先牺牲摘要与提示，保住两段列表可读可滚。 */
+      .foot .hint {
+        flex: none;
+        white-space: nowrap;
+      }
+      @media (max-width: 272px) {
+        .grab .sum {
+          display: none;
+        }
+        .foot .hint {
+          display: none;
+        }
+      }
+
+      /* 更窄时连标题栏的第二个按钮也让位：保底留出刷新与标题的可读宽度。 */
+      @media (max-width: 216px) {
+        #sidebar {
+          display: none;
+        }
+      }
+      @media (max-height: 176px) {
+        .foot {
+          display: none;
+        }
+      }
+
+      .note {
+        margin: 0 2px 4px;
+        padding: 4px 6px;
+        border: 1px solid var(--warn);
+        border-radius: 5px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        font-size: 10px;
+        line-height: 1.4;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="grab">
+        <div class="title">
+          <h1>任务看板</h1>
+          <span class="sum" id="sum">—</span>
+        </div>
+        <div class="grow"></div>
+        <button class="icon" id="sidebar" type="button" title="在侧栏打开完整看板" aria-label="在侧栏打开完整看板">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false"><rect x="1.25" y="1.75" width="3.5" height="8.5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"></rect><rect x="7.25" y="1.75" width="3.5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1"></rect></svg>
+        </button>
+        <button class="icon" id="refresh" type="button" data-busy="0" title="刷新" aria-label="刷新">
+          <span class="spin" aria-hidden="true"></span>
+        </button>
+      </div>
+
+      <div class="body">
+        <div class="note" id="note" hidden></div>
+
+        <section data-kind="waiting">
+          <h2><span class="dot" aria-hidden="true"></span>等待人工介入 <span class="n" id="n-waiting">0</span></h2>
+          <ul id="l-waiting"></ul>
+        </section>
+
+        <section data-kind="running">
+          <h2><span class="dot" aria-hidden="true"></span>执行中 <span class="n" id="n-running">0</span></h2>
+          <ul id="l-running"></ul>
+        </section>
+
+        <section data-kind="plans">
+          <h2><span class="dot" aria-hidden="true"></span>待审批 <span class="n" id="n-plans">0</span></h2>
+          <ul id="l-plans"></ul>
+        </section>
+
+        <section data-kind="done">
+          <h2><span class="dot" aria-hidden="true"></span>5 分钟内完成 <span class="n" id="n-done">0</span></h2>
+          <ul id="l-done"></ul>
+        </section>
+      </div>
+
+      <div class="foot">
+        <span id="stamp">正在读取…</span>
+        <span class="grow"></span>
+        <span class="hint">右键：置顶 / 最小化 / 关闭 · 拖边缘改大小 · 双击任务叫醒窗口</span>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // 节奏由主进程给（nextPollMs），这里只作首轮兜底与非法值回退。
+        var DEFAULT_POLL_MS = 2000;
+        var pollMs = DEFAULT_POLL_MS;
+        // 浮窗拉得越高应当看到越多：不再硬截断 3 条，改为按到手数据全量渲染（.body 本来就可滚）。
+        // 40 只是防御上限，正常触不到——真正到手上限由主进程快照的 limit 决定（浮窗传 20）。
+        var MAX_ROWS = 40;
+        var bridge = window.pluginBridge;
+        var hasBridge = !!(bridge && typeof bridge.invoke === "function");
+        var timer = null;
+        var inflight = false;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        // 预览模式示例数据：四段各给一条，形状与主进程快照完全一致。
+        var DEMO = {
+          generatedAt: Date.now(),
+          // 示例数据里有等待与执行中，按真实规则下一轮应是 2s（预览也照此调度）。
+          nextPollMs: 2000,
+          planTotal: 1,
+          waiting: [
+            {
+              sessionId: "w1",
+              title: "等你批准：把权限判断下沉到 native 层",
+              projectName: "GeneralBound",
+              updatedAt: Date.now() - 90 * 1000,
+              activityPhase: "",
+              planningState: "awaiting_approval",
+              waitingFor: "plan-approval",
+            },
+            {
+              sessionId: "w2",
+              title: "等你回答：这三个口径你要哪个",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 20 * 1000,
+              activityPhase: "",
+              planningState: "",
+              waitingFor: "ask",
+              askCount: 3,
+            },
+          ],
+          running: [
+            {
+              sessionId: "r1",
+              title: "重构鉴权模块：把权限判断下沉",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 40 * 1000,
+              activityPhase: "waiting-model",
+              planningState: "",
+            },
+            {
+              sessionId: "r2",
+              title: "扫描待提交变更并输出总结",
+              projectName: "GeneralBound",
+              updatedAt: Date.now() - 3 * 60 * 1000,
+              activityPhase: "compacting",
+              planningState: "",
+            },
+          ],
+          recentDone: [
+            {
+              sessionId: "d1",
+              title: "补齐任务看板 0.3.0",
+              projectName: "GeneralBound",
+              updatedAt: Date.now() - 2 * 60 * 1000,
+              finishedAt: Date.now() - 2 * 60 * 1000,
+              activityPhase: "",
+              planningState: "",
+            },
+          ],
+          plans: [
+            {
+              requestId: "p1",
+              title: "重构鉴权模块方案待确认",
+              projectName: "PipeFieldworkHT",
+              createdAt: Date.now() - 6 * 60 * 1000,
+              kind: "plan",
+              sessionId: "r1",
+            },
+          ],
+        };
+
+        function relTime(ms) {
+          if (!ms) return "未知";
+          var diff = Date.now() - ms;
+          if (diff < 60000) return "刚刚";
+          var min = Math.floor(diff / 60000);
+          if (min < 60) return min + " 分钟前";
+          var hour = Math.floor(min / 60);
+          if (hour < 24) return hour + " 小时前";
+          return Math.floor(hour / 24) + " 天前";
+        }
+
+        function clear(node) {
+          while (node.firstChild) node.removeChild(node.firstChild);
+        }
+        // 宿主 sidecar 的 activity.phase → 中文短语（取值域取证自 getStatus()）。
+        var PHASE_LABELS = {
+          starting: "启动中",
+          preparing: "准备中",
+          compacting: "压缩上下文",
+          recovering: "恢复中",
+          retrying: "重试中",
+          "waiting-model": "等模型",
+          "waiting-tool-stop": "收尾中",
+          "waiting-subagents": "等子代理",
+        };
+
+        function activityLabel(phase) {
+          return (phase && PHASE_LABELS[phase]) || "";
+        }
+
+
+        function openSession(id, wake) {
+          if (!hasBridge || !id) return;
+          // wake=true 走 board.wakeSession：主进程切完会话后会发一条原生通知，
+          // 宿主对通知的 click handler 里写死了 restore + show + focus，点一下就回到主窗口。
+          bridge.invoke(wake ? "board.wakeSession" : "board.openSession", { sessionId: id }).catch(function () {});
+        }
+
+        function row(item, opts) {
+          var li = document.createElement("li");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "row";
+          btn.title = item.title || "";
+
+          var t = document.createElement("span");
+          t.className = "t";
+          if (opts && opts.live) {
+            var d = document.createElement("span");
+            d.className = "live";
+            t.appendChild(d);
+          }
+          t.appendChild(document.createTextNode(item.title || "(无标题)"));
+          btn.appendChild(t);
+
+          var m = document.createElement("span");
+          m.className = "m";
+          var p = document.createElement("span");
+          p.className = "p";
+          p.textContent = item.projectName || "未归属项目";
+          m.appendChild(p);
+          if (opts && opts.warn) {
+            var w = document.createElement("span");
+            w.className = "warn";
+            w.textContent = opts.warn;
+            m.appendChild(w);
+          }
+          var tm = document.createElement("span");
+          tm.className = "time";
+          tm.textContent = relTime(opts && opts.at);
+          m.appendChild(tm);
+          btn.appendChild(m);
+
+          var sid = item.sessionId;
+          if (sid) {
+            // 单击＝安静跳回会话；双击＝跳回并顺带叫醒最小化的主窗口（浮窗常驻时最常用）。
+            btn.addEventListener("click", function () { openSession(sid, false); });
+            btn.addEventListener("dblclick", function () { openSession(sid, true); });
+          } else btn.disabled = true;
+
+          li.appendChild(btn);
+          return li;
+        }
+
+        function paintList(listId, countId, items, kind, total) {
+          var list = $(listId);
+          clear(list);
+          $(countId).textContent = String(total == null ? (items || []).length : total);
+
+          if (!items || !items.length) {
+            var blank = document.createElement("li");
+            blank.className = "blank";
+            blank.textContent =
+              kind === "waiting"
+                ? "没有在等你的会话"
+                : kind === "running"
+                  ? "当前没有会话在执行"
+                  : kind === "done"
+                    ? "最近 5 分钟没有跑完的任务"
+                    : "没有待审批";
+            list.appendChild(blank);
+            return;
+          }
+
+          var shown = items.slice(0, MAX_ROWS);
+          shown.forEach(function (item) {
+            if (kind === "waiting") {
+              // 两个来源：asktool 反问（`waitingFor=ask`，带题数）与计划审批
+              // （`planningState=awaiting_approval` / `pendingPlanId`）。
+              list.appendChild(
+                row(item, {
+                  at: item.updatedAt,
+                  warn: item.waitingFor === "ask" ? "等你回答 " + (Number(item.askCount) || 1) + " 题" : "等你批准计划",
+                })
+              );
+            } else if (kind === "running") {
+              list.appendChild(row(item, { live: true, at: item.updatedAt, warn: activityLabel(item.activityPhase) }));
+            } else if (kind === "done") {
+              list.appendChild(row(item, { at: item.finishedAt || item.updatedAt, warn: "已完成", done: true }));
+            } else {
+              list.appendChild(row(item, { at: item.createdAt }));
+            }
+          });
+
+          // 只在「上游还有没到手的 / 触到防御上限」时提示，避免和能滚动的列表重复告知。
+          var totalKnown = total == null ? items.length : total;
+          var hidden = totalKnown - shown.length;
+          if (hidden > 0) {
+            var more = document.createElement("li");
+            more.className = "more";
+            more.textContent = "还有 " + hidden + " 条，点开侧栏查看";
+            list.appendChild(more);
+          }
+        }
+
+        function paint(data) {
+          var waiting = (data.waiting || []).length;
+          var running = (data.running || []).length;
+          var plans = data.planTotal == null ? (data.plans || []).length : data.planTotal;
+          var done = (data.recentDone || []).length;
+
+          paintList("l-waiting", "n-waiting", data.waiting, "waiting", waiting);
+          paintList("l-running", "n-running", data.running, "running", running);
+          paintList("l-plans", "n-plans", data.plans, "plans", plans);
+          paintList("l-done", "n-done", data.recentDone, "done", done);
+
+          $("sum").textContent =
+            (waiting ? waiting + " 等你 · " : "") +
+            running + " 跑着 · " + plans + " 待批" +
+            (done ? " · " + done + " 刚完成" : "");
+          $("stamp").textContent =
+            "更新于 " + new Date(data.generatedAt || Date.now()).toLocaleTimeString() +
+            (pollMs >= 5000 ? " · 空闲降频 " + Math.round(pollMs / 1000) + "s" : "") +
+            " · v0.3.9";
+
+          var note = $("note");
+          var degraded = data.degraded || [];
+          if (!hasBridge) {
+            note.hidden = false;
+            note.textContent = "预览模式：示例数据，装入插件后为真实会话";
+          } else if (degraded.length) {
+            note.hidden = false;
+            note.textContent = "部分通道不可用：" + degraded.map(function (d) { return d.code; }).join("、");
+          } else {
+            note.hidden = true;
+          }
+        }
+
+        function ask(channel, payload) {
+          if (!hasBridge) return Promise.resolve(DEMO);
+          return bridge.invoke(channel, payload || {});
+        }
+
+        function setBusy(busy) {
+          var btn = $("refresh");
+          btn.dataset.busy = busy ? "1" : "0";
+          btn.disabled = !!busy;
+        }
+
+        function load() {
+          if (inflight) return;
+          inflight = true;
+          setBusy(true);
+          stopTimer();
+          ask("board.snapshot", { limit: 20 })
+            .then(function (data) {
+              if (!data || data.ok === false) throw new Error((data && data.code) || "SNAPSHOT_FAILED");
+              // 先按新节奏排下一轮，再重绘：状态行要显示这一轮生效的间隔。
+              scheduleNext(data.nextPollMs);
+              paint(data);
+            })
+            .catch(function (error) {
+              $("stamp").textContent = "读取失败：" + String((error && error.message) || error);
+              // 失败不追高频：退回最慢档，等宿主恢复。
+              scheduleNext(15000);
+            })
+            .then(function () {
+              inflight = false;
+              setBusy(false);
+            });
+        }
+
+        // 自适应节奏：主进程按「有没有人等你 / 有人在跑」给出 nextPollMs（2s / 5s / 15s），
+        // 页面照它排下一次，不再用固定 setInterval。
+        function scheduleNext(ms) {
+          var next = Number(ms);
+          if (!Number.isFinite(next) || next < 1000) next = 15000;
+          pollMs = next;
+          if (timer) {
+            window.clearTimeout(timer);
+            timer = null;
+          }
+          if (!hasBridge || document.hidden) return;
+          timer = window.setTimeout(load, next);
+        }
+
+        function stopTimer() {
+          if (!timer) return;
+          window.clearTimeout(timer);
+          timer = null;
+        }
+
+        $("refresh").addEventListener("click", load);
+
+        // 打开侧栏：宿主 revealView 要求 sessionId 必须等于当前活跃会话，所以主进程一律不传。
+        // 失败（例如当前没有活跃会话）只把原因写到状态行，不动看板本身。
+        $("sidebar").addEventListener("click", function () {
+          if (!hasBridge) return;
+          bridge.invoke("board.openSidebar", {}).then(function (res) {
+            if (res && res.ok === false) {
+              $("stamp").textContent = "侧栏打开被拒：" + (res.code || "未知原因");
+            }
+          }).catch(function () {});
+        });
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) stopTimer();
+          else load();
+        });
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

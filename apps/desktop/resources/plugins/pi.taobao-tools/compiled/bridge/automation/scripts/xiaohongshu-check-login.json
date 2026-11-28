@@ -1,0 +1,33 @@
+{
+  "id": "xiaohongshu-check-login",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 检查登录状态",
+  "description": "打开发现页，检测是否已登录（需有效 /user/profile/ 链接且登录弹窗未出现）。采集类，可直接 run_automation。",
+  "startUrl": "https://www.xiaohongshu.com/explore",
+  "variables": [],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_check_login"
+    }
+  },
+  "steps": [
+    {
+      "action": "waitForLoad",
+      "timeout": 20000
+    },
+    {
+      "action": "wait",
+      "duration": [800, 1500]
+    },
+    {
+      "id": "probe",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsLoginStatus",
+        "fn": "function(){\n  var loginVisible=!!document.querySelector('.login-container,[class*=\"login-mask\"],.qrcode-img');\n  var body=(document.body&&document.body.innerText)||'';\n  if(body.indexOf('扫码登录')>=0)loginVisible=true;\n  var profile=document.querySelector('a.link-wrapper[href*=\"/user/profile/\"],.main-container .user a[href*=\"/user/profile/\"]');\n  var riskCaptcha=!!document.querySelector('.captcha-container')||body.indexOf('请完成下方验证')>=0;\n  var loggedIn=!!profile&&!loginVisible&&!riskCaptcha;\n  var nickname='';\n  if(profile){\n    var ch=profile.querySelector('.channel')||profile;\n    nickname=(ch.textContent||'').trim();\n  }\n  if(nickname==='我'||nickname==='登录')nickname='';\n  return {\n    logged_in:loggedIn,\n    login_prompt_visible:loginVisible,\n    risk_captcha_visible:riskCaptcha,\n    nickname:nickname,\n    page_url:location.href\n  };\n}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "cn.star.user-profile",
+  "name": "User Profile",
+  "version": "0.1.7",
+  "description": "Hermes-style USER.md / MEMORY.md profile: bounded local facts injected each turn.",
+  "author": "TheFlareStar",
+  "license": "MIT",
+  "i18n": {
+    "en": {
+      "name": "User Profile",
+      "description": "Hermes-style USER.md / MEMORY.md profile: bounded local facts injected each turn.",
+      "safetyNotes": "Requests agent.extension (unsandboxed sidecar, same trust as the agent). Writes only ~/.pi/agent/user-profile/USER.md, MEMORY.md, and config.json. Does not call a remote memory API, does not write skills, and does not wrap MCP knowledge-graph memory."
+    },
+    "zh-CN": {
+      "name": "用户画像",
+      "description": "Hermes 风格的本地 USER.md / MEMORY.md：有上限的事实，每轮注入系统提示。",
+      "safetyNotes": "需要 agent.extension（sidecar 与 Agent 同信任级）。只写 ~/.pi/agent/user-profile/ 下的 USER.md、MEMORY.md、config.json。不接远程记忆 API，不写 skill，不封装 MCP knowledge graph。"
+    }
+  },
+  "main": "main.js",
+  "contributes": {
+    "agentExtensions": ["src/extension.js"],
+    "commands": [
+      {
+        "id": "user-profile.status",
+        "title": "User Profile: Status",
+        "keywords": ["memory", "profile", "user"]
+      }
+    ],
+    "settings": [
+      {
+        "key": "enabled",
+        "title": "Enable user profile",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "key": "userProfileEnabled",
+        "title": "Inject and write USER.md",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "key": "memoryEnabled",
+        "title": "Inject and write MEMORY.md",
+        "type": "boolean",
+        "default": true
+      },
+      {
+        "key": "userCharLimit",
+        "title": "USER.md character limit",
+        "type": "number",
+        "default": 1375
+      },
+      {
+        "key": "memoryCharLimit",
+        "title": "MEMORY.md character limit",
+        "type": "number",
+        "default": 2200
+      },
+      {
+        "key": "nudgeInterval",
+        "title": "Nudge after N tool calls (0 = off)",
+        "type": "number",
+        "default": 10
+      },
+      {
+        "key": "memoryScope",
+        "title": "MEMORY.md scope (project path unused in v0.1.0)",
+        "type": "select",
+        "default": "global",
+        "enum": [
+          { "label": "Global (~/.pi/agent/user-profile)", "value": "global" },
+          { "label": "Project (.pi/user-profile) — not wired yet", "value": "project" }
+        ]
+      },
+      {
+        "key": "writeApproval",
+        "title": "Write approval",
+        "type": "select",
+        "default": "notify",
+        "enum": [
+          { "label": "Silent", "value": "off" },
+          { "label": "Toast on write (v0.1.0: setting only)", "value": "notify" }
+        ]
+      }
+    ]
+  },
+  "permissions": ["agent.extension", "notify"],
+  "engines": { "piDesktop": ">=0.14.0" },
+  "activationEvents": ["onStartup"]
+}

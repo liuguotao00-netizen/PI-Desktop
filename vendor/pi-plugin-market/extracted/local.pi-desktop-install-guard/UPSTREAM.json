@@ -1,0 +1,12 @@
+{
+  "id": "local.pi-desktop-install-guard",
+  "version": "1.2.0",
+  "publishedAt": "2026-09-19T06:12:54Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.pi-desktop-install-guard-1.2.0.piplug",
+  "shasum": "47f72829229002fbb229ef6f85e8d567ae2f4c114aecea0e5243631b2c0585e0",
+  "repository": "https://plugins.aiuo.net/plugins/local.pi-desktop-install-guard",
+  "homepage": "https://plugins.aiuo.net/plugins/local.pi-desktop-install-guard",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.pi-desktop-install-guard/1.2.0",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

@@ -1,0 +1,311 @@
+{
+  "id": "xiaohongshu",
+  "platform": "xiaohongshu",
+  "kind": "publish",
+  "name": "小红书 · 发布图文笔记",
+  "taskName": "xiaohongshu_publish_note",
+  "dedupeWindowMs": 300000,
+  "startUrl": "https://creator.xiaohongshu.com/new/home",
+  "contextSetup": {
+    "enableSchedule": {
+      "type": "derived",
+      "source": "scheduleAt",
+      "op": "!=",
+      "value": ""
+    },
+    "enableOriginal": {
+      "type": "derived",
+      "source": "original",
+      "op": "==",
+      "value": "true"
+    },
+    "enableVisibility": {
+      "type": "derived",
+      "source": "visibility",
+      "op": "!=",
+      "value": ""
+    },
+    "submitPublish": {
+      "type": "derived",
+      "source": "submitAction",
+      "op": "==",
+      "value": "publish"
+    },
+    "submitDraft": {
+      "type": "derived",
+      "source": "submitAction",
+      "op": "==",
+      "value": "draft"
+    }
+  },
+  "humanize": {
+    "mouseSpeed": "normal",
+    "typingSpeed": "normal",
+    "mistakeRate": 0.03,
+    "extraPauseRate": 0.1
+  },
+  "variables": [
+    {
+      "key": "title",
+      "label": "笔记标题（生成时含标点不超过 20 个 UTF-16 字符；按最终原字符串的 JavaScript title.length 复核，不要凭分组口算；不确定时不要输出分项总数；超限需重新生成标题）",
+      "type": "text",
+      "placeholder": "填写标题会有更多赞哦"
+    },
+    {
+      "key": "content",
+      "label": "正文内容（不含话题标签，最多 1000 字，超出截断）",
+      "type": "textarea",
+      "placeholder": "分享你的故事…"
+    },
+    {
+      "key": "images",
+      "label": "图片（仅支持 JPG/JPEG/PNG/WEBP）",
+      "type": "files",
+      "placeholder": "本机绝对路径或 http(s) 图片 URL 数组，如 [\"/path/1.png\", \"https://example.com/a.jpg\"]",
+      "accept": ".jpg,.jpeg,.png,.webp"
+    },
+    {
+      "key": "tags",
+      "label": "话题标签（生成时最多 10 个有效话题；显式 tags 与正文 hashtag 合并归一化去重，#、空格和重复项不重复计数；超限需重新生成话题）",
+      "type": "text",
+      "placeholder": "#话题1 #话题2"
+    },
+    {
+      "key": "scheduleAt",
+      "label": "定时发布（ISO8601，如 2026-03-10T12:00:00；留空=立即发布）",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "visibility",
+      "label": "可见范围：留空或「公开可见」/「仅自己可见」/「仅互关好友可见」",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "original",
+      "label": "声明原创：true 开启，其它留空",
+      "type": "text",
+      "required": false,
+      "default": ""
+    },
+    {
+      "key": "submitAction",
+      "label": "提交方式：publish（发布）/ draft（暂存草稿）/ fill（只填表单不提交）",
+      "type": "text",
+      "required": false,
+      "default": "publish"
+    }
+  ],
+  "steps": [
+    {
+      "id": "assertXhsReady",
+      "description": "等待小红书登录与风控状态可判定",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "passWhen": [
+          { "type": "visible", "selector": ".btn-wrapper", "value": "发布笔记" }
+        ],
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": ".captcha-container",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": ".login-container",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": "[class*=\"login-mask\"]",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          }
+        ],
+        "errorCode": "PUBLISH_BUTTON_UNAVAILABLE",
+        "errorMessage": "小红书创作页未在限定时间内进入可发布状态"
+      }
+    },
+    {
+      "action": "waitForElement",
+      "target": { "selector": ".btn-wrapper", "text": "发布笔记" },
+      "timeout": 10000,
+      "description": "等待发布笔记按钮"
+    },
+    {
+      "action": "hover",
+      "target": { "selector": ".btn-wrapper", "text": "发布笔记" },
+      "description": "悬停展开发布菜单"
+    },
+    {
+      "action": "wait",
+      "duration": [400, 700]
+    },
+    {
+      "action": "waitForElement",
+      "target": { "selector": ".publish-video-popover .container", "text": "上传图文" },
+      "timeout": 5000,
+      "description": "等待下拉菜单"
+    },
+    {
+      "action": "click",
+      "target": { "selector": ".publish-video-popover .container", "text": "上传图文" },
+      "description": "点击上传图文"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1000]
+    },
+    {
+      "action": "upload",
+      "inputSelector": "input.upload-input",
+      "value": "{{images}}",
+      "params": {
+        "verify": {
+          "uploadedSelector": ".img-preview-area .pr",
+          "pendingSelectors": [
+            ".img-preview-area .uploading",
+            ".img-preview-area [class*='uploading']",
+            ".img-preview-area .d-upload__picture-uploading",
+            ".img-preview-area .d-upload-uploading"
+          ],
+          "failureSelectors": [
+            ".d-toast",
+            ".d-message",
+            ".d-notification",
+            "[role='alert']",
+            "[class*='toast']",
+            "[class*='upload'][class*='error']",
+            ".img-preview-area [class*='error']",
+            ".img-preview-area [class*='fail']"
+          ],
+          "failureTexts": [
+            "图片上传失败",
+            "上传图片失败",
+            "上传失败",
+            "重试上传",
+            "请重新上传"
+          ],
+          "allowedExtensions": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+          ],
+          "stabilityMs": 3000,
+          "timeout": 60000,
+          "pollInterval": 500
+        }
+      },
+      "description": "上传图片并确认全部完成"
+    },
+    {
+      "action": "waitForElement",
+      "target": { "selector": "input[placeholder='填写标题会有更多赞哦']" },
+      "timeout": 25000,
+      "retry": 2,
+      "description": "等待编辑区域加载"
+    },
+    {
+      "action": "type",
+      "target": { "selector": "input[placeholder='填写标题会有更多赞哦']" },
+      "value": "{{title}}",
+      "maxChars": 20,
+      "maxLengthUnit": "xhs",
+      "description": "输入标题（按小红书计数：非 ASCII 记 2、ASCII 记 1，合计不超过 20）"
+    },
+    {
+      "action": "wait",
+      "duration": [800, 1500]
+    },
+    {
+      "action": "type",
+      "target": { "selector": ".ProseMirror" },
+      "value": "{{content}}",
+      "maxChars": 1000,
+      "description": "输入正文"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "action": "type",
+      "target": { "selector": ".ProseMirror" },
+      "value": "\n{{tags}}",
+      "noClick": true,
+      "tagMode": true,
+      "description": "输入已通过数量校验的话题标签（正文中的 hashtag 已移出）"
+    },
+    {
+      "action": "wait",
+      "duration": [400, 800]
+    },
+    {
+      "id": "applyPublishOptions",
+      "description": "定时发布、可见范围、原创声明（可选）",
+      "action": "execute",
+      "timeout": 30000,
+      "params": {
+        "saveAs": "publishOptions",
+        "fn": "function(ctx){\n  var out={schedule:false,visibility:false,original:false,errors:[]};\n  var schedule=String(ctx.scheduleAt||'').trim();\n  if(schedule){\n    try{\n      var d=new Date(schedule);\n      if(isNaN(d.getTime()))throw new Error('bad date');\n      var pad=function(n){return n<10?'0'+n:String(n);};\n      var text=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());\n      var sw=document.querySelector('.post-time-wrapper .d-switch');\n      if(sw){sw.click();}\n      var input=document.querySelector('.date-picker-container input');\n      if(!input){out.errors.push('未找到定时发布输入框');}\n      else{\n        input.focus();\n        input.value=text;\n        input.dispatchEvent(new Event('input',{bubbles:true}));\n        input.dispatchEvent(new Event('change',{bubbles:true}));\n        out.schedule=true;\n        out.scheduleText=text;\n      }\n    }catch(e){out.errors.push('定时时间格式无效');}\n  }\n  var vis=String(ctx.visibility||'').trim();\n  if(vis&&vis!=='公开可见'){\n    var allowed={'仅自己可见':1,'仅互关好友可见':1};\n    if(!allowed[vis]){out.errors.push('不支持的可见范围');}\n    else{\n      var dd=document.querySelector('div.permission-card-wrapper div.d-select-content');\n      if(dd){dd.click();}\n      var opts=document.querySelectorAll('div.d-options-wrapper div.d-grid-item div.custom-option');\n      var hit=false;\n      for(var i=0;i<opts.length;i++){\n        if((opts[i].textContent||'').indexOf(vis)>=0){opts[i].click();hit=true;break;}\n      }\n      if(hit){out.visibility=true;out.visibilityValue=vis;}\n      else{out.errors.push('未找到可见范围选项');}\n    }\n  }\n  if(String(ctx.original||'').trim().toLowerCase()==='true'){\n    var card=document.querySelector('div.custom-switch-card');\n    var toggle=card?card.querySelector('div.d-switch'):document.querySelector('div.custom-switch-card div.d-switch');\n    if(toggle){toggle.click();out.original=true;}\n    else{out.errors.push('未找到原创声明开关');}\n  }\n  return out;\n}"
+      }
+    },
+    {
+      "id": "publishNote",
+      "action": "activateAndWaitForResponse",
+      "when": "submitPublish",
+      "target": {
+        "shadowHost": "xhs-publish-btn:not([is-publish='false']):not([submit-disabled='true'])",
+        "selector": "button.bg-red:not(:disabled):not([aria-disabled='true'])",
+        "text": "发布"
+      },
+      "timeout": 30000,
+      "params": {
+        "activation": "mouseClickWithFallback",
+        "urlPattern": "*/web_api/sns/v2/note*",
+        "successPath": "success",
+        "successEquals": true,
+        "requiredPaths": [],
+        "saveAs": "publishReceipt"
+      },
+      "description": "激活发布按钮并等待发布结果"
+    },
+    {
+      "id": "saveDraft",
+      "description": "暂存离开（草稿箱）",
+      "action": "execute",
+      "when": "submitDraft",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "draftResult",
+        "fn": "function(){\n  var buttons=document.querySelectorAll('button.custom-button');\n  for(var i=0;i<buttons.length;i++){\n    if((buttons[i].textContent||'').trim()==='暂存离开'){buttons[i].click();return {saved:true};}\n  }\n  return {saved:false,error:'未找到暂存离开按钮'};\n}"
+      }
+    }
+  ]
+}

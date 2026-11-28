@@ -1,0 +1,120 @@
+{
+  "id": "alimama-crowd-report",
+  "platform": "taobao",
+  "name": "阿里妈妈人群报表下载",
+  "merchantTargetPolicy": "required",
+  "startUrl": "https://one.alimama.com/index.html#!/report/crowd?rptType=crowd",
+  "variables": [
+    {
+      "key": "startTime",
+      "label": "开始日期",
+      "type": "text",
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "key": "endTime",
+      "label": "结束日期",
+      "type": "text",
+      "placeholder": "YYYY-MM-DD"
+    },
+    {
+      "key": "splitType",
+      "label": "时间粒度",
+      "type": "select",
+      "default": "sum",
+      "options": [
+        {
+          "value": "sum",
+          "label": "汇总"
+        },
+        {
+          "value": "day",
+          "label": "日"
+        },
+        {
+          "value": "week",
+          "label": "周"
+        },
+        {
+          "value": "month",
+          "label": "月"
+        },
+        {
+          "value": "calendarmonth",
+          "label": "自然月"
+        }
+      ]
+    }
+  ],
+  "outputSchema": {
+    "filename": {
+      "prefix": "alimama_crowd_report"
+    }
+  },
+  "steps": [
+    {
+      "id": "wait_report_page",
+      "description": "等待账户报表页加载完成",
+      "action": "waitForLoad",
+      "timeout": 20000
+    },
+    {
+      "id": "fetch_auth",
+      "description": "在宿主页面主动请求鉴权接口",
+      "action": "execute",
+      "retry": 20,
+      "retryDelayMin": 5000,
+      "retryDelayMax": 8000,
+      "params": {
+        "saveAs": "authInfo",
+        "required": true,
+        "fn": "(async function(){ const response = await fetch('https://one.alimama.com/member/checkAccess.json', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bizCode: 'universalBP' }) }); const text = await response.text(); let payload; try { payload = JSON.parse(text); } catch { throw new Error('鉴权响应不是 JSON: ' + text.slice(0, 120)); } if (!response.ok) throw new Error('鉴权接口请求失败: HTTP ' + response.status); const csrfId = payload && payload.data && payload.data.accessInfo && payload.data.accessInfo.csrfId; const loginPointId = payload && payload.data && payload.data.loginPointId; if (!csrfId || !loginPointId) { throw new Error('检测到当前未登录阿里妈妈，请先登录后重试'); } return { csrfId: String(csrfId).trim(), loginPointId: String(loginPointId).trim(), response: payload }; })"
+      }
+    },
+    {
+      "id": "create_download_task",
+      "description": "创建人群报表下载任务",
+      "action": "execute",
+      "params": {
+        "saveAs": "downloadTask",
+        "required": true,
+        "fn": "(async function(context){ const auth = context.execute_authInfo || {}; const csrfId = auth.csrfId; const loginPointId = auth.loginPointId; if (!csrfId || !loginPointId) throw new Error('缺少阿里妈妈鉴权参数'); const url = new URL('https://one.alimama.com/report/createDownLoadTask.json'); url.searchParams.set('csrfId', csrfId); url.searchParams.set('bizCode', 'universalBP'); const body = { excelName: '人群报表_{{startTime}}_{{endTime}}', pageSize: 60, offset: 0, havingList: [], endTime: '{{endTime}}', from: 'pcBaseReport', bizCodeIn: ['onebpSearch'], unifyType: 'zhai', effectEqual: 15, startTime: '{{startTime}}', filterAppendSubwayChannel: true, filterNullCrowdSubwayTag: true, queryFieldIn: ['adPv', 'click', 'charge', 'ctr', 'ecpc', 'alipayInshopAmt', 'alipayInshopNum', 'cvr', 'cartInshopNum', 'itemColInshopNum', 'shopColDirNum', 'colNum', 'itemColInshopCost'], vsType: 'week', vsTime: '{{endTime}}', searchValue: '', searchKey: 'strategyTargetTitleLike', queryDomains: ['crowd', 'promotion', 'date', 'campaign', 'adgroup'], fieldType: 'all', rptType: 'crowd', parentAdcName: 'report_frame_crowd', byPage: false, fromRealTime: false, source: 'async_dowdload', splitType: '{{splitType}}', csrfId, bizCode: 'universalBP', loginPointId }; const response = await fetch(url.toString(), { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }); const text = await response.text(); let payload; try { payload = JSON.parse(text); } catch { throw new Error('创建下载任务响应不是 JSON: ' + text.slice(0, 120)); } if (!response.ok) throw new Error('创建下载任务失败: HTTP ' + response.status); const taskId = payload && payload.data && payload.data.taskId; if (!taskId) throw new Error('创建下载任务未返回 taskId: ' + JSON.stringify(payload).slice(0, 200)); return { taskId, response: payload }; })"
+      }
+    },
+    {
+      "id": "poll_download_url",
+      "description": "轮询人群报表下载链接",
+      "action": "execute",
+      "params": {
+        "saveAs": "downloadLink",
+        "required": true,
+        "fn": "(async function(context){ const auth = context.execute_authInfo || {}; const task = context.execute_downloadTask || {}; const taskId = task.taskId; if (!auth.csrfId || !auth.loginPointId || !taskId) throw new Error('缺少轮询下载链接所需参数'); const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)); await sleep(30000); let lastPayload = null; for (let attempt = 1; attempt <= 25; attempt += 1) { const url = new URL('https://bpcommon.alimama.com/commonapi/report/async/getDownloadUrl.json'); url.searchParams.set('taskId', taskId); url.searchParams.set('bizCode', 'universalBP'); url.searchParams.set('csrfId', auth.csrfId); url.searchParams.set('loginPointId', auth.loginPointId); const response = await fetch(url.toString(), { method: 'GET', credentials: 'include' }); const text = await response.text(); let payload; try { payload = JSON.parse(text); } catch { throw new Error('下载链接响应不是 JSON: ' + text.slice(0, 120)); } lastPayload = payload; const downloadUrl = payload && payload.data && payload.data.result && payload.data.result.downloadUrl; if (downloadUrl) return { downloadUrl, attempt, response: payload }; if (!response.ok) throw new Error('轮询下载链接失败: HTTP ' + response.status); await sleep(5000); } throw new Error('轮询超时，未生成下载链接: ' + JSON.stringify(lastPayload).slice(0, 200)); })"
+      }
+    },
+    {
+      "id": "download_report_file",
+      "description": "下载人群报表文件",
+      "action": "downloadFile",
+      "params": {
+        "urlFromContext": "execute_downloadLink.downloadUrl",
+        "filename": "人群报表_{{startTime}}_{{endTime}}.zip",
+        "saveAs": "downloadResult"
+      }
+    },
+    {
+      "id": "extract_report_file",
+      "description": "解压人群报表 ZIP",
+      "action": "extractZip",
+      "params": {
+        "zipPathFromContext": "execute_downloadResult.filePath",
+        "postProcess": {
+          "name": "alimamaCsvPostProcess",
+          "params": {
+            "fromEncoding": "gb18030"
+          }
+        },
+        "saveAs": "extractResult"
+      }
+    }
+  ]
+}

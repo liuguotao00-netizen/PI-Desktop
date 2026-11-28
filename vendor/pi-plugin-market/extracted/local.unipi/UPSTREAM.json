@@ -1,0 +1,12 @@
+{
+  "id": "local.unipi",
+  "version": "0.3.24",
+  "publishedAt": "2026-10-25T14:47:37Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.unipi-0.3.24.piplug",
+  "shasum": "31f906451804227c025da777f4ec55da817b18675da138e1d03140e4053130a6",
+  "repository": null,
+  "homepage": "https://github.com/vsd269/UniPi",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.unipi/0.3.24",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

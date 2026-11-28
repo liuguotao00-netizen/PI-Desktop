@@ -1,0 +1,147 @@
+{
+  "id": "douyin-search",
+  "platform": "douyin",
+  "name": "抖音 · 关键词搜索采集",
+  "description": "搜索抖音公开作品，按结果卡片解析作品 ID、链接、标题、作者、时长、互动数和封面。只读公开页面，最多 20 条。",
+  "contextSetup": {
+    "limit": {
+      "type": "number",
+      "default": 10
+    }
+  },
+  "variables": [
+    {
+      "key": "keyword",
+      "label": "搜索关键词",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "limit",
+      "label": "采集数量上限（1–20，默认 10）",
+      "type": "text",
+      "default": "10"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "douyin_search"
+    },
+    "csv": [
+      {
+        "type": "videos",
+        "source": "execute_douyinSearchVideos.videos",
+        "columns": [
+          {
+            "name": "keyword",
+            "from": "keyword"
+          },
+          {
+            "name": "video_id",
+            "from": "video_id"
+          },
+          {
+            "name": "url",
+            "from": "url"
+          },
+          {
+            "name": "title",
+            "from": "title"
+          },
+          {
+            "name": "author",
+            "from": "author"
+          },
+          {
+            "name": "duration",
+            "from": "duration"
+          },
+          {
+            "name": "interaction_text",
+            "from": "interaction_text"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "openSearch",
+      "action": "navigate",
+      "value": "https://www.douyin.com/search/{{keyword}}?type=video",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          },
+          {
+            "type": "text",
+            "value": "身份验证"
+          },
+          {
+            "type": "text",
+            "value": "接收短信验证码"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*='captcha'], iframe[src*='captcha']"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "抖音触发了验证码/风控，请先在浏览器里完成验证"
+      }
+    },
+    {
+      "id": "waitResults",
+      "description": "搜索结果卡片出现（风控页不会有卡片）",
+      "action": "waitForState",
+      "timeout": 45000,
+      "params": {
+        "expression": "(function(){try{return document.querySelectorAll('a[href*=\"/video/\"], a[href*=\"/note/\"]').length > 0;}catch(e){return false;}})()",
+        "errorCode": "SEARCH_NOT_READY",
+        "errorMessage": "抖音搜索结果没有加载出来（可能是风控页或页面改版）"
+      }
+    },
+    {
+      "id": "scrollResults",
+      "action": "scrollForState",
+      "timeout": 90000,
+      "params": {
+        "countExpr": "(function(){try{return document.querySelectorAll('a[href*=\"/video/\"], a[href*=\"/note/\"]').length;}catch(e){return 0;}})()",
+        "limitTotal": "{{limit}}",
+        "limitScroll": 20,
+        "scrollStep": 900,
+        "stallRounds": 3,
+        "saveAs": "douyinSearchScroll"
+      }
+    },
+    {
+      "id": "extractVideos",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "douyinSearchVideos",
+        "fn": "function(ctx){\n  var anchors=Array.from(document.querySelectorAll('a[href*=\"/video/\"], a[href*=\"/note/\"]'));\n  var seen={};var out=[];var limit=Number(ctx.limit)||10;\n  for(var i=0;i<anchors.length&&out.length<limit;i++){\n    var a=anchors[i];\n    var href=a.href||a.getAttribute('href')||'';\n    var match=href.match(/\\/(video|note)\\/(\\d+)/);\n    if(!match)continue;\n    if(seen[href])continue;\n    seen[href]=1;\n    var card=a.closest('li, article, section, div')||a;\n    var text=((card&&card.innerText)||a.innerText||'').trim();\n    var lines=text.split(/\\n/).map(function(x){return x.trim();}).filter(Boolean);\n    var authorLine=lines.find(function(x){return x.indexOf('@')===0;})||'';\n    var duration=lines.find(function(x){return /^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(x);})||'';\n    var interaction=lines.find(function(x){\n      var plain=x.replace(/,/g,'');\n      return /^\\d+(\\.\\d+)?[万亿]?\\+?$/.test(plain)&&plain.length>1;\n    })||'';\n    var title=lines.find(function(x){\n      var plain=x.replace(/,/g,'');\n      return x&&x.indexOf('@')!==0&&x!=='合集'\n        &&!/^\\d{1,2}:\\d{2}(:\\d{2})?$/.test(x)\n        &&!/^\\d+(\\.\\d+)?[万亿]?\\+?$/.test(plain);\n    })||'';\n    var img=card.querySelector('img');\n    out.push({\n      kind:match[1],\n      video_id:match[2],\n      url:href.indexOf('//')===0?('https:'+href):href,\n      title:title.slice(0,120),\n      author:authorLine.replace(/^@/,''),\n      duration:duration,\n      interaction_text:interaction,\n      cover:img?(img.src||''):'',\n      summary:text.slice(0,300)\n    });\n  }\n  return {keyword:String(ctx.keyword||''),count:out.length,videos:out};\n}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

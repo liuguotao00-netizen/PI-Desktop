@@ -1,0 +1,1002 @@
+:root {
+  color-scheme: dark;
+  --bg: #181818;
+  --surface: #212121;
+  --surface-hover: color-mix(in oklab, #ffffff 6%, transparent);
+  --fg: #ffffff;
+  --muted: color-mix(in oklab, #ffffff 52%, transparent);
+  --border: color-mix(in oklab, #ffffff 10%, transparent);
+  --accent: #ffffff;
+}
+
+:root[data-base="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --surface: #f9f9f9;
+  --surface-hover: color-mix(in oklab, #1a1c1f 5%, transparent);
+  --fg: #1a1c1f;
+  --muted: #5d5d5d;
+  --border: color-mix(in oklab, #1a1c1f 10%, transparent);
+  --accent: #1a1c1f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  /* A panel reserves this band for the host window controls; a docked view is 0px. */
+  padding: var(--pi-plugin-titlebar-height, 0px) 16px 16px;
+  overflow: auto;
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+h2 {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 560;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 560;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.preview {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.swatch-large {
+  width: 64px;
+  height: 64px;
+  flex: none;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 0;
+  cursor: pointer;
+}
+
+.swatch-large:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+.values {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.value-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.value-row:last-child {
+  border-bottom: 0;
+}
+
+.value-row:hover {
+  background: var(--surface-hover);
+}
+
+.value-row:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: -2px;
+}
+
+.notation {
+  flex: none;
+  width: 46px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+}
+
+.value {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copy-hint {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.value-row:hover .copy-hint,
+.value-row:focus-visible .copy-hint {
+  opacity: 1;
+}
+
+.picker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.picker-label {
+  /* Takes the slack so the pick button and the color input stay together. */
+  flex: 1 1 auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* Chromium paints the swatch inside its own padded wrapper, which reads as a
+   small block floating in a frame. Strip that so the color fills the control
+   edge to edge; the inner radius is the outer one minus the 1px border. */
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  border-radius: 7px;
+}
+
+/* --- tabs ---------------------------------------------------------------- */
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.tab {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 4px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+.tab[aria-selected="true"] {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--fg);
+  font-weight: 560;
+}
+
+.tab:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: -2px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+/* The four source chips must fit on one line at the panel's default width
+   (400px → 368px of content), in both languages. They never wrap; if a narrow
+   panel or a wider font makes them overflow, the label ellipsizes instead. */
+.segmented {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 3px;
+}
+
+.segment {
+  flex: 0 1 auto;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.segment:hover {
+  background: var(--surface-hover);
+  color: var(--fg);
+}
+
+/* A reserved segment (the screen eyedropper) is visible but not selectable. */
+.segment:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.segment:disabled:hover {
+  background: transparent;
+  color: var(--muted);
+}
+
+.segment[aria-selected="true"] {
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--fg);
+}
+
+.segment:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 1px;
+}
+
+/* --- palette rows -------------------------------------------------------- */
+
+.palette-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ramp {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 8px;
+  align-items: center;
+}
+
+.ramp-label {
+  color: var(--muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ramp-swatches {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ramp-gap {
+  flex: none;
+  width: 6px;
+}
+
+.swatch {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Caps rows that hold few colors (black/white, presets) so they stay chips
+     instead of growing into squares; 11–14 stop ramps fill the row first. */
+  max-width: 40px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.gradient-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gradient-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gradient-bar {
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.gradient-stops {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.gradient-stops .swatch {
+  flex: none;
+  width: 22px;
+  height: 22px;
+}
+
+.swatch:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 2px;
+}
+
+/* Selection is two 1px strokes — the chip's own border plus a ring outside it —
+   coloured per chip from its fill by `swatch()`: the inner one is whichever of
+   black/white reads better on the fill, the outer is its opposite. One of the
+   two therefore always contrasts, which a single fixed colour cannot manage
+   across pale and dark chips. */
+.swatch[aria-pressed="true"] {
+  border-color: var(--ring-inner);
+  box-shadow: 0 0 0 1px var(--ring-outer);
+}
+
+.link-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.link-button:not(:disabled):hover {
+  color: var(--fg);
+}
+
+/* --- contrast ------------------------------------------------------------ */
+
+.pair-row {
+  display: grid;
+  grid-template-columns: 20px 1fr auto auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pair-row:last-child {
+  border-bottom: 0;
+}
+
+.pair-chip {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.pair-label {
+  font-size: 12px;
+}
+
+.ratio {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.grades {
+  display: flex;
+  gap: 4px;
+}
+
+.grade {
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+  font-weight: 560;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.grade[data-pass="true"] {
+  border-color: color-mix(in oklab, #22c55e 55%, transparent);
+  color: #4ade80;
+}
+
+:root[data-base="light"] .grade[data-pass="true"] {
+  color: #15803d;
+}
+
+.sample {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.cvd-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.cvd-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.cvd-swatch {
+  width: 100%;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cvd-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.cvd-hex {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* --- export -------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field select {
+  flex: none;
+  max-width: 62%;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+}
+
+/* A native select popup is a UA surface and its options have no boxes in the
+   page, so no rule here can reach them. `appearance: base-select` (Chromium
+   135+) hands the popup to the page: the options become real elements and the
+   rules below apply. Older engines drop the value and these selectors, which
+   leaves the stock popup — the panel just looks as it did before. */
+.field select,
+.field select::picker(select) {
+  appearance: base-select;
+}
+
+/* base-select sizes the control to the selected label, so it would jump on
+   every change (87px for "CSS 变量", 136.6px for "Tailwind v4 @theme" — the
+   widest label in both languages), and lays it out a hair taller. Pin both
+   back to the shape the native control had. */
+.field select {
+  min-width: 12.5em;
+  line-height: 1.34;
+}
+
+/* A model label is longer than any palette name ("gpt-5.3-codex-spark (OpenAI
+   (ChatGPT Plus/Pro))"), and the width cap above would wrap it onto a second
+   line, growing the control to two rows. Cut it with an ellipsis instead. */
+.field select {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Deliberately a separate rule from the one above: an engine that does not
+   know this pseudo-element drops the whole selector list, and the control's
+   own styles must not fall with it. */
+.field select::selectedcontent {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* base-select swaps the control's chevron for a UA triangle; rebuild the thin
+   one. currentColor lets a single rule serve both themes. */
+.field select::picker-icon {
+  width: 9px;
+  height: 9px;
+  margin-inline-start: auto;
+  background: currentColor;
+  mask: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3.2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 9l7 7 7-7'/></svg>") center / contain no-repeat;
+  transition: rotate 160ms ease;
+}
+
+.field select:open::picker-icon {
+  rotate: 180deg;
+}
+
+.field select::picker(select) {
+  /* Long option labels must not push the popup past the panel's edge. */
+  max-width: min(340px, calc(100vw - 24px));
+  /* Chrome opens the picker above the control, and no fallback list changes
+     that — flip-block lands above even with room below — so ask for block-end
+     and turn the fallbacks off. Cost of that: a window shorter than this
+     panel's declared height can let an unscrolled picker run past the bottom
+     edge instead of flipping. The code preview below it has the same shape. */
+  position-area: block-end;
+  position-try-fallbacks: none;
+  margin-top: 6px;
+  padding: 4px;
+  min-width: anchor-size(width);
+  /* A floating layer needs an edge of its own: `--border` is tuned for
+     partitions inside a surface, and a 16% shadow is invisible on #181818, so
+     the popup read as text floating over text rather than as a panel above it. */
+  border: 1px solid color-mix(in oklab, var(--fg) 16%, transparent);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 38%);
+}
+
+/* Block, not flex: the checkmark that needed aligning is hidden, and a flex
+   container cannot ellipsize its anonymous text item. */
+.field select option {
+  display: block;
+  overflow: hidden;
+  padding: 5px 8px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The UA checkmark pushes the first label out of line with the others; the
+   selected row carries the panel's own selected treatment instead. */
+.field select option::checkmark {
+  display: none;
+}
+
+.field select option:checked {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  font-weight: 560;
+}
+
+.field select option:hover,
+.field select option:focus-visible {
+  background: color-mix(in oklab, var(--accent) 9%, transparent);
+}
+
+.code {
+  margin: 0;
+  max-height: 240px;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.action {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  cursor: pointer;
+}
+
+.action:not(:disabled):hover {
+  background: var(--surface-hover);
+}
+
+.action:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 1px;
+}
+
+.empty {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* --- pick from image ------------------------------------------------------ */
+
+.pick-open {
+  flex: none;
+  padding: 4px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-hover);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.pick-open:hover {
+  border-color: color-mix(in oklab, var(--accent) 40%, transparent);
+}
+
+.pick-open:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 1px;
+}
+
+/* Covers the whole panel: aiming at pixels wants the space, and the flow is a
+   detour, not a destination. */
+.pick-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: var(--pi-plugin-titlebar-height, 0px) 16px 16px;
+  background: var(--bg);
+  outline: none;
+}
+
+.pick-overlay[hidden] {
+  display: none;
+}
+
+.pick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pick-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.pick-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* Host and provider messages arrive as unbroken walls of JSON; without this they
+   set the panel's min-content width and push the whole layout sideways. */
+.pick-status,
+.ai-actions .hint,
+.ai-result-name {
+  overflow-wrap: anywhere;
+}
+
+.pick-files {
+  display: flex;
+  flex-direction: column;
+  max-height: 132px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.pick-files[hidden] {
+  display: none;
+}
+
+.pick-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pick-file:hover,
+.pick-file:focus-visible {
+  background: var(--surface-hover);
+}
+
+.pick-file[aria-current="true"] {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  font-weight: 560;
+}
+
+.pick-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick-file-size {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Checkerboard behind the canvas: transparent art should read as transparent,
+   not as panel surface. */
+.pick-stage {
+  position: relative;
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, var(--surface-hover) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--surface-hover) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--surface-hover) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--surface-hover) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+
+.pick-stage[hidden] {
+  display: none;
+}
+
+.pick-canvas {
+  display: block;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+/* Follows the pointer but never takes it: pointer-events off keeps pointermove
+   flowing to the canvas underneath. */
+.pick-loupe {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 10px 24px rgb(0 0 0 / 18%);
+  pointer-events: none;
+}
+
+.pick-loupe[hidden] {
+  display: none;
+}
+
+.pick-loupe canvas {
+  display: block;
+  border-radius: 5px;
+}
+
+.pick-loupe-value {
+  color: var(--fg);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pick-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pick-foot .hint {
+  /* One line, ellipsized if a translation runs long: the footer's job is to
+     tell you what the keys do, not to become a paragraph. */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The button keeps its label on one line and its natural width. */
+.pick-foot .action {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* --- AI palette ----------------------------------------------------------- */
+
+.ai-style {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  resize: vertical;
+}
+
+.ai-style:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--accent) 58%, transparent);
+  outline-offset: 1px;
+}
+
+.ai-style::placeholder {
+  color: var(--muted);
+}
+
+.ai-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ai-actions .action {
+  flex: none;
+}
+
+.ai-actions .hint {
+  min-width: 0;
+}
+
+.ai-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ai-result-name {
+  overflow: hidden;
+  color: var(--fg);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-raw {
+  max-height: 120px;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* The panel paints its own surfaces and text, which overrides the UA's grey
+   text on a disabled control — without a rule of our own, a dead select or
+   button looks exactly like a live one. */
+.action:disabled,
+.link-button:disabled,
+.field select:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* --- host theme ----------------------------------------------------------- */
+
+/* The note and the status line both carry host-generated text (a theme label, a
+   refusal message), which must not be able to widen the panel. */
+#theme-note,
+.theme-status {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Left-aligned pair, unlike the export fields: this row is the label for the
+   swatch strip under it, not a value at the far end of a line. */
+.theme-field {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+/* The strip does not need the pinned width the export fields use to stop the
+   control jumping between labels — its own two labels are the same length. */
+.theme-field select {
+  min-width: 0;
+}
+
+/* Its own row, directly under the base select: a popup overlaps whatever sits
+   below the control, and covering swatches reads far better than covering the
+   first half of a button label. */
+.theme-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.theme-chip {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.theme-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.theme-actions .action {
+  flex: none;
+}
+
+.theme-status {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.theme-status:empty,
+#theme-note:empty {
+  display: none;
+}

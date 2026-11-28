@@ -1,0 +1,214 @@
+{
+	"schemaVersion": 1,
+	"id": "eskwisit.llm-council",
+	"name": "LLM Council",
+	"version": "0.18.0",
+	"description": "A council of five advisors (Contrarian, First Principles, Expansionist, Outsider, Executor), cast from your own models, answers your question, reviews the answers anonymously, and a chairman delivers the verdict.",
+	"author": "eskwisit",
+	"license": "Apache-2.0",
+	"homepage": "https://github.com/eskwisit/pi-llm-council",
+	"repository": "https://github.com/eskwisit/pi-llm-council",
+	"categories": ["productivity"],
+	"main": "main.js",
+	"i18n": {
+		"en": {
+			"name": "LLM Council",
+			"description": "A council of five advisors (Contrarian, First Principles, Expansionist, Outsider, Executor), cast from your own models, answers your question, reviews the answers anonymously, and a chairman delivers the verdict.",
+			"safetyNotes": "Agent tools plus a skill; no network access and no process execution. agent.prompt.inject indexes the LLM Council skill for the Skill tool. agent.tool.register adds one tool the agent calls during a council run (council, with the actions get, set, start, next, anonymize, tally and report; start and next pick each seat's model and record failovers in the run's failovers.json); fs.read and fs.write are scoped to .llm-council/** in the workspace, where each run keeps its files. Beyond the host file API the plugin uses Node fs for two things: on load it copies its six council-*.md persona sub-agents to ~/.agents/subagents (the only place PI-Desktop loads sub-agents from) and removes them on unload unless you edited them; during a run it keeps the label map and the hidden Stage 1 answers in its private data directory, pruned after 30 days. The saved cast, model exclusions and notes are plugin settings. agent.extension loads one small guard that, while a council run is active, blocks Task calls that would put a seat on a generic sub-agent, resume a seat, or launch a model that already failed in the run; it never blocks anything else and allows the call if it cannot read the run. Anonymity is best effort: a sub-agent that goes looking could still read the plugin data directory."
+		},
+		"zh-CN": {
+			"name": "LLM 委员会",
+			"description": "由五位顾问（反对者、第一性原理思考者、扩张者、局外人、执行者）组成的委员会，从你自己的模型中选派，回答你的问题并匿名互评，最后由主席给出裁决。",
+			"safetyNotes": "智能体工具加一个技能；不访问网络，不运行进程。agent.prompt.inject 用于为 Skill 工具索引 LLM 委员会技能。agent.tool.register 注册一个在委员会运行期间由智能体调用的工具（council，操作为 get、set、start、next、anonymize、tally、report；start 与 next 为每个席位选择模型，并把故障切换记录在该次运行的 failovers.json 中）；fs.read 与 fs.write 仅限工作区中的 .llm-council/**，每次运行的文件都保存在那里。在宿主文件 API 之外，插件仅用 Node fs 做两件事：加载时将六个 council-*.md 角色子智能体复制到 ~/.agents/subagents（PI-Desktop 唯一加载子智能体的位置），卸载时删除它们（你修改过的除外）；运行期间将标签映射和隐藏的第一阶段回答保存在插件私有数据目录中，30 天后清理。已保存的模型分配、模型排除和备注保存在插件设置中。agent.extension 加载一个小型守卫：在委员会运行期间，它会阻止把席位交给通用子智能体、恢复席位会话、或启动本次运行中已失败模型的 Task 调用；其他一律放行，无法读取运行目录时也放行。匿名性只是尽力而为：刻意查找的子智能体仍可能读取插件数据目录。"
+		}
+	},
+	"safetyNotes": "Agent tools plus a skill; no network access and no process execution. agent.prompt.inject indexes the LLM Council skill for the Skill tool. agent.tool.register adds one tool the agent calls during a council run (council, with the actions get, set, start, next, anonymize, tally and report; start and next pick each seat's model and record failovers in the run's failovers.json); fs.read and fs.write are scoped to .llm-council/** in the workspace, where each run keeps its files. Beyond the host file API the plugin uses Node fs for two things: on load it copies its six council-*.md persona sub-agents to ~/.agents/subagents (the only place PI-Desktop loads sub-agents from) and removes them on unload unless you edited them; during a run it keeps the label map and the hidden Stage 1 answers in its private data directory, pruned after 30 days. The saved cast, model exclusions and notes are plugin settings. agent.extension loads one small guard that, while a council run is active, blocks Task calls that would put a seat on a generic sub-agent, resume a seat, or launch a model that already failed in the run; it never blocks anything else and allows the call if it cannot read the run. Anonymity is best effort: a sub-agent that goes looking could still read the plugin data directory.",
+	"changelog": "Failover bookkeeping moves into the plugin (council start / next) and a guard blocks generic agents, resume and failed models during a run.",
+	"contributes": {
+		"skills": ["skills/llm-council.md"],
+		"agentExtensions": ["extension/council-guard.js"],
+		"agentTools": [
+			{
+				"name": "council",
+				"description": "LLM Council: get/set the cast, exclusions and notes; start/next pick each seat's model and record failovers; anonymize the Stage 1 answers; tally the Stage 2 rankings; write the report. Use only from the llm-council skill.",
+				"risk": "low",
+				"schema": {
+					"type": "object",
+					"properties": {
+						"action": {
+							"type": "string",
+							"enum": ["get", "set", "start", "next", "anonymize", "tally", "report"],
+							"description": "get (default): read the config; set: save it; start, next, anonymize, tally, report: run steps, need run"
+						},
+						"models": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "get/set: model ids from your 'Available models for delegation' list"
+						},
+						"cast": {
+							"type": "object",
+							"description": "set: { seat: [model, fallback, …] } for every seat; report: the cast used",
+							"additionalProperties": {
+								"type": "array",
+								"items": {
+									"type": "string"
+								}
+							}
+						},
+						"exclude": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "set: glob patterns to exclude, e.g. google/*"
+						},
+						"include": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "set: exclusion patterns to remove"
+						},
+						"notes": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "set: notes to keep, e.g. why a model is excluded"
+						},
+						"clear": {
+							"type": "boolean",
+							"description": "set: forget the cast, exclusions and notes first"
+						},
+						"run": {
+							"type": "string",
+							"description": "The run directory, e.g. .llm-council/runs/20260101-120000"
+						},
+						"stage": {
+							"type": "string",
+							"enum": ["stage1", "stage2", "stage3"],
+							"description": "start/next: the stage being launched"
+						},
+						"seats": {
+							"type": "array",
+							"items": {
+								"type": "string"
+							},
+							"description": "start: the seats to launch; returns the model each one starts on (empty: seat dropped)"
+						},
+						"seat": {
+							"type": "string",
+							"description": "next: the seat whose model failed (start: one seat)"
+						},
+						"failed": {
+							"type": "string",
+							"description": "next: the model that failed; never used again in this run"
+						},
+						"reason": {
+							"type": "string",
+							"description": "next: why, in a few words (503, no first response, stall, no output)"
+						},
+						"stage1": {
+							"type": "object",
+							"description": "anonymize: model each advisor answered on: { seat: model id } for contrarian, first-principles, expansionist, outsider, executor",
+							"additionalProperties": {
+								"type": "string"
+							}
+						},
+						"reviewers": {
+							"type": "object",
+							"description": "tally: model each advisor reviewed on: { seat: model id } for contrarian, first-principles, expansionist, outsider, executor",
+							"additionalProperties": {
+								"type": "string"
+							}
+						},
+						"force": {
+							"type": "boolean",
+							"description": "anonymize: redo one that already ran"
+						},
+						"seed": {
+							"type": "integer",
+							"description": "anonymize: fixed shuffle seed (tests only)"
+						},
+						"shuffle": {
+							"type": "boolean",
+							"description": "anonymize: false keeps the seat order (tests only)"
+						},
+						"title": {
+							"type": "string",
+							"description": "report: the run title, 3 to 5 words"
+						},
+						"chairman": {
+							"type": "string",
+							"description": "report: model the chairman ran on"
+						},
+						"failovers": {
+							"type": "array",
+							"description": "report: failovers not recorded with next (the plugin reads the run's failovers.json itself)",
+							"items": {
+								"type": "object",
+								"properties": {
+									"stage": {
+										"type": "string"
+									},
+									"seat": {
+										"type": "string"
+									},
+									"failed": {
+										"type": "string"
+									},
+									"reason": {
+										"type": "string"
+									},
+									"next": {
+										"type": "string"
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		],
+		"settings": [
+			{
+				"key": "cast",
+				"title": "Council cast",
+				"description": "Models per seat, { seat: [model, fallback, …] }. Set by the council when you confirm a cast; clear it to recast.",
+				"type": "json",
+				"default": {}
+			},
+			{
+				"key": "excludeModels",
+				"title": "Excluded models",
+				"description": "Glob patterns of model ids the council never casts, e.g. [\"google/*\"].",
+				"type": "json",
+				"default": []
+			},
+			{
+				"key": "modelNotes",
+				"title": "Model notes",
+				"description": "Notes the council reads before casting, e.g. why a model is excluded.",
+				"type": "json",
+				"default": []
+			}
+		]
+	},
+	"permissions": ["agent.extension", "agent.prompt.inject", "agent.tool.register", "fs.read", "fs.write"],
+	"fs": {
+		"read": {
+			"root": "workspace",
+			"scope": [".llm-council/**"]
+		},
+		"write": {
+			"root": "workspace",
+			"scope": [".llm-council/**"]
+		}
+	},
+	"engines": {
+		"piDesktop": ">=0.9.0"
+	},
+	"activationEvents": ["onStartup"]
+}

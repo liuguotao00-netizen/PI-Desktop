@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.wenziji-hub.market-translator",
+  "name": "技能与 MCP 市场中文翻译",
+  "version": "0.1.6",
+  "description": "技能市场与 MCP 市场显示中文：列表与安装前详情页都翻译，可选用谷歌云翻译密钥（不耗模型额度）或已配置模型；原文与安装配置不变。",
+  "main": "main.js",
+  "renderer": "renderer/index.mjs",
+  "rendererActions": [
+    "plugin.call"
+  ],
+  "rendererCallMethods": [
+    "models",
+    "start",
+    "poll",
+    "google"
+  ],
+  "permissions": [
+    "renderer.extension",
+    "models.list",
+    "agent.complete",
+    "net.fetch"
+  ],
+  "net": {
+    "domains": [
+      "translation.googleapis.com"
+    ]
+  },
+  "activationEvents": [
+    "onStartup"
+  ],
+  "engines": {
+    "piDesktop": ">=0.20.1"
+  }
+}

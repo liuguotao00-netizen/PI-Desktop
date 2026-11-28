@@ -1,0 +1,235 @@
+{
+  "id": "wechat-channels-image",
+  "platform": "wechat-channels",
+  "kind": "publish",
+  "name": "视频号 · 发布图文",
+  "description": "视频号助手「发表图片动态」：上传图片（最多 18 张，单张 20MB）→ 标题（22 字符内）→ 描述 → 发表 → 等跳图文管理列表。图片上传完成的判据是发表按钮解除 class 禁用，不是本地预览出现。",
+  "dedupeWindowMs": 300000,
+  "variables": [
+    {
+      "key": "title",
+      "label": "图文标题（22 字符内，可留空）",
+      "type": "text",
+      "maxChars": 22,
+      "default": ""
+    },
+    {
+      "key": "description",
+      "label": "图文描述（话题标签写这里）",
+      "type": "textarea",
+      "default": ""
+    },
+    {
+      "key": "images",
+      "label": "图片（本机绝对路径，最多 18 张，单张不超过 20MB）",
+      "type": "files",
+      "accept": "image/*",
+      "placeholder": "[\"/absolute/path/1.png\", \"/absolute/path/2.jpg\"]"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "channels_image_publish"
+    }
+  },
+  "steps": [
+    {
+      "id": "openCreate",
+      "description": "打开图文创作页（和视频页不同）",
+      "action": "navigate",
+      "value": "https://channels.weixin.qq.com/platform/post/finderNewLifeCreate",
+      "timeout": 40000
+    },
+    {
+      "id": "assertLoggedIn",
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "url",
+            "includes": "/login.html"
+          },
+          {
+            "type": "text",
+            "value": "微信快捷登录"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "视频号助手未登录：请先完成扫码授权后重试"
+      }
+    },
+    {
+      "id": "assertNoRisk",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "视频号触发安全验证，请先在浏览器里完成"
+      }
+    },
+    {
+      "id": "stageExpected",
+      "description": "把本次要传的张数写到页面，供上传完成判定用",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "channelsImageStage",
+        "fn": "function(ctx){window.__qiworkImagePost={expected:(ctx.images||[]).length};return window.__qiworkImagePost.expected;}"
+      }
+    },
+    {
+      "id": "waitUploadInput",
+      "action": "waitForElement",
+      "timeout": 30000,
+      "target": {
+        "selector": "input[type='file'][accept='image/*']"
+      }
+    },
+    {
+      "id": "uploadImages",
+      "description": "图片走同一个 setInputFiles 路径；完成判定交给下一步",
+      "action": "upload",
+      "inputSelector": "input[type='file'][accept='image/*']",
+      "value": "{{images}}",
+      "params": {
+        "verify": {
+          "allowedExtensions": [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp",
+            ".gif"
+          ],
+          "maxFiles": 18
+        }
+      }
+    },
+    {
+      "id": "waitImagesReady",
+      "description": "张数到位且发表按钮解除 class 禁用 = 上传完成（本地预览出现得比上传早）",
+      "action": "waitForState",
+      "timeout": 300000,
+      "params": {
+        "expression": "(function(){var st=window.__qiworkImagePost;if(!st)return false;var host=document.querySelector('wujie-app');var scope=host?(host.shadowRoot||host):document;var app=scope.querySelector('#app');if(!app)return false;var slides=app.querySelectorAll('.slider-item').length;if(slides<st.expected)return false;var btn=Array.prototype.slice.call(scope.querySelectorAll('button')).filter(function(b){return (b.textContent||'').trim()==='发表';})[0];if(!btn)return false;var classDisabled=/(^|[\\s_-])(?:is-)?disabled($|[\\s_-])/i.test(String(btn.className||''));return !classDisabled && btn.disabled!==true;})()",
+        "errorCode": "IMAGE_UPLOAD_NOT_READY",
+        "errorMessage": "图片没有在限定时间内上传完成"
+      }
+    },
+    {
+      "id": "fillTitle",
+      "description": "图文标题可为空；平台上限 22 字符",
+      "action": "type",
+      "value": "{{title}}",
+      "maxChars": 22,
+      "maxLengthUnit": "chars",
+      "target": {
+        "selector": "input[placeholder*='填写标题']"
+      }
+    },
+    {
+      "id": "think",
+      "action": "wait",
+      "duration": [
+        500,
+        900
+      ]
+    },
+    {
+      "id": "fillDescription",
+      "description": "描述在 wujie-app 的 shadow DOM 里，contenteditable 空属性也识别为可编辑",
+      "action": "type",
+      "value": "{{description}}",
+      "target": {
+        "selector": ".input-editor"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        800,
+        1400
+      ]
+    },
+    {
+      "id": "publish",
+      "description": "点发表；图文页同样保留 3 秒二次确认窗口，实测没有弹窗",
+      "action": "activateAndWaitForNavigation",
+      "timeout": 60000,
+      "target": {
+        "selector": "button",
+        "text": "发表"
+      },
+      "params": {
+        "successUrl": "https://channels.weixin.qq.com/platform/post/finderNewLifePostList",
+        "activation": "mouseClickWithFallback",
+        "confirm": {
+          "timeout": 3000,
+          "target": {
+            "selector": ".ant-modal-confirm button",
+            "text": "发表"
+          }
+        },
+        "verification": {
+          "texts": [
+            "请完成验证",
+            "安全验证"
+          ],
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "assertLanded",
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "发表失败"
+          },
+          {
+            "type": "text",
+            "value": "操作频繁"
+          }
+        ],
+        "errorCode": "PUBLISH_REJECTED",
+        "errorMessage": "视频号没有接受这次发表"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "channelsImageResult",
+        "fn": "function(ctx){return {url:location.href,title:String(ctx.title||''),description:String(ctx.description||''),images:Array.isArray(ctx.images)?ctx.images.length:0};}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

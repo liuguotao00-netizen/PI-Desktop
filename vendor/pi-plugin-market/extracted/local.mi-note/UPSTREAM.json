@@ -1,0 +1,12 @@
+{
+  "id": "local.mi-note",
+  "version": "0.2.7",
+  "publishedAt": "2026-10-02T11:19:24Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.mi-note-0.2.7.piplug",
+  "shasum": "4467a8ef848f8c57d39ae2078c963c99b6253e6c4050348684af57e9616655da",
+  "repository": null,
+  "homepage": "https://github.com/sucjs/mi-note-for-pi",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.mi-note/0.2.7",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

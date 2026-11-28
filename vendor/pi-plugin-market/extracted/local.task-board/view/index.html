@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>任务看板</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: var(--ds-bg, #ffffff);
+        --fg: var(--ds-fg, #1a1c1f);
+        --muted: var(--ds-muted, #5f6673);
+        --line: var(--ds-border, rgba(20, 24, 31, 0.12));
+        --line-soft: rgba(20, 24, 31, 0.07);
+        --card: var(--ds-bg-elevated, #fbfbfc);
+        --hover: var(--ds-bg-hover, rgba(20, 24, 31, 0.05));
+        --accent: var(--ds-accent, #3f6ef0);
+        --danger: #c0392b;
+        --danger-soft: rgba(192, 57, 43, 0.1);
+        --warn: #a0680f;
+        --warn-soft: rgba(160, 104, 15, 0.12);
+        --ok: #2f7a4f;
+        --r-sm: 5px;
+        --r-md: 8px;
+        --r-lg: 10px;
+      }
+      /* 深色必须把 fg / muted / bg 一并覆盖：只换卡片色会让正文与背景同色（真机宿主未给 --ds-fg 时即复现）。 */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: var(--ds-bg, #0f1115);
+          --fg: var(--ds-fg, #e8eaed);
+          --muted: var(--ds-muted, #9aa1ac);
+          --line: var(--ds-border, rgba(255, 255, 255, 0.16));
+          --line-soft: rgba(255, 255, 255, 0.1);
+          --card: var(--ds-bg-elevated, #171a20);
+          --hover: var(--ds-bg-hover, rgba(255, 255, 255, 0.07));
+          --danger: #ff8b7d;
+          --danger-soft: rgba(255, 139, 125, 0.16);
+          --warn: #e0b060;
+          --warn-soft: rgba(224, 176, 96, 0.16);
+          --ok: #74c69d;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        padding-top: var(--pi-plugin-titlebar-height, 0px);
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.5 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ---------- 顶部工具条 ---------- */
+      .bar {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--line);
+        -webkit-app-region: drag;
+      }
+      .bar > * {
+        -webkit-app-region: no-drag;
+      }
+      .brand {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        min-width: 0;
+      }
+      .brand h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+      }
+      .stats {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        overflow: hidden;
+        color: var(--muted);
+        font-size: 12px;
+        font-variant-numeric: tabular-nums;
+      }
+      .stat {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+        padding: 1px 7px;
+        border: 1px solid var(--line-soft);
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .stat b {
+        color: var(--fg);
+        font-weight: 600;
+      }
+      .push {
+        flex: 1 1 auto;
+        min-width: 4px;
+      }
+      button.act {
+        flex: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 11px;
+        border: 1px solid var(--line);
+        border-radius: var(--r-md);
+        background: var(--card);
+        color: inherit;
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 120ms ease, border-color 120ms ease;
+      }
+      button.act:hover {
+        background: var(--hover);
+      }
+      button.act:active {
+        transform: translateY(0.5px);
+      }
+      button.act:focus-visible,
+      .row:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      button.act[data-busy="1"] .spin {
+        animation: spin 700ms linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .spin {
+        width: 11px;
+        height: 11px;
+        border: 1.5px solid currentColor;
+        border-top-color: transparent;
+        border-radius: 50%;
+        opacity: 0.75;
+      }
+
+      /* ---------- 提示 ---------- */
+      .notice {
+        flex: none;
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        margin: 10px 14px 0;
+        padding: 8px 10px;
+        border: 1px solid var(--warn);
+        border-radius: var(--r-md);
+        background: var(--warn-soft);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+      .notice.err {
+        border-color: var(--danger);
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+      .notice strong {
+        flex: none;
+        font-weight: 600;
+      }
+      .notice ul {
+        margin: 2px 0 0;
+        padding-left: 15px;
+      }
+      .notice li {
+        word-break: break-word;
+      }
+      /*
+       * hidden 必须显式关掉：`.notice` 自己写了 display:flex，作者样式会盖过
+       * 浏览器 UA 的 `[hidden] { display: none }`，于是这条提示在没有任何降级时
+       * 也会留下一个空的黄框（0.3.5 及之前的真 bug）。
+       */
+      .notice[hidden] {
+        display: none;
+      }
+
+      /* ---------- 看板 ---------- */
+      main {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+        padding: 12px 14px 4px;
+        overflow: auto;
+        align-content: start;
+      }
+      .col {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+        /* 列高上限跟可视区走：条目多时列内滚动；条目少时列自然变矮，不拉伸、不留空洞。 */
+        max-height: calc(100vh - 170px);
+        border: 1px solid var(--line);
+        border-radius: var(--r-lg);
+        background: var(--card);
+        overflow: hidden;
+      }
+      .col > header {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 9px 11px;
+        border-bottom: 1px solid var(--line-soft);
+      }
+      .dot {
+        flex: none;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+      .col[data-kind="plans"] .dot {
+        background: var(--warn);
+      }
+      .col[data-kind="waiting"] .dot {
+        background: var(--warn);
+        box-shadow: 0 0 0 3px var(--line-soft);
+      }
+      .col[data-kind="active"] .dot {
+        background: var(--ok);
+      }
+      .col[data-kind="running"] .dot {
+        background: var(--accent);
+        box-shadow: 0 0 0 3px var(--line-soft);
+      }
+      .row .dot-live {
+        display: inline-block;
+        width: 5px;
+        height: 5px;
+        margin-right: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        vertical-align: middle;
+      }
+      .col > header h2 {
+        margin: 0;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .count {
+        padding: 0 6px;
+        border-radius: 999px;
+        background: var(--line-soft);
+        color: var(--muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+        line-height: 17px;
+      }
+      .col > header .hint {
+        margin-left: auto;
+        color: var(--muted);
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .list {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin: 0;
+        padding: 4px;
+        list-style: none;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+      }
+      .list::-webkit-scrollbar {
+        width: 9px;
+      }
+      .list::-webkit-scrollbar-thumb {
+        border: 3px solid transparent;
+        border-radius: 999px;
+        background-clip: content-box;
+        background-color: var(--line);
+      }
+      .list::-webkit-scrollbar-thumb:hover {
+        background-color: var(--muted);
+      }
+
+      /* ---------- 行 ---------- */
+      .row {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 7px 9px 7px 10px;
+        border: 0;
+        border-radius: var(--r-sm);
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .row::before {
+        content: "";
+        position: absolute;
+        left: 2px;
+        top: 7px;
+        bottom: 7px;
+        width: 2px;
+        border-radius: 1px;
+        background: var(--accent);
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+      .row:hover {
+        background: var(--hover);
+      }
+      .row:hover::before {
+        opacity: 0.85;
+      }
+      .row .t {
+        display: block;
+        font-size: 13px;
+        line-height: 1.35;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .row .m {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-top: 3px;
+        color: var(--muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+      .chip {
+        flex: 0 1 auto;
+        min-width: 0;
+        padding: 0 5px;
+        border: 1px solid var(--line-soft);
+        border-radius: var(--r-sm);
+        line-height: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chip.warn {
+        border-color: var(--warn);
+        color: var(--warn);
+      }
+      .time {
+        flex: none;
+        margin-left: auto;
+        white-space: nowrap;
+      }
+
+      /* ---------- 空 / 骨架 / 页脚 ---------- */
+      .blank {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 26px 14px;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+      .blank .k {
+        color: var(--fg);
+        font-size: 12px;
+        opacity: 0.65;
+      }
+      .skeleton {
+        padding: 9px 10px;
+      }
+      .skeleton i {
+        display: block;
+        height: 9px;
+        border-radius: 4px;
+        background: var(--line-soft);
+      }
+      .skeleton i + i {
+        margin-top: 6px;
+        width: 45%;
+      }
+      .skeleton + .skeleton {
+        margin-top: 3px;
+      }
+      footer {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 14px 9px;
+        color: var(--muted);
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+      footer .sep {
+        width: 3px;
+        height: 3px;
+        border-radius: 50%;
+        background: currentColor;
+        opacity: 0.5;
+      }
+
+      /* ---------- 断点：宽 4 列 → 中 2 列 → 窄 1 列 ---------- */
+      @media (max-width: 1100px) {
+        main {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+      @media (max-width: 720px) {
+        main {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .col {
+          max-height: 52vh;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bar">
+      <div class="brand">
+        <h1>任务看板</h1>
+        <div class="stats" id="stats">
+          <span class="stat">会话 <b id="s-total">—</b></span>
+          <span class="stat">待审批 <b id="s-plans">—</b></span>
+          <span class="stat">等你 <b id="s-waiting">—</b></span>
+          <span class="stat">执行中 <b id="s-running">—</b></span>
+          <span class="stat">24h 活跃 <b id="s-active">—</b></span>
+        </div>
+      </div>
+      <div class="push"></div>
+      <button class="act" id="refresh" type="button" data-busy="0">
+        <span class="spin" aria-hidden="true"></span>
+        <span id="refresh-label">刷新</span>
+      </button>
+    </div>
+
+    <div class="notice" id="notice" hidden>
+      <strong id="notice-title">提示</strong>
+      <div style="min-width: 0"><ul id="notice-list"></ul></div>
+    </div>
+
+    <main>
+      <section class="col" data-kind="waiting">
+        <header>
+          <span class="dot" aria-hidden="true"></span>
+          <h2>等待人工介入</h2>
+          <span class="count" id="c-waiting">0</span>
+          <span class="hint">等你批计划 / 回答</span>
+        </header>
+        <ul class="list" id="l-waiting"></ul>
+      </section>
+      <section class="col" data-kind="running">
+        <header>
+          <span class="dot" aria-hidden="true"></span>
+          <h2>执行中</h2>
+          <span class="count" id="c-running">0</span>
+          <span class="hint">正在跑</span>
+        </header>
+        <ul class="list" id="l-running"></ul>
+      </section>
+      <section class="col" data-kind="plans">
+        <header>
+          <span class="dot" aria-hidden="true"></span>
+          <h2>待审批</h2>
+          <span class="count" id="c-plans">0</span>
+          <span class="hint">Plan / Goal</span>
+        </header>
+        <ul class="list" id="l-plans"></ul>
+      </section>
+      <section class="col" data-kind="active">
+        <header>
+          <span class="dot" aria-hidden="true"></span>
+          <h2>24h 内活跃</h2>
+          <span class="count" id="c-active">0</span>
+          <span class="hint">按最近活动</span>
+        </header>
+        <ul class="list" id="l-active"></ul>
+      </section>
+    </main>
+
+    <footer>
+      <span id="foot-state">正在读取…</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span id="foot-hint">自动刷新</span>
+      <span class="sep" aria-hidden="true"></span>
+      <span id="foot-ver">v0.3.9</span>
+    </footer>
+
+    <script>
+      (function () {
+        "use strict";
+
+        // 节奏由主进程给（nextPollMs），这里只作首轮兜底与非法值回退。
+        var DEFAULT_POLL_MS = 2000;
+        var pollMs = DEFAULT_POLL_MS;
+        var bridge = window.pluginBridge;
+        var hasBridge = !!(bridge && typeof bridge.invoke === "function");
+        var timer = null;
+        var inflight = false;
+        var firstPaint = true;
+
+        function $(id) {
+          return document.getElementById(id);
+        }
+
+        /* ---------- 预览模式示例数据（无宿主时用于视觉自查，绝不参与真实读取） ---------- */
+        var DEMO = {
+          generatedAt: Date.now(),
+          // 示例数据里有等待与执行中，按真实规则下一轮应是 2s（预览也照此调度）。
+          nextPollMs: 2000,
+          sessionTotal: 322,
+          planTotal: 1,
+          activeToday: 4,
+          degraded: [],
+          waiting: [
+            {
+              sessionId: "w1",
+              title: "等你批准：把权限判断下沉到 Native 层",
+              projectName: "GeneralBound",
+              updatedAt: Date.now() - 90 * 1000,
+              activityPhase: "",
+              planningState: "awaiting_approval",
+              waitingFor: "plan-approval",
+            },
+            {
+              sessionId: "w2",
+              title: "等你回答：这三个口径你要哪个",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 20 * 1000,
+              activityPhase: "",
+              planningState: "",
+              waitingFor: "ask",
+              askCount: 3,
+            },
+          ],
+          running: [
+            {
+              sessionId: "r1",
+              title: "重构鉴权模块：把权限判断下沉到 Native 层",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 40 * 1000,
+              state: "running",
+              pendingConfirmations: 0,
+            },
+            {
+              sessionId: "r2",
+              title: "扫描待提交变更并输出中文总结",
+              projectName: "GeneralBound",
+              updatedAt: Date.now() - 3 * 60 * 1000,
+              state: "running",
+              pendingConfirmations: 2,
+            },
+          ],
+          plans: [
+            {
+              requestId: "demo-1",
+              title: "重构鉴权模块：把权限判断下沉到 Native 层",
+              projectName: "PipeFieldworkHT",
+              kind: "plan",
+              status: "pending",
+              createdAt: Date.now() - 6 * 60 * 1000,
+              sessionId: "demo-session",
+            },
+          ],
+          sessions: [
+            {
+              sessionId: "d1",
+              title: "修复会话切换后任务栏折叠态丢失",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 60 * 1000,
+            },
+            {
+              sessionId: "d2",
+              title: "给看板加待审批筛选",
+              projectName: "PipeFieldworkHT",
+              updatedAt: Date.now() - 13 * 60 * 1000,
+            },
+            {
+              sessionId: "d3",
+              title: "核对 artifacts 映射与文件定位",
+              projectName: "GeneralRound",
+              updatedAt: Date.now() - 25 * 60 * 1000,
+            },
+            {
+              sessionId: "d4",
+              title: "写一篇关于增量渲染的笔记",
+              projectName: "AI_wenshu",
+              updatedAt: Date.now() - 3 * 3600 * 1000,
+            },
+            {
+              sessionId: "d5",
+              title: "整理 weeklyTodo 的过期项",
+              projectName: "weeklyTodo",
+              updatedAt: Date.now() - 30 * 3600 * 1000,
+            },
+            {
+              sessionId: "d6",
+              title: "压缩素材并复核像素一致",
+              projectName: "image-compress",
+              updatedAt: Date.now() - 52 * 3600 * 1000,
+            },
+          ],
+        };
+
+        function relTime(ms) {
+          if (!ms) return "时间未知";
+          var diff = Date.now() - ms;
+          if (diff < 60000) return "刚刚";
+          var min = Math.floor(diff / 60000);
+          if (min < 60) return min + " 分钟前";
+          var hour = Math.floor(min / 60);
+          if (hour < 24) return hour + " 小时前";
+          var day = Math.floor(hour / 24);
+          if (day < 30) return day + " 天前";
+          return new Date(ms).toLocaleDateString();
+        }
+
+        function clear(node) {
+          while (node.firstChild) node.removeChild(node.firstChild);
+        }
+
+        function blankBox(kind) {
+          var labels = {
+            running: ["没有会话在执行", "有回合在跑时会出现在这里"],
+            plans: ["没有待审批", "Plan 与 Goal 都处理完了"],
+            active: ["24 小时内没有活动", "新开会话或发一条消息就会出现在这里"],
+            waiting: ["没有在等你的会话", "计划审批与 Agent 反问都会出现在这里"],
+          };
+          var label = labels[kind] || ["暂无内容", ""];
+          var box = document.createElement("div");
+          box.className = "blank";
+          var k = document.createElement("div");
+          k.className = "k";
+          k.textContent = label[0];
+          var s = document.createElement("div");
+          s.textContent = label[1];
+          box.appendChild(k);
+          box.appendChild(s);
+          return box;
+        }
+
+        function skeleton(n) {
+          var frag = document.createDocumentFragment();
+          for (var i = 0; i < n; i += 1) {
+            var d = document.createElement("div");
+            d.className = "skeleton";
+            d.appendChild(document.createElement("i"));
+            d.appendChild(document.createElement("i"));
+            frag.appendChild(d);
+          }
+          return frag;
+        }
+
+        function row(title, chips, timeText, onClick, live) {
+          var li = document.createElement("li");
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "row";
+          btn.title = title;
+
+          var t = document.createElement("span");
+          t.className = "t";
+          if (live) {
+            var liveDot = document.createElement("span");
+            liveDot.className = "dot-live";
+            t.appendChild(liveDot);
+          }
+          t.appendChild(document.createTextNode(title));
+          btn.appendChild(t);
+
+          var m = document.createElement("span");
+          m.className = "m";
+          (chips || []).forEach(function (c) {
+            var chip = document.createElement("span");
+            chip.className = "chip" + (c.warn ? " warn" : "");
+            chip.textContent = c.text;
+            chip.title = c.text;
+            m.appendChild(chip);
+          });
+          var tm = document.createElement("span");
+          tm.className = "time";
+          tm.textContent = timeText;
+          m.appendChild(tm);
+          btn.appendChild(m);
+
+          if (onClick) btn.addEventListener("click", onClick);
+          li.appendChild(btn);
+          return li;
+        }
+
+        function fillRunning(data) {
+          var list = $("l-running");
+          clear(list);
+          var rows = data.running || [];
+          $("c-running").textContent = String(rows.length);
+          if (!rows.length) {
+            list.appendChild(blankBox("running"));
+            return;
+          }
+          var frag = document.createDocumentFragment();
+          rows.forEach(function (item) {
+            var chips = [{ text: item.projectName || "未归属项目" }];
+            // pendingConfirmations 在桌面原生 runtime 里恒为 0（见 main.js 取证注记），
+            // 所以「在干什么」改由 activity.phase 表达：压缩上下文 / 重试中 / 等模型…
+            var phase = PHASE_LABELS[item.activityPhase];
+            if (phase) chips.push({ text: phase, warn: true });
+            frag.appendChild(
+              row(
+                item.title || "(无标题会话)",
+                chips,
+                relTime(item.updatedAt),
+                function () {
+                  openSession(item.sessionId);
+                },
+                true
+              )
+            );
+          });
+          list.appendChild(frag);
+        }
+
+        // 宿主 sidecar 的 activity.phase → 中文短语（取值域取证自 getStatus()）。
+        var PHASE_LABELS = {
+          starting: "启动中",
+          preparing: "准备中",
+          compacting: "压缩上下文",
+          recovering: "恢复中",
+          retrying: "重试中",
+          "waiting-model": "等模型",
+          "waiting-tool-stop": "收尾中",
+          "waiting-subagents": "等子代理",
+        };
+
+        /**
+         * 等待人工介入有两个来源（0.3.8 补齐第二个）：
+         *   ① 计划审批 —— `planningState=awaiting_approval` 或带 `pendingPlanId`；
+         *      注意这时回合已经结束（`isRunning=false`）。
+         *   ② asktool 反问 —— 宿主 `agent/pendingInteractive` 返回的 `asks` 非空。
+         * 两类都暂停等人，不能混进「执行中」。
+         */
+        function fillWaiting(data) {
+          var list = $("l-waiting");
+          clear(list);
+          var rows = data.waiting || [];
+          $("c-waiting").textContent = String(rows.length);
+          if (!rows.length) {
+            list.appendChild(blankBox("waiting"));
+            return;
+          }
+          var frag = document.createDocumentFragment();
+          rows.forEach(function (item) {
+            frag.appendChild(
+              row(
+                item.title || "(无标题会话)",
+                [
+                  { text: item.projectName || "未归属项目" },
+                  { text: item.waitingFor === "ask" ? "等你回答 " + (Number(item.askCount) || 1) + " 题" : "等你批准计划", warn: true },
+                ],
+                relTime(item.updatedAt),
+                function () {
+                  openSession(item.sessionId);
+                },
+                false
+              )
+            );
+          });
+          list.appendChild(frag);
+        }
+
+        function fillPlans(data) {
+          var list = $("l-plans");
+          clear(list);
+          $("c-plans").textContent = String(data.planTotal == null ? (data.plans || []).length : data.planTotal);
+          if (!data.plans || !data.plans.length) {
+            list.appendChild(blankBox("plans"));
+            return;
+          }
+          var frag = document.createDocumentFragment();
+          data.plans.forEach(function (plan) {
+            frag.appendChild(
+              row(
+                plan.title || "未命名待审批",
+                [
+                  { text: plan.projectName || "未归属项目" },
+                  { text: plan.kind || "plan", warn: true },
+                ],
+                relTime(plan.createdAt),
+                plan.sessionId
+                  ? function () {
+                      openSession(plan.sessionId);
+                    }
+                  : null
+              )
+            );
+          });
+          list.appendChild(frag);
+        }
+
+        function fillSessions(data) {
+          var list = $("l-active");
+          clear(list);
+          // 「24h 内活跃」。（0.3.7 删掉「更早」列：那一列参考价值低，却要把历史
+          // 会话全部渲染一遍，是这份看板最重的一块开销。）
+          var sessions = data.sessions || [];
+          $("c-active").textContent = String(sessions.length);
+          if (!sessions.length) {
+            list.appendChild(blankBox("active"));
+            return;
+          }
+          var frag = document.createDocumentFragment();
+          sessions.forEach(function (s) {
+            var chips = [{ text: s.projectName || "未归属项目" }];
+            if (s.mode) chips.push({ text: s.mode });
+            frag.appendChild(
+              row(s.title || "(无标题会话)", chips, relTime(s.updatedAt), function () {
+                openSession(s.sessionId);
+              })
+            );
+          });
+          list.appendChild(frag);
+        }
+
+        function showNotice(errors, isError, title) {
+          var box = $("notice");
+          var list = $("notice-list");
+          clear(list);
+          if (!errors || !errors.length) {
+            box.hidden = true;
+            return;
+          }
+          box.hidden = false;
+          box.className = "notice" + (isError ? " err" : "");
+          $("notice-title").textContent = title || (isError ? "读取失败" : "部分通道不可用");
+          errors.forEach(function (item) {
+            var li = document.createElement("li");
+            li.textContent = item;
+            list.appendChild(li);
+          });
+        }
+
+        function openSession(sessionId) {
+          if (!hasBridge) return;
+          bridge.invoke("board.openSession", { sessionId: sessionId }).catch(function () {});
+        }
+
+        function ask(channel, payload) {
+          if (!hasBridge) return Promise.resolve(DEMO);
+          return bridge.invoke(channel, payload || {});
+        }
+
+        function setBusy(busy) {
+          var btn = $("refresh");
+          btn.dataset.busy = busy ? "1" : "0";
+          btn.disabled = !!busy;
+          $("refresh-label").textContent = busy ? "读取中" : "刷新";
+        }
+
+        function paint(data) {
+          fillWaiting(data);
+          fillRunning(data);
+          fillPlans(data);
+          fillSessions(data);
+          $("s-total").textContent = String(data.sessionTotal == null ? (data.sessions || []).length : data.sessionTotal);
+          $("s-plans").textContent = String(data.planTotal == null ? (data.plans || []).length : data.planTotal);
+          $("s-waiting").textContent = String((data.waiting || []).length);
+          $("s-running").textContent = String((data.running || []).length);
+          $("s-active").textContent = String(data.activeToday || 0);
+          $("foot-state").textContent = "更新于 " + new Date(data.generatedAt || Date.now()).toLocaleTimeString();
+          $("foot-hint").textContent = hasBridge
+            ? (pollMs >= 5000 ? "空闲降频 " + Math.round(pollMs / 1000) + "s 刷新" : Math.round(pollMs / 1000) + "s 刷新")
+            : "预览模式 · 示例数据";
+        }
+
+        function load() {
+          if (inflight) return;
+          inflight = true;
+          setBusy(true);
+          stopTimer();
+          if (firstPaint) {
+          ["l-waiting", "l-running", "l-plans", "l-active"].forEach(function (id) {
+              var node = $(id);
+              clear(node);
+              node.appendChild(skeleton(5));
+            });
+          }
+          ask("board.snapshot", { limit: 60 })
+            .then(function (data) {
+              firstPaint = false;
+              if (!data || data.ok === false) {
+                throw new Error((data && data.code) || "SNAPSHOT_FAILED");
+              }
+              var degraded = (data.degraded || []).map(function (d) {
+                return d.code + (d.detail ? "：" + d.detail : "");
+              });
+              if (!hasBridge) degraded = ["未连接宿主：当前显示示例数据，装入插件后即为真实会话"];
+              showNotice(degraded, false, hasBridge ? "" : "预览模式");
+              // 先按新节奏排下一轮，再重绘：页脚要显示这一轮生效的间隔。
+              scheduleNext(data.nextPollMs);
+              paint(data);
+            })
+            .catch(function (error) {
+              firstPaint = false;
+              showNotice([String((error && error.message) || error)], true);
+              $("foot-state").textContent = "读取失败";
+              // 失败不追高频：退回最慢档，等宿主恢复。
+              scheduleNext(15000);
+            })
+            .then(function () {
+              inflight = false;
+              setBusy(false);
+            });
+        }
+
+        // 自适应节奏：主进程按「有没有人等你 / 有人在跑」给出 nextPollMs（2s / 5s / 15s），
+        // 页面照它排下一次，不再用固定 setInterval。
+        function scheduleNext(ms) {
+          var next = Number(ms);
+          if (!Number.isFinite(next) || next < 1000) next = 15000;
+          pollMs = next;
+          if (timer) {
+            window.clearTimeout(timer);
+            timer = null;
+          }
+          if (!hasBridge || document.hidden) return;
+          timer = window.setTimeout(load, next);
+        }
+
+        function stopTimer() {
+          if (!timer) return;
+          window.clearTimeout(timer);
+          timer = null;
+        }
+
+        $("refresh").addEventListener("click", load);
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.hidden) stopTimer();
+          else load();
+        });
+
+        load();
+      })();
+    </script>
+  </body>
+</html>

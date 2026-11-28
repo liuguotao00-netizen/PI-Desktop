@@ -1,0 +1,311 @@
+/* ==========================================================================
+   Nebula Spectrum Light — PI-Desktop appearance theme
+   Theme id: plugin:local.nebula-spectrum:nebula-light   (base: light)
+
+   A light UI painted with a full spectrum: the canvas carries amber, rose,
+   magenta, indigo, cyan and green light at once, while the chrome stays a
+   calm neutral white so text keeps its hierarchy.
+
+   PI-Desktop defines its design tokens on :root / :root[data-theme=light].
+   A plugin theme is applied as :root[data-plugin-theme="plugin:<plugin>:<id>"],
+   so every rule below carries that attribute too. Using
+   :root[data-theme][data-plugin-theme=...] (three attribute selectors)
+   guarantees the override wins over both the light and the dark token blocks
+   regardless of stylesheet order.
+
+   No external references: pure CSS custom properties plus gradients.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Neutral ramp — neutral cool grey, so the colour comes from the canvas and
+   not from the chrome. Every --ds-* token the host derives picks this up.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] {
+  color-scheme: light;
+
+  --gray-0: #ffffff;
+  --gray-50: #fcfbfd;
+  --gray-75: #f7f6fa;
+  --gray-100: #eeedf3;
+  --gray-300: #b7b6c4;
+  --gray-500: #6e6d7f;
+  --gray-550: #5e5d6f;
+  --gray-600: #4c4b5c;
+  --gray-700: #3a3947;
+  --gray-750: #2e2d3a;
+  --gray-800: #232230;
+  --gray-900: #17161f;
+  --gray-1000: #0c0b12;
+
+  --accent-50: #fdf2f8;
+  --accent-100: #fce7f3;
+  --accent-300: #f472b6;
+  --accent-400: #ffffff;
+  --accent-900: #4a1130;
+
+  /* ---- surfaces ---- */
+  --ds-bg-primary: #ffffff;
+  --ds-bg-under: #ffffff;
+  --ds-settings-rail-bg: #f7f6fa;
+  --ds-bg-sidebar: #faf9fc;
+  --ds-bg-secondary: #fdfcff;
+  --ds-bg-tertiary: #f6f5fa;
+  --ds-bg-inset: #f2f1f6;
+  --ds-bg-dock: #fdfcff;
+  --ds-bg-dock-raised: #ffffff;
+  --ds-bg-elevated: rgba(255, 255, 255, 0.88);
+  --ds-bg-elevated-opaque: #ffffff;
+  --ds-bg-elevated-primary: rgba(255, 255, 255, 0.95);
+  --ds-bg-hover: rgba(30, 32, 50, 0.05);
+  --ds-bg-active: rgba(30, 32, 50, 0.08);
+  --ds-bg-chip: rgba(30, 32, 50, 0.04);
+  --ds-bg-composer: rgba(255, 255, 255, 0.94);
+  --ds-sidebar-glass-tint: rgba(250, 249, 252, 0.6);
+  --ds-sidebar-glass-sheen-top: rgba(255, 255, 255, 0.95);
+  --ds-sidebar-glass-sheen-bottom: rgba(34, 211, 238, 0.07);
+
+  /* ---- ink ---- */
+  --ds-text-primary: #1a1a26;
+  --ds-text-secondary: rgba(28, 28, 40, 0.75);
+  --ds-text-muted: rgba(34, 34, 50, 0.56);
+  --ds-text-faint: rgba(40, 40, 58, 0.42);
+  --ds-placeholder-ink: rgba(60, 60, 84, 0.42);
+  --ds-prose-kbd-fg: rgba(28, 28, 40, 0.8);
+
+  /* ---- lines ---- */
+  --ds-border-default: rgba(30, 32, 50, 0.14);
+  --ds-border-subtle: rgba(30, 32, 50, 0.09);
+  --ds-border-strong: rgba(30, 32, 50, 0.24);
+
+  /* ---- tiles, raised, rows ---- */
+  --ds-tile: rgba(30, 32, 50, 0.04);
+  --ds-tile-hover: rgba(30, 32, 50, 0.07);
+  --ds-tile-deep: rgba(236, 72, 153, 0.12);
+  --ds-tool-row-bg: rgba(30, 32, 50, 0.04);
+  --ds-raised: #ffffff;
+  --ds-raised-shadow: 0 1px 2px rgba(30, 32, 50, 0.12);
+
+  /* ---- accents ---- */
+  --ds-accent: #be185d;
+  --ds-accent-hover: #9d174d;
+  --ds-accent-soft: #f472b6;
+  --ds-focus: #2563eb;
+  --ds-success: #15803d;
+  --ds-warning: #b45309;
+  --ds-error: #be123c;
+  --ds-info: #0369a1;
+  --ds-purple: #c026d3;
+
+  /* ---- fields and switches ---- */
+  --ds-settings-field-bg: #ffffff;
+  --ds-settings-nav-active: rgba(30, 32, 50, 0.08);
+  --ds-field-inset-bg: rgba(30, 32, 50, 0.04);
+  --ds-field-inset-focus-bg: rgba(30, 32, 50, 0.07);
+  --ds-switch-track-off: rgba(30, 32, 50, 0.14);
+  --ds-switch-track-off-hover: rgba(30, 32, 50, 0.22);
+  --ds-switch-ring-off: rgba(30, 32, 50, 0.24);
+  --ds-switch-knob-off: #ffffff;
+  --ds-switch-knob-on: #ffffff;
+
+  /* ---- code and diagrams ---- */
+  --ds-code-head-bg: rgba(30, 32, 50, 0.06);
+  --ds-code-hover-bg: rgba(30, 32, 50, 0.1);
+  --ds-thinking-code-bg: rgba(30, 32, 50, 0.04);
+  --ds-mermaid-canvas: #fdfcff;
+
+  /* ---- overlays ---- */
+  --ds-scrim: rgba(24, 22, 36, 0.3);
+  --ds-modal-veil: rgba(251, 250, 253, 0.72);
+  --ds-send-disabled-bg: rgba(30, 32, 50, 0.16);
+  --ds-send-disabled-fg: rgba(255, 255, 255, 0.92);
+  --ds-elevation-stroke: 0 0 0 0.5px rgba(30, 32, 50, 0.14);
+
+  /* ---- depth: neutral cool shadows so the colour stays in the background ---- */
+  --ds-shadow-composer: 0 8px 24px rgba(30, 26, 50, 0.12), 0 0 0 1px rgba(30, 32, 50, 0.1);
+  --ds-shadow-dialog: 0 22px 60px rgba(30, 26, 50, 0.18), 0 0 0 1px rgba(30, 32, 50, 0.1), 0 0 44px rgba(236, 72, 153, 0.1);
+  --ds-shadow-model-menu: 0 18px 44px rgba(30, 26, 50, 0.16), 0 0 0 1px rgba(30, 32, 50, 0.1), 0 0 34px rgba(34, 211, 238, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   2. Canvas — six overlapping colour lobes over a near-white page, so the
+   whole window reads as a spectrum wash while staying light. A broad diagonal
+   wash sits on top of the lobes to blend them into one another.
+   .app-shell is the opaque backdrop behind every transparent pane.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .app-shell {
+  background-color: #fcfbfd;
+  background-image:
+    linear-gradient(
+      118deg,
+      rgba(255, 186, 120, 0.26),
+      rgba(255, 133, 192, 0.24) 28%,
+      rgba(139, 176, 255, 0.2) 55%,
+      rgba(125, 235, 220, 0.22) 80%,
+      rgba(186, 246, 160, 0.2)
+    ),
+    radial-gradient(1100px 620px at 4% -12%, rgba(251, 146, 60, 0.3), transparent 62%),
+    radial-gradient(980px 560px at 98% -6%, rgba(244, 114, 182, 0.28), transparent 64%),
+    radial-gradient(900px 620px at 86% 108%, rgba(45, 212, 191, 0.24), transparent 66%),
+    radial-gradient(820px 520px at 8% 110%, rgba(96, 165, 250, 0.24), transparent 66%),
+    radial-gradient(760px 460px at 50% 48%, rgba(163, 230, 53, 0.14), transparent 68%);
+}
+
+/* A two-pixel rainbow hairline across the very top of the window. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .app-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  z-index: 70;
+  pointer-events: none;
+  opacity: 0.8;
+  background: linear-gradient(
+    90deg,
+    #f59e0b,
+    #f43f5e 20%,
+    #ec4899 40%,
+    #6366f1 60%,
+    #06b6d4 80%,
+    #10b981
+  );
+}
+/* --------------------------------------------------------------------------
+   2b. Conversation pane — the chat area is a crisp white sheet, the same
+   white as the composer and the code blocks, with only a whisper of spectrum
+   along its top and bottom edges so it does not read as flat grey.
+   .main-pane paints this (it owns --ds-bg-primary); the message column
+   (.thread-content) stays transparent on top of it.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .main-pane {
+  background-color: #ffffff;
+  background-image:
+    radial-gradient(1100px 340px at 50% -18%, rgba(251, 146, 60, 0.12), transparent 70%),
+    radial-gradient(820px 300px at 100% -10%, rgba(236, 72, 153, 0.1), transparent 72%),
+    radial-gradient(820px 300px at 0% -10%, rgba(96, 165, 250, 0.1), transparent 72%),
+    radial-gradient(900px 320px at 82% 112%, rgba(45, 212, 191, 0.08), transparent 72%);
+}
+
+
+/* --------------------------------------------------------------------------
+   3. Title bars — frosted white so the spectrum reads through the chrome.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .main-titlebar,
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .conversation-topbar {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(252, 250, 253, 0.62));
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 1px 0 rgba(30, 32, 50, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   4. Sidebar — frosted glass with three colour glows, so the rail also shows
+   the spectrum instead of one flat tint.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .sidebar-surface {
+  background-color: rgba(252, 251, 254, 0.74);
+  background-image:
+    radial-gradient(460px 300px at 0% 0%, rgba(244, 114, 182, 0.16), transparent 66%),
+    radial-gradient(420px 300px at 100% 46%, rgba(251, 191, 36, 0.12), transparent 70%),
+    radial-gradient(440px 340px at 60% 104%, rgba(45, 212, 191, 0.16), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), transparent 240px);
+  backdrop-filter: blur(26px) saturate(170%);
+  border-inline-end: 1px solid rgba(30, 32, 50, 0.1);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .sidebar-rail {
+  background-color: rgba(251, 250, 253, 0.9);
+}
+
+/* --------------------------------------------------------------------------
+   5. Composer — the focal surface: a white field with a real five-stop
+   spectrum rim, warm at one corner and cool at the other.
+   Two background layers clipped to padding-box and border-box draw the rim.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .composer-shell {
+  border: 1px solid transparent;
+  background-image:
+    linear-gradient(152deg, #ffffff, #fdfcff),
+    linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.85),
+      rgba(244, 63, 94, 0.8) 24%,
+      rgba(236, 72, 153, 0.8) 44%,
+      rgba(99, 102, 241, 0.75) 66%,
+      rgba(6, 182, 212, 0.85)
+    );
+  background-origin: padding-box, border-box;
+  background-clip: padding-box, border-box;
+  box-shadow: 0 10px 28px rgba(30, 26, 50, 0.12), 0 0 22px rgba(236, 72, 153, 0.1);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .composer-shell:focus-within {
+  background-image:
+    linear-gradient(152deg, #ffffff, #fefdff),
+    linear-gradient(
+      135deg,
+      rgba(217, 119, 6, 0.95),
+      rgba(225, 29, 72, 0.9) 24%,
+      rgba(219, 39, 119, 0.9) 44%,
+      rgba(79, 70, 229, 0.9) 66%,
+      rgba(8, 145, 178, 0.95)
+    );
+  box-shadow:
+    0 14px 36px rgba(30, 26, 50, 0.16),
+    0 0 30px rgba(236, 72, 153, 0.2),
+    0 0 18px rgba(34, 211, 238, 0.16);
+}
+
+/* --------------------------------------------------------------------------
+   6. User bubble — same white sheet as the composer, the code blocks and the
+   conversation pane: pure white, one hairline, one soft shadow. The corner
+   shape and the border are what separate it from the assistant text.
+   -------------------------------------------------------------------------- */
+/* Only the user's own bubble — assistant turns also carry .message-bubble in
+   the host DOM (reset to transparent there), so scope by the user row. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .message-row.user .message-bubble {
+  background: #ffffff;
+  color: #1a1a26;
+  box-shadow:
+    inset 0 0 0 1px rgba(30, 32, 50, 0.09),
+    0 2px 6px rgba(30, 32, 50, 0.06);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .message-row.user .message-user-text {
+  color: #1a1a26;
+}
+
+/* The send button carries the whole spectrum, with dark ink on top. */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .send-btn {
+  background: linear-gradient(135deg, #fbbf24, #fb7185 38%, #60a5fa 72%, #67e8f9);
+  color: #1b1424;
+  box-shadow: 0 2px 10px rgba(236, 72, 153, 0.3);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .send-btn:hover {
+  box-shadow: 0 3px 16px rgba(99, 102, 241, 0.35);
+}
+
+/* --------------------------------------------------------------------------
+   7. Code — a white inset panel with a pale spectrum header band.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .code-block {
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(30, 32, 50, 0.09), 0 1px 2px rgba(30, 32, 50, 0.04);
+}
+
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] .code-block-head {
+  background-image: linear-gradient(
+    90deg,
+    rgba(251, 146, 60, 0.14),
+    rgba(244, 114, 182, 0.12) 36%,
+    rgba(99, 102, 241, 0.1) 66%,
+    rgba(45, 212, 191, 0.12)
+  );
+}
+
+/* --------------------------------------------------------------------------
+   8. Text selection in theme colours.
+   -------------------------------------------------------------------------- */
+:root[data-theme][data-plugin-theme="plugin:local.nebula-spectrum:nebula-light"] ::selection {
+  background: rgba(236, 72, 153, 0.22);
+  color: #1c1424;
+}

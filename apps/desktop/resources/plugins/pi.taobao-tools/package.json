@@ -1,0 +1,17 @@
+{
+  "name": "pi.taobao-tools",
+  "private": true,
+  "version": "0.3.0",
+  "type": "commonjs",
+  "description": "Taobao data collection and browser automation for PI-Desktop.",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "node build.mjs --typecheck-only",
+    "test": "node build.mjs --no-stage && node --test test/*.test.cjs",
+    "test:e2e:browser": "node build.mjs --no-stage && node --test test/e2e/browser-e2e.cjs",
+    "test:e2e:real": "node build.mjs --no-stage && node test/e2e/real-platform-smoke.cjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

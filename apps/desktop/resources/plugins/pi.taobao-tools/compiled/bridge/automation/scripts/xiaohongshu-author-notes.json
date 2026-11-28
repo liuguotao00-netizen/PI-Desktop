@@ -1,0 +1,154 @@
+{
+  "id": "xiaohongshu-author-notes",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 采集达人笔记",
+  "description": "采集小红书博主主页的笔记列表 + 博主资料:直接读页面 __INITIAL_STATE__(user.notes 首屏笔记 + userPageData 博主资料),不依赖拦 user_posted XHR(博主页首屏笔记是 SSR 注入,不发翻页接口)。字段见 docs/extraction/XIAOHONGSHU.md。",
+  "contextSetup": {
+    "limitNotes": {
+      "type": "number",
+      "default": 100
+    }
+  },
+  "variables": [
+    {
+      "key": "url",
+      "label": "博主主页链接",
+      "type": "text",
+      "placeholder": "https://www.xiaohongshu.com/user/profile/xxxxxxxx",
+      "default": ""
+    },
+    {
+      "key": "limitNotes",
+      "label": "采集笔记数量上限（默认 100;滚动加载到该数或博主笔记采完为止）",
+      "type": "text",
+      "default": "100"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_author_notes"
+    },
+    "csv": [
+      {
+        "type": "note",
+        "source": "execute_xhsNotes",
+        "columns": [
+          { "name": "note_id", "from": "note_id" },
+          { "name": "note_url", "from": "note_url" },
+          { "name": "title", "from": "title" },
+          { "name": "type", "from": "type" },
+          { "name": "cover", "from": "cover" },
+          { "name": "liked_count", "from": "liked_count" },
+          { "name": "author_name", "from": "author_name" },
+          { "name": "author_id", "from": "author_id" }
+        ]
+      },
+      {
+        "type": "author",
+        "source": "execute_xhsAuthor",
+        "columns": [
+          { "name": "user_id", "from": "user_id" },
+          { "name": "avatar", "from": "avatar" },
+          { "name": "red_id", "from": "red_id" },
+          { "name": "nickname", "from": "nickname" },
+          { "name": "desc", "from": "desc" },
+          { "name": "gender", "from": "gender" },
+          { "name": "ip_location", "from": "ip_location" },
+          { "name": "fans", "from": "fans" },
+          { "name": "follows", "from": "follows" },
+          { "name": "interaction", "from": "interaction" }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "navigateToProfile",
+      "description": "导航到博主主页(就地采集时当前标签已在该页,会重载一次以确保 __INITIAL_STATE__ 注入)",
+      "action": "navigate",
+      "value": "{{url}}",
+      "timeout": 30000
+    },
+    {
+      "id": "assertXhsLoggedIn",
+      "description": "校验已登录。selector/文案待真机校准",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          { "type": "exist", "selector": ".login-container" },
+          { "type": "exist", "selector": "[class*=\"login-mask\"]" },
+          { "type": "text", "value": "扫码登录" }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "id": "assertXhsNotBlocked",
+      "description": "校验未触发风控验证。selector/文案待真机校准",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          { "type": "text", "value": "当前访问环境存在异常" },
+          { "type": "text", "value": "请完成下方验证" },
+          { "type": "exist", "selector": ".captcha-container" }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "id": "waitFirstScreen",
+      "description": "等首屏笔记 + 博主资料注入 __INITIAL_STATE__",
+      "action": "wait",
+      "duration": [
+        1500,
+        2500
+      ]
+    },
+    {
+      "id": "scrollLoadNotes",
+      "description": "主动滚动加载更多笔记进 user.notes,直到够 limitNotes 或滚到底(数量连续不增)",
+      "action": "scrollForState",
+      "params": {
+        "countExpr": "(function(){try{var S=window.__INITIAL_STATE__;if(!S)return 0;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var g=u(u(S.user).notes);var n=0;if(Array.isArray(g))for(var i=0;i<g.length;i++){var l=u(g[i]);if(Array.isArray(l))n+=l.length;}return n;}catch(e){return 0;}})()",
+        "limitTotal": "{{limitNotes}}",
+        "scrollStep": 1200,
+        "limitScroll": 80,
+        "stallRounds": 3
+      }
+    },
+    {
+      "id": "queryXhsNotes",
+      "description": "读 __INITIAL_STATE__.user.notes(二维分组,每项 noteCard)提取笔记列表",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsNotes",
+        "fn": "(function(){var S=window.__INITIAL_STATE__;if(!S||typeof S!=='object')return [];var unref=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};var str=function(v){v=unref(v);return typeof v==='string'?v:'';};var arr=function(v){v=unref(v);return Array.isArray(v)?v:[];};var norm=function(v){v=str(v);return v.indexOf('http://')===0?'https://'+v.slice(7):v;};var groups=arr((unref(S.user)||{}).notes);var out=[];var seen={};for(var g=0;g<groups.length;g++){var list=arr(groups[g]);for(var i=0;i<list.length;i++){var item=unref(list[i]);if(!item||typeof item!=='object')continue;var card=unref(item.noteCard);if(!card)continue;var nid=str(card.noteId)||str(item.id);if(!nid||seen[nid])continue;seen[nid]=1;var ic=unref(card.interactInfo)||{};var cv=unref(card.cover)||{};var usr=unref(card.user)||{};out.push({note_id:nid,note_url:'https://www.xiaohongshu.com/explore/'+nid,title:str(card.displayTitle),type:str(card.type),cover:norm(cv.urlDefault||cv.url||cv.urlPre),liked_count:str(ic.likedCount),author_name:str(usr.nickname||usr.nickName),author_id:str(usr.userId)});}}return out;})"
+      }
+    },
+    {
+      "id": "queryXhsAuthor",
+      "description": "读 __INITIAL_STATE__.user.userPageData 提取博主资料(单行)",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsAuthor",
+        "fn": "(function(){var S=window.__INITIAL_STATE__;if(!S||typeof S!=='object')return [];var unref=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<6){x=x._rawValue;h++;}return x;};var str=function(v){v=unref(v);return typeof v==='string'?v:'';};var arr=function(v){v=unref(v);return Array.isArray(v)?v:[];};var norm=function(v){v=str(v);return v.indexOf('http://')===0?'https://'+v.slice(7):v;};var up=unref((unref(S.user)||{}).userPageData)||{};var basic=unref(up.basicInfo)||{};var inter=arr(up.interactions);var pick=function(t){for(var i=0;i<inter.length;i++){var it=unref(inter[i]);if(it&&it.type===t)return str(it.count);}return '';};var loc=location.pathname.split('/').filter(Boolean);var uid=(loc[0]==='user'&&loc[1]==='profile')?loc[2]:'';var nick=str(basic.nickname||basic.nickName);if(!uid&&!nick)return [];var g=unref(basic.gender);return [{user_id:uid,avatar:norm(basic.images),red_id:str(basic.redId),nickname:nick,desc:str(basic.desc),gender:(typeof g==='number'?(g===1?'女':(g===2?'男':'')):str(g)),ip_location:str(basic.ipLocation),fans:pick('fans'),follows:pick('follows'),interaction:pick('interaction')}];})"
+      }
+    },
+    {
+      "id": "delay",
+      "description": "延迟确认",
+      "action": "wait",
+      "duration": [
+        500,
+        1000
+      ]
+    }
+  ]
+}

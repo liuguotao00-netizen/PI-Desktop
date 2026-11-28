@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.cydione.prompt-injector",
+  "name": "提示词注入器",
+  "version": "1.2.0",
+  "description": "把提示词绑定到本地模型：使用该模型的会话在首轮自动注入系统提示词。",
+  "main": "main.js",
+  "ui": {
+    "panel": "renderer/index.html",
+    "title": "提示词注入",
+    "width": 780,
+    "height": 640
+  },
+  "permissions": [
+    "ui.panel",
+    "models.list",
+    "agent.extension"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "id": "prompt-injector.open",
+        "title": "提示词注入: 打开配置面板",
+        "keywords": [
+          "prompt-injector",
+          "提示词",
+          "inject"
+        ]
+      },
+      {
+        "id": "prompt-injector.toggle",
+        "title": "提示词注入: 启用 / 停用",
+        "keywords": [
+          "prompt-injector",
+          "toggle"
+        ]
+      }
+    ],
+    "agentExtensions": [
+      "extensions/inject.js"
+    ]
+  },
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:prompt-injector.open",
+    "onCommand:prompt-injector.toggle"
+  ]
+}

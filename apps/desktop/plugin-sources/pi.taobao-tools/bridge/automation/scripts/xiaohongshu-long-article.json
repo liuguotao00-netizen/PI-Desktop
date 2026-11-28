@@ -1,0 +1,159 @@
+{
+  "id": "xiaohongshu-long-article",
+  "platform": "xiaohongshu",
+  "kind": "publish",
+  "name": "小红书 · 长文创作（填写 + 一键排版）",
+  "description": "创作页进入「写长文」→ 新的创作 → 填标题正文 → 一键排版，返回可用模板列表。下一步用 xiaohongshu-long-article-template 选模板，再用 xiaohongshu-long-article-finish 发布。",
+  "taskName": "xiaohongshu_long_article_compose",
+  "dedupeWindowMs": 300000,
+  "startUrl": "https://creator.xiaohongshu.com/new/home",
+  "humanize": {
+    "mouseSpeed": "normal",
+    "typingSpeed": "normal",
+    "mistakeRate": 0.03,
+    "extraPauseRate": 0.1
+  },
+  "variables": [
+    {
+      "key": "title",
+      "label": "长文标题（建议简洁；长文 textarea 无 20 字硬限，但仍宜短小）",
+      "type": "text",
+      "placeholder": "输入标题"
+    },
+    {
+      "key": "content",
+      "label": "长文正文（段落用换行分隔）",
+      "type": "textarea",
+      "placeholder": "正文"
+    },
+    {
+      "key": "images",
+      "label": "可选配图：本机绝对路径或图片 URL 数组（留空=不配）",
+      "type": "files",
+      "required": false,
+      "default": [],
+      "accept": ".jpg,.jpeg,.png,.webp"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_long_article_compose"
+    }
+  },
+  "steps": [
+    {
+      "id": "assertXhsReady",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "passWhen": [
+          { "type": "visible", "selector": ".btn-wrapper", "value": "发布笔记" }
+        ],
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常",
+            "errorCode": "RISK_CAPTCHA",
+            "errorMessage": "当前小红书触发风控验证，请先完成验证后再重试"
+          },
+          {
+            "type": "visible",
+            "selector": ".login-container",
+            "errorCode": "AUTH_REQUIRED",
+            "errorMessage": "当前小红书未登录，请先登录后再重试"
+          }
+        ],
+        "errorCode": "PUBLISH_BUTTON_UNAVAILABLE",
+        "errorMessage": "小红书创作页未在限定时间内进入可发布状态"
+      }
+    },
+    {
+      "id": "openLongArticleTab",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "longArticleTab",
+        "fn": "function(){\n  function clickTab(name){\n    var tabs=document.querySelectorAll('div.creator-tab');\n    for(var i=0;i<tabs.length;i++){\n      var t=tabs[i];\n      if(t.hasAttribute('data-hp-kind')||t.hasAttribute('button-hp-installed'))continue;\n      var title=t.querySelector('span.title');\n      if(!title||title.textContent.trim()!==name)continue;\n      var r=t.getBoundingClientRect();\n      if(r.left<-1000||r.top<-1000)continue;\n      t.click();\n      return true;\n    }\n    return false;\n  }\n  function clickText(text){\n    var elems=document.querySelectorAll('button,[role=\"button\"],span,div,a');\n    for(var i=0;i<elems.length;i++){\n      if((elems[i].textContent||'').trim()===text){\n        var r=elems[i].getBoundingClientRect();\n        if(r.width>0&&r.height>0){elems[i].click();return true;}\n      }\n    }\n    return false;\n  }\n  if(!clickTab('写长文')){return {ok:false,error:'未找到写长文 Tab'};}\n  return {ok:true,step:'tab'};\n}"
+      }
+    },
+    {
+      "action": "wait",
+      "duration": [800, 1200]
+    },
+    {
+      "id": "newCreation",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "longArticleNew",
+        "fn": "function(){\n  var elems=document.querySelectorAll('button,[role=\"button\"],span,div,a');\n  for(var i=0;i<elems.length;i++){\n    if((elems[i].textContent||'').trim()==='新的创作'){\n      elems[i].click();\n      return {ok:true};\n    }\n  }\n  return {ok:false,error:'未找到新的创作'};\n}"
+      }
+    },
+    {
+      "action": "wait",
+      "duration": [1500, 2500]
+    },
+    {
+      "id": "fillTitle",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "longArticleTitle",
+        "fn": "function(ctx){\n  var title=String(ctx.title||'');\n  var el=document.querySelector('textarea.d-text[placeholder=\"输入标题\"]');\n  if(!el){return {ok:false,error:'未找到长文标题框'};}\n  var setter=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,'value').set;\n  el.focus();\n  setter.call(el,title);\n  el.dispatchEvent(new Event('input',{bubbles:true}));\n  el.dispatchEvent(new Event('change',{bubbles:true}));\n  return {ok:true,length:title.length};\n}"
+      }
+    },
+    {
+      "action": "type",
+      "target": { "selector": "div.ql-editor" },
+      "value": "{{content}}",
+      "maxChars": 50000,
+      "description": "填写长文正文"
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1000]
+    },
+    {
+      "id": "insertImages",
+      "action": "execute",
+      "timeout": 30000,
+      "params": {
+        "saveAs": "longArticleImages",
+        "fn": "function(ctx){\n  var list=ctx.images;\n  if(!Array.isArray(list)||!list.length){return {skipped:true,count:0};}\n  var editor=document.querySelector('div.ql-editor');\n  if(!editor){return {ok:false,error:'未找到编辑器'};}\n  function srcFor(p){\n    if(/^https?:\\/\\//i.test(p))return p;\n    if(p.indexOf('file://')===0)return p;\n    return 'file://'+(p.indexOf('/')===0?'':'/')+p;\n  }\n  var n=0;\n  for(var i=0;i<list.length;i++){\n    var p=String(list[i]||'').trim();\n    if(!p)continue;\n    var img=document.createElement('img');\n    img.src=srcFor(p);\n    editor.appendChild(img);\n    n++;\n  }\n  editor.dispatchEvent(new Event('input',{bubbles:true}));\n  return {ok:true,count:n};\n}"
+      }
+    },
+    {
+      "id": "autoFormat",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "longArticleFormat",
+        "fn": "function(){\n  var elems=document.querySelectorAll('button,[role=\"button\"],span,div,a');\n  for(var i=0;i<elems.length;i++){\n    if((elems[i].textContent||'').trim()==='一键排版'){\n      elems[i].click();\n      return {ok:true};\n    }\n  }\n  return {ok:false,error:'未找到一键排版'};\n}"
+      }
+    },
+    {
+      "action": "wait",
+      "duration": [2500, 4000]
+    },
+    {
+      "id": "waitTemplates",
+      "action": "waitForState",
+      "timeout": 20000,
+      "params": {
+        "expression": "(function(){return document.querySelectorAll('.template-card').length>0;})()",
+        "errorCode": "TEMPLATE_TIMEOUT",
+        "errorMessage": "排版模板没有在限定时间内加载出来"
+      }
+    },
+    {
+      "id": "listTemplates",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "longArticleTemplates",
+        "fn": "function(){\n  var cards=document.querySelectorAll('.template-card');\n  var names=[];\n  for(var i=0;i<cards.length;i++){\n    var t=cards[i].querySelector('.template-title');\n    names.push(t?(t.textContent||'').trim():('Template '+i));\n  }\n  return {templates:names,count:names.length};\n}"
+      }
+    }
+  ]
+}

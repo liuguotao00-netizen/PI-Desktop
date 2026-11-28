@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.linuxdazhao.side-questions",
+  "name": "Side Questions",
+  "version": "0.3.0",
+  "description": "Ask follow-up questions in a separate conversation in the work panel.",
+  "author": "Linuxdazhao",
+  "i18n": {
+    "zh-CN": {
+      "name": "支线提问",
+      "description": "在右侧工作面板中从已完成的回复分叉，或粘贴引用后新开对话。"
+    }
+  },
+  "main": "main.js",
+  "contributes": {
+    "views": [
+      {
+        "id": "questions",
+        "title": { "en": "Side Questions", "zh-CN": "支线提问" },
+        "icon": "branch",
+        "acceptsTranscriptSelection": true,
+        "entry": "view/index.html",
+        "order": 45
+      }
+    ]
+  },
+  "permissions": ["ui.view", "desktop.control"],
+  "engines": { "piDesktop": ">=0.23.0-beta.2" },
+  "license": "MIT",
+  "repository": "https://github.com/Linuxdazhao/pi-side-questions"
+}

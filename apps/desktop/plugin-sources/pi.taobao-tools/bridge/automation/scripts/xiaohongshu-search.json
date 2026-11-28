@@ -1,0 +1,426 @@
+{
+  "id": "xiaohongshu-search",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 关键词搜索采集",
+  "description": "按关键词采集小红书搜索页的笔记结果和博主结果。主路径读取页面 __INITIAL_STATE__.search.feeds / userLists 并用 scrollForState 判停;sessionCapture 作为接口补充来源。字段见 docs/extraction/XIAOHONGSHU.md。",
+  "contextSetup": {
+    "limitNotes": {
+      "type": "number",
+      "default": 50
+    },
+    "limitUsers": {
+      "type": "number",
+      "default": 50
+    },
+    "shouldQueryNotes": {
+      "type": "derived",
+      "source": "limitNotes",
+      "op": ">",
+      "value": 0
+    },
+    "shouldQueryUsers": {
+      "type": "derived",
+      "source": "limitUsers",
+      "op": ">",
+      "value": 0
+    }
+  },
+  "variables": [
+    {
+      "key": "keyword",
+      "label": "搜索关键词",
+      "type": "text",
+      "placeholder": "护肤品测评",
+      "default": ""
+    },
+    {
+      "key": "limitNotes",
+      "label": "笔记数量上限（0=不采集，50=默认）",
+      "type": "text",
+      "default": "50"
+    },
+    {
+      "key": "limitUsers",
+      "label": "博主数量上限（0=不采集，50=默认）",
+      "type": "text",
+      "default": "50"
+    },
+    {
+      "key": "sortBy",
+      "label": "排序：综合 / 最新 / 最多点赞 / 最多评论 / 最多收藏",
+      "type": "text",
+      "default": "综合"
+    },
+    {
+      "key": "noteType",
+      "label": "类型：不限 / 视频 / 图文",
+      "type": "text",
+      "default": "不限"
+    },
+    {
+      "key": "publishTime",
+      "label": "时间：不限 / 一天内 / 一周内 / 半年内",
+      "type": "text",
+      "default": "不限"
+    },
+    {
+      "key": "searchScope",
+      "label": "范围：不限 / 已看过 / 未看过 / 已关注",
+      "type": "text",
+      "default": "不限"
+    },
+    {
+      "key": "location",
+      "label": "位置：不限 / 同城 / 附近",
+      "type": "text",
+      "default": "不限"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_search"
+    },
+    "csv": [
+      {
+        "type": "search_notes",
+        "source": "execute_xhsSearchNotes",
+        "columns": [
+          {
+            "name": "keyword",
+            "from": "keyword"
+          },
+          {
+            "name": "note_id",
+            "from": "note_id"
+          },
+          {
+            "name": "note_url",
+            "from": "note_url"
+          },
+          {
+            "name": "title",
+            "from": "title"
+          },
+          {
+            "name": "content",
+            "from": "content"
+          },
+          {
+            "name": "type",
+            "from": "type"
+          },
+          {
+            "name": "cover",
+            "from": "cover"
+          },
+          {
+            "name": "liked_count",
+            "from": "liked_count"
+          },
+          {
+            "name": "collected_count",
+            "from": "collected_count"
+          },
+          {
+            "name": "comment_count",
+            "from": "comment_count"
+          },
+          {
+            "name": "shared_count",
+            "from": "shared_count"
+          },
+          {
+            "name": "author_id",
+            "from": "author_id"
+          },
+          {
+            "name": "author_name",
+            "from": "author_name"
+          }
+        ]
+      },
+      {
+        "type": "search_users",
+        "source": "execute_xhsSearchUsers",
+        "columns": [
+          {
+            "name": "keyword",
+            "from": "keyword"
+          },
+          {
+            "name": "user_id",
+            "from": "user_id"
+          },
+          {
+            "name": "profile_url",
+            "from": "profile_url"
+          },
+          {
+            "name": "nickname",
+            "from": "nickname"
+          },
+          {
+            "name": "red_id",
+            "from": "red_id"
+          },
+          {
+            "name": "desc",
+            "from": "desc"
+          },
+          {
+            "name": "avatar",
+            "from": "avatar"
+          },
+          {
+            "name": "fans_count",
+            "from": "fans_count"
+          },
+          {
+            "name": "note_count",
+            "from": "note_count"
+          },
+          {
+            "name": "liked_count",
+            "from": "liked_count"
+          }
+        ]
+      }
+    ]
+  },
+  "steps": [
+    {
+      "id": "captureSearchApis",
+      "description": "开启小红书搜索接口监听（笔记 / 博主）",
+      "action": "sessionCapture",
+      "timeout": 3000,
+      "params": {
+        "sessionList": [
+          {
+            "sessionKey": "xhsSearchNotesApi",
+            "when": "shouldQueryNotes",
+            "urlIncludes": [
+              "/api/sns/web/v1/search/notes",
+              "/api/sns/web/v2/search/notes"
+            ],
+            "valueKey": [
+              {
+                "name": "raw",
+                "path": "data.items[]"
+              }
+            ],
+            "countByValueKey": "data.items[].id",
+            "hasNextKey": "data.has_more"
+          },
+          {
+            "sessionKey": "xhsSearchUsersApi",
+            "when": "shouldQueryUsers",
+            "urlIncludes": [
+              "/api/sns/web/v1/search/usersearch",
+              "/api/sns/web/v2/search/usersearch"
+            ],
+            "valueKey": [
+              {
+                "name": "raw",
+                "path": "data.users[]"
+              }
+            ],
+            "countByValueKey": "data.users[].user_id",
+            "hasNextKey": "data.has_more"
+          }
+        ]
+      }
+    },
+    {
+      "id": "navigateToSearch",
+      "description": "导航到小红书搜索页（监听已挂好）",
+      "action": "navigate",
+      "value": "https://www.xiaohongshu.com/search_result?keyword={{keyword}}",
+      "timeout": 30000
+    },
+    {
+      "id": "assertXhsLoggedIn",
+      "description": "校验已登录。selector/文案待真机校准",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "exist",
+            "selector": ".login-container"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*=\"login-mask\"]"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "当前小红书未登录,请先登录后再重试"
+      }
+    },
+    {
+      "id": "assertXhsNotBlocked",
+      "description": "校验未触发风控验证。selector/文案待真机校准",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "当前访问环境存在异常"
+          },
+          {
+            "type": "text",
+            "value": "请完成下方验证"
+          },
+          {
+            "type": "exist",
+            "selector": ".captcha-container"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "当前小红书触发风控验证,请先完成验证后再重试"
+      }
+    },
+    {
+      "id": "waitSearchReady",
+      "description": "等待搜索首屏数据加载",
+      "action": "wait",
+      "duration": [
+        1800,
+        2800
+      ]
+    },
+    {
+      "id": "applySearchFilters",
+      "description": "按筛选面板应用排序/类型/时间/范围/位置；全为默认值时不点开面板",
+      "action": "execute",
+      "timeout": 20000,
+      "params": {
+        "saveAs": "xhsSearchFilters",
+        "fn": "async function(ctx){\n  var groups=[[1,ctx.sortBy],[2,ctx.noteType],[3,ctx.publishTime],[4,ctx.searchScope],[5,ctx.location]];\n  var wanted=[];\n  for(var i=0;i<groups.length;i++){\n    var text=String(groups[i][1]||'').trim();\n    if(!text||text==='不限')continue;\n    if(groups[i][0]===1&&text==='综合')continue;\n    wanted.push([groups[i][0],text]);\n  }\n  if(!wanted.length)return {applied:0,options:[]};\n  var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue' in x&&h<8){x=x._rawValue;h++;}return x;};\n  var snap=function(){\n    try{\n      var S=window.__INITIAL_STATE__;\n      var f=u(u(u(S.search)||{}).feeds);\n      if(!Array.isArray(f))return '0';\n      var first=f[0];\n      var id=first?(first.id||(first.noteCard&&first.noteCard.noteId)||''):'';\n      return f.length+':'+id;\n    }catch(e){return '0';}\n  };\n  var wait=function(ms){return new Promise(function(resolve){setTimeout(resolve,ms);});};\n  var panel=function(){return document.querySelector('div.filters-wrapper');};\n  if(!panel()){\n    var btn=document.querySelector('div.filter');\n    if(btn)btn.click();\n  }\n  var deadline=Date.now()+5000;\n  while(!panel()&&Date.now()<deadline){await wait(100);}\n  var wrapper=panel();\n  if(!wrapper)throw new Error('筛选面板没有打开，无法应用筛选条件');\n  var before=snap();\n  var applied=[];\n  var missing=[];\n  for(var j=0;j<wanted.length;j++){\n    var index=wanted[j][0]-1;\n    var wantedText=wanted[j][1];\n    var group=wrapper.querySelectorAll('div.filters')[index];\n    if(!group){missing.push(wantedText);continue;}\n    var tag=Array.from(group.querySelectorAll('div.tags')).filter(function(el){\n      if((el.textContent||'').trim()!==wantedText)return false;\n      if(el.getAttribute('aria-hidden')==='true')return false;\n      if(!(el.offsetWidth||el.offsetHeight))return false;\n      return Number(getComputedStyle(el).opacity||1)>0.5;\n    })[0];\n    if(!tag){missing.push(wantedText);continue;}\n    tag.click();\n    applied.push(wantedText);\n  }\n  if(missing.length)throw new Error('筛选选项不存在：'+missing.join('、'));\n  var refresh=Date.now()+6000;\n  while(Date.now()<refresh&&snap()===before){await wait(150);}\n  return {applied:applied.length,options:applied,refreshed:snap()!==before};\n}"
+      }
+    },
+    {
+      "id": "scrollSearchNotes",
+      "description": "滚动搜索页采集笔记结果进 search.feeds",
+      "action": "scrollForState",
+      "when": "shouldQueryNotes",
+      "params": {
+        "countExpr": "(function(){try{var S=window.__INITIAL_STATE__;if(!S)return 0;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var search=u(S.search)||{};var feeds=u(search.feeds);return Array.isArray(feeds)?feeds.length:0;}catch(e){return 0;}})()",
+        "limitTotal": "{{limitNotes}}",
+        "limitScroll": 35,
+        "scrollStep": 1100,
+        "stallRounds": 3
+      }
+    },
+    {
+      "id": "snapshotSearchNoteState",
+      "description": "读取搜索页 state 作为笔记结果兜底",
+      "action": "execute",
+      "when": "shouldQueryNotes",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsSearchNoteState",
+        "fn": "(function(){var S=window.__INITIAL_STATE__;if(!S||typeof S!=='object')return [];var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var arr=function(v){v=u(v);return Array.isArray(v)?v:[];};var out=[];var seen={};var add=function(v){var a=arr(v);for(var i=0;i<a.length;i++){var it=u(a[i]);if(Array.isArray(it)){for(var j=0;j<it.length;j++)add([it[j]]);continue;}if(!it||typeof it!=='object')continue;var card=u(it.noteCard||it.note_card||it.note||it);var id=(card&&(card.noteId||card.note_id))||it.id||it.noteId||it.note_id||'';if(!id||seen[id])continue;seen[id]=1;out.push(it);}};var search=u(S.search)||{};add(search.feeds);add(search.notes);add(search.items);var feed=u(S.feed)||{};add(feed.feeds);return out;})"
+      }
+    },
+    {
+      "id": "buildSearchNotes",
+      "description": "归一化搜索笔记结果",
+      "action": "transform",
+      "when": "shouldQueryNotes",
+      "params": {
+        "input": {
+          "sessionKey": "xhsSearchNotesApi"
+        },
+        "saveAs": "xhsSearchNotes",
+        "fn": "(function(input,context){var rows=[];var seen={};var keyword=String(context.keyword||'');var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var val=function(){for(var i=0;i<arguments.length;i++){var v=u(arguments[i]);if(v!==undefined&&v!==null&&v!=='')return v;}return '';};var str=function(v){v=u(v);return v===undefined||v===null?'':String(v);};var numstr=function(v){v=u(v);if(v===undefined||v===null||v==='')return '';return String(v);};var arr=function(v){v=u(v);return Array.isArray(v)?v:[];};var norm=function(v){v=str(v);if(v.indexOf('http://')===0)return 'https://'+v.slice(7);if(v.indexOf('//')===0)return 'https:'+v;return v;};var add=function(raw,source){raw=u(raw&&raw.raw!==undefined?raw.raw:raw);if(!raw||typeof raw!=='object')return;var card=u(val(raw.note_card,raw.noteCard,raw.note,raw));if(!card||typeof card!=='object')return;var id=str(val(card.note_id,card.noteId,raw.note_id,raw.noteId,raw.id));if(!id||seen[id])return;seen[id]=1;var inter=u(val(card.interact_info,card.interactInfo))||{};var user=u(card.user)||{};var cover=u(card.cover)||{};var title=str(val(card.display_title,card.displayTitle,card.title));var content=str(val(card.desc,card.content));var tags=arr(val(card.tag_list,card.tagList)).map(function(t){t=u(t);return str(t&&(t.name||t.tag_name||t.tagName||t));}).filter(Boolean);rows.push({keyword:keyword,source:source,note_id:id,note_url:'https://www.xiaohongshu.com/explore/'+id,title:title||content.slice(0,60),content:content,type:str(card.type),cover:norm(val(cover.url_default,cover.urlDefault,cover.url_pre,cover.urlPre,cover.url)),liked_count:numstr(val(inter.liked_count,inter.likedCount)),collected_count:numstr(val(inter.collected_count,inter.collectedCount)),comment_count:numstr(val(inter.comment_count,inter.commentCount)),shared_count:numstr(val(inter.shared_count,inter.sharedCount)),author_id:str(val(user.user_id,user.userId)),author_name:str(val(user.nickname,user.nickName)),tags:tags});};(Array.isArray(input)?input:[]).forEach(function(x){add(x,'api');});(Array.isArray(context.execute_xhsSearchNoteState)?context.execute_xhsSearchNoteState:[]).forEach(function(x){add(x,'state');});return rows.slice(0,Number(context.limitNotes)||rows.length);})"
+      }
+    },
+    {
+      "id": "scrollTopBeforeUserSearch",
+      "description": "回到页顶准备切换博主搜索",
+      "action": "execute",
+      "when": "shouldQueryUsers",
+      "timeout": 5000,
+      "params": {
+        "saveAs": "xhsScrollTop",
+        "fn": "(function(){try{window.scrollTo(0,0);return true;}catch(e){return false;}})"
+      }
+    },
+    {
+      "id": "switchToUserSearch",
+      "description": "切换到用户搜索 tab",
+      "action": "click",
+      "when": "shouldQueryUsers",
+      "timeout": 10000,
+      "retry": 1,
+      "retryDelayMin": 1200,
+      "retryDelayMax": 1800,
+      "target": {
+        "text": "用户"
+      }
+    },
+    {
+      "id": "waitUserSearchReady",
+      "description": "等待博主搜索结果加载",
+      "action": "wait",
+      "when": "shouldQueryUsers",
+      "duration": [
+        2800,
+        4200
+      ]
+    },
+    {
+      "id": "scrollSearchUsers",
+      "description": "滚动搜索页采集博主结果进 search.userLists",
+      "action": "scrollForState",
+      "when": "shouldQueryUsers",
+      "params": {
+        "countExpr": "(function(){try{var S=window.__INITIAL_STATE__;if(!S)return 0;var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var search=u(S.search)||{};var users=u(search.userLists);return Array.isArray(users)?users.length:0;}catch(e){return 0;}})()",
+        "limitTotal": "{{limitUsers}}",
+        "limitScroll": 30,
+        "scrollStep": 1000,
+        "stallRounds": 3
+      }
+    },
+    {
+      "id": "snapshotSearchUserState",
+      "description": "读取搜索页 state 作为博主结果兜底",
+      "action": "execute",
+      "when": "shouldQueryUsers",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsSearchUserState",
+        "fn": "(function(){var S=window.__INITIAL_STATE__;if(!S||typeof S!=='object')return [];var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var arr=function(v){v=u(v);return Array.isArray(v)?v:[];};var out=[];var seen={};var add=function(v){var a=arr(v);for(var i=0;i<a.length;i++){var it=u(a[i]);if(!it||typeof it!=='object')continue;var user=u(it.user||it.userCard||it.user_card||it);var id=(user&&(user.userId||user.user_id||user.id))||it.id||'';var nick=(user&&(user.nickname||user.nickName||user.name))||'';var key=id||nick;if(!key||seen[key])continue;seen[key]=1;out.push(it);}};var search=u(S.search)||{};add(search.userLists);add(search.users);add(search.userList);add(search.user_list);add(search.items);return out;})"
+      }
+    },
+    {
+      "id": "buildSearchUsers",
+      "description": "归一化搜索博主结果",
+      "action": "transform",
+      "when": "shouldQueryUsers",
+      "params": {
+        "input": {
+          "sessionKey": "xhsSearchUsersApi"
+        },
+        "saveAs": "xhsSearchUsers",
+        "fn": "(function(input,context){var rows=[];var seen={};var keyword=String(context.keyword||'');var u=function(x){var h=0;while(x&&typeof x==='object'&&'_rawValue'in x&&h<8){x=x._rawValue;h++;}return x;};var val=function(){for(var i=0;i<arguments.length;i++){var v=u(arguments[i]);if(v!==undefined&&v!==null&&v!=='')return v;}return '';};var str=function(v){v=u(v);return v===undefined||v===null?'':String(v);};var numstr=function(v){v=u(v);if(v===undefined||v===null||v==='')return '';return String(v);};var norm=function(v){v=str(v);if(v.indexOf('http://')===0)return 'https://'+v.slice(7);if(v.indexOf('//')===0)return 'https:'+v;return v;};var add=function(raw,source){raw=u(raw&&raw.raw!==undefined?raw.raw:raw);if(!raw||typeof raw!=='object')return;var user=u(val(raw.user,raw.user_card,raw.userCard,raw));if(!user||typeof user!=='object')return;var id=str(val(user.user_id,user.userId,user.id,raw.user_id,raw.userId,raw.id));var nickname=str(val(user.nickname,user.nickName,user.name,raw.nickname));var key=id||nickname;if(!key||seen[key])return;seen[key]=1;rows.push({keyword:keyword,source:source,user_id:id,profile_url:id?'https://www.xiaohongshu.com/user/profile/'+id:'',nickname:nickname,red_id:str(val(user.red_id,user.redId,user.redid)),desc:str(val(user.desc,user.description,user.introduction,user.profession,user.subTitle)),avatar:norm(val(user.avatar,user.image,user.images,user.imageb,user.icon)),fans_count:numstr(val(user.fans,user.fans_count,user.fansCount,user.follower_count,user.followerCount)),note_count:numstr(val(user.note_count,user.noteCount,user.notes_count,user.notesCount)),liked_count:numstr(val(user.liked_count,user.likedCount,user.like_count,user.likeCount,user.interaction_count,user.interactionCount))});};(Array.isArray(input)?input:[]).forEach(function(x){add(x,'api');});(Array.isArray(context.execute_xhsSearchUserState)?context.execute_xhsSearchUserState:[]).forEach(function(x){add(x,'state');});return rows.slice(0,Number(context.limitUsers)||rows.length);})"
+      }
+    },
+    {
+      "id": "delay",
+      "description": "延迟确认",
+      "action": "wait",
+      "duration": [
+        500,
+        1000
+      ]
+    }
+  ]
+}

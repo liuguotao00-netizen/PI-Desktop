@@ -1,0 +1,651 @@
+{
+  "item-rank": {
+    "path": "vendor_scripts/item-rank.js",
+    "scene": "sycm",
+    "desc": "sycm 商品排行（主入口：拿 itemId；自动融合 DMP 推广数据；compareRange 自动切端点）",
+    "args": {
+      "dateType": "day/recent7/recent30/compareRange",
+      "dateRange": "compareRange时必填",
+      "orderBy": "payAmt",
+      "order": "desc",
+      "page": 1,
+      "pageSize": "≤20",
+      "keyword": "传商品ID可精确查单品",
+      "cateId": "",
+      "cateLevel": "",
+      "compareType": "cycle/dailyAvg/cmptItem",
+      "device": "0"
+    }
+  },
+  "market-cate-info": {
+    "path": "vendor_scripts/market-cate-info.js",
+    "scene": "sycm",
+    "desc": "sycm 可用类目树（含 cateId/cateFlag/叶子标记）",
+    "args": {}
+  },
+  "market-cate-search": {
+    "path": "vendor_scripts/market-cate-search.js",
+    "scene": "sycm",
+    "desc": "sycm 按类目名检索叶子类目",
+    "args": {
+      "keyword": "必填",
+      "leafOnly": "默认true"
+    }
+  },
+  "search-keyword-rank": {
+    "path": "vendor_scripts/search-keyword-rank.js",
+    "scene": "sycm",
+    "desc": "sycm 市场搜索词排行（单页）",
+    "args": {
+      "cateId": "必填",
+      "dateType": "day/recent7/recent30",
+      "dateRange": "YYYY-MM-DD|YYYY-MM-DD",
+      "page": 1,
+      "pageSize": 10
+    }
+  },
+  "search-keyword-related": {
+    "path": "vendor_scripts/search-keyword-related.js",
+    "scene": "sycm",
+    "desc": "sycm 搜索分析-相关搜索词（平台算法推荐，非子串过滤）",
+    "args": {
+      "keyWord": "必填种子词",
+      "dateType": "day/recent7/recent30",
+      "dateRange": "YYYY-MM-DD|YYYY-MM-DD",
+      "rankType": "related相关热搜词/bluesea相关蓝海词",
+      "cycleFlag": "cycle环比/yearOnYear年同比",
+      "orderBy": "seIpvUvHits/clickThroughRate/payConvRate/payByrCnt/simWeight/tmaoClickRatio",
+      "page": 1,
+      "pageSize": "≤100"
+    }
+  },
+  "market-item-rank": {
+    "path": "vendor_scripts/market-item-rank.js",
+    "scene": "sycm",
+    "desc": "sycm 市场商品榜（gmv/flow/add/newitm；自动带 legalityToken）",
+    "args": {
+      "cateId": "必填",
+      "cateFlag": "默认2",
+      "dateType": "recent7",
+      "rankType": "gmv",
+      "pageSize": "≤20",
+      "targetTopN": 30,
+      "maxPages": 2
+    }
+  },
+  "shop-main-cate": {
+    "path": "vendor_scripts/shop-main-cate.js",
+    "scene": "sycm",
+    "desc": "sycm 店铺主营一级类目",
+    "args": {}
+  },
+  "report-account": {
+    "path": "vendor_scripts/report-account.js",
+    "scene": "alimama",
+    "desc": "万相台营销场景报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-campaign": {
+    "path": "vendor_scripts/report-campaign.js",
+    "scene": "alimama",
+    "desc": "万相台计划报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-adgroup": {
+    "path": "vendor_scripts/report-adgroup.js",
+    "scene": "alimama",
+    "desc": "万相台单元报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-bidword": {
+    "path": "vendor_scripts/report-bidword.js",
+    "scene": "alimama",
+    "desc": "万相台关键词报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-crowd": {
+    "path": "vendor_scripts/report-crowd.js",
+    "scene": "alimama",
+    "desc": "万相台人群报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-area": {
+    "path": "vendor_scripts/report-area.js",
+    "scene": "alimama",
+    "desc": "万相台地域报表（按省份，mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-item-promotion": {
+    "path": "vendor_scripts/report-item-promotion.js",
+    "scene": "alimama",
+    "desc": "万相台商品报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-other-promotion": {
+    "path": "vendor_scripts/report-other-promotion.js",
+    "scene": "alimama",
+    "desc": "万相台内容报表（mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-creative": {
+    "path": "vendor_scripts/report-creative.js",
+    "scene": "alimama",
+    "desc": "万相台创意报表（按创意+主体，mode=list/sum/trend，单次一页）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天",
+      "pageSize": 20,
+      "offset": 0,
+      "queryFieldIn": "可选，省略使用已验证的15项指标"
+    }
+  },
+  "report-coupon": {
+    "path": "vendor_scripts/report-coupon.js",
+    "scene": "alimama",
+    "desc": "万相台权益报表（按单元+权益，mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "report-real-time": {
+    "path": "vendor_scripts/report-real-time.js",
+    "scene": "alimama",
+    "desc": "万相台实时报表（默认今天按小时，mode=list/sum/trend）",
+    "args": {
+      "mode": "list",
+      "splitType": "hour"
+    }
+  },
+  "report-charge-sum": {
+    "path": "vendor_scripts/report-charge-sum.js",
+    "scene": "alimama",
+    "desc": "万相台各营销场景花费分布（account 报表 scene 维度 charge 字段）",
+    "args": {
+      "startTime": "YYYY-MM-DD 默认7天前",
+      "endTime": "默认昨天"
+    }
+  },
+  "get-signed-pool-list": {
+    "path": "vendor_scripts/get-signed-pool-list.js",
+    "scene": "myseller",
+    "desc": "千牛自动跟价-已签约活动池",
+    "args": {}
+  },
+  "get-ltao-signed-status-counts": {
+    "path": "vendor_scripts/get-ltao-signed-status-counts.js",
+    "scene": "sale",
+    "desc": "淘宝秒杀-清退/风险商品计数",
+    "args": {}
+  },
+  "shop-cate-list": {
+    "path": "vendor_scripts/shop-cate-list.js",
+    "scene": "dmp",
+    "desc": "达摩盘全店洞察-叶子类目列表",
+    "args": {
+      "page": 1,
+      "pageSize": "≤100",
+      "endDate": "必填 YYYY-MM-DD"
+    }
+  },
+  "list-leaf-category": {
+    "path": "vendor_scripts/list-leaf-category.js",
+    "scene": "databank",
+    "desc": "数据银行-授权叶子类目列表",
+    "args": {
+      "keyword": "选填",
+      "limit": "选填"
+    }
+  },
+  "item-rank-live": {
+    "path": "vendor_scripts/item-rank-live.js",
+    "scene": "sycm",
+    "desc": "商品排行列表(实时)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-sale-live-overview": {
+    "path": "vendor_scripts/item-sale-live-overview.js",
+    "scene": "sycm",
+    "desc": "商品销售核心概况(实时)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-sale-overview": {
+    "path": "vendor_scripts/item-sale-overview.js",
+    "scene": "sycm",
+    "desc": "商品销售核心概况(历史)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-sale-sku-list": {
+    "path": "vendor_scripts/item-sale-sku-list.js",
+    "scene": "sycm",
+    "desc": "SKU销售详情（来源 skill: sycm-item-data-fetch；注意 dateType=today 实测业务异常，用 recent7/recent30）",
+    "args": {
+      "itemId": "必填",
+      "dateType": "recent7(默认)/recent30/yesterday",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-sale-attr-detail": {
+    "path": "vendor_scripts/item-sale-attr-detail.js",
+    "scene": "sycm",
+    "desc": "SKU属性分析（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-detail-list": {
+    "path": "vendor_scripts/item-detail-list.js",
+    "scene": "sycm",
+    "desc": "详情页模块明细（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-detail-overview": {
+    "path": "vendor_scripts/item-detail-overview.js",
+    "scene": "sycm",
+    "desc": "详情页概览（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-diagnose": {
+    "path": "vendor_scripts/item-diagnose.js",
+    "scene": "sycm",
+    "desc": "单品诊断-核心指标（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-flow-source-tree": {
+    "path": "vendor_scripts/item-flow-source-tree.js",
+    "scene": "sycm",
+    "desc": "流量来源渠道树（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-loss-overview": {
+    "path": "vendor_scripts/item-loss-overview.js",
+    "scene": "sycm",
+    "desc": "跳失去向概览（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-loss-rank": {
+    "path": "vendor_scripts/item-loss-rank.js",
+    "scene": "sycm",
+    "desc": "跳失去向排行（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-main-pic-analysis": {
+    "path": "vendor_scripts/item-main-pic-analysis.js",
+    "scene": "sycm",
+    "desc": "主图/视频分析（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-price-band": {
+    "path": "vendor_scripts/item-price-band.js",
+    "scene": "sycm",
+    "desc": "价格带分析（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-price-info": {
+    "path": "vendor_scripts/item-price-info.js",
+    "scene": "sycm",
+    "desc": "商品价格信息（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-price-trend": {
+    "path": "vendor_scripts/item-price-trend.js",
+    "scene": "sycm",
+    "desc": "价格趋势（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-review-trend": {
+    "path": "vendor_scripts/item-review-trend.js",
+    "scene": "sycm",
+    "desc": "评价趋势（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-aftersales-trend": {
+    "path": "vendor_scripts/item-aftersales-trend.js",
+    "scene": "sycm",
+    "desc": "售后评价趋势（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "item-category-search": {
+    "path": "vendor_scripts/item-category-search.js",
+    "scene": "sycm",
+    "desc": "商品排行类目检索(按词拿cateId)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "crowd-overview": {
+    "path": "vendor_scripts/crowd-overview.js",
+    "scene": "sycm",
+    "desc": "单品人群概览（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "crowd-profile": {
+    "path": "vendor_scripts/crowd-profile.js",
+    "scene": "sycm",
+    "desc": "单品客群画像（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "crowd-loss-risk": {
+    "path": "vendor_scripts/crowd-loss-risk.js",
+    "scene": "sycm",
+    "desc": "单品流失风险人群（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-live-overview": {
+    "path": "vendor_scripts/refund-live-overview.js",
+    "scene": "sycm",
+    "desc": "实时退款概览（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-live-trend": {
+    "path": "vendor_scripts/refund-live-trend.js",
+    "scene": "sycm",
+    "desc": "实时退款趋势（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-close-overview": {
+    "path": "vendor_scripts/refund-close-overview.js",
+    "scene": "sycm",
+    "desc": "已完结退款概览（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-reason-list": {
+    "path": "vendor_scripts/refund-reason-list.js",
+    "scene": "sycm",
+    "desc": "退款原因榜（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-sku-list": {
+    "path": "vendor_scripts/refund-sku-list.js",
+    "scene": "sycm",
+    "desc": "退款SKU榜（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "refund-warn-live": {
+    "path": "vendor_scripts/refund-warn-live.js",
+    "scene": "sycm",
+    "desc": "降退运营建议(风险订单)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "title-score": {
+    "path": "vendor_scripts/title-score.js",
+    "scene": "sycm",
+    "desc": "标题评分（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "title-diagnosis-trend": {
+    "path": "vendor_scripts/title-diagnosis-trend.js",
+    "scene": "sycm",
+    "desc": "标题引流趋势（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "title-words": {
+    "path": "vendor_scripts/title-words.js",
+    "scene": "sycm",
+    "desc": "标题拆词及引流数据（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "title-word-list": {
+    "path": "vendor_scripts/title-word-list.js",
+    "scene": "sycm",
+    "desc": "搜索词/核心词引流明细（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "title-word-recommend": {
+    "path": "vendor_scripts/title-word-recommend.js",
+    "scene": "sycm",
+    "desc": "标题推荐词（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "dmp-newproduct": {
+    "path": "vendor_scripts/dmp-newproduct.js",
+    "scene": "sycm",
+    "desc": "DMP推广商品排行(fCharge/pDROI)（来源 skill: sycm-item-data-fetch）",
+    "args": {
+      "itemId": "单品数据类必填",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "dmp-newproduct-top": {
+    "path": "vendor_scripts/dmp-newproduct-top.js",
+    "scene": "sycm",
+    "desc": "商品推广数据(DMP新品top)（来源 skill: sycm-item-data-fetch；必填 itemIdList=[商品ID数组]）",
+    "args": {
+      "itemIdList": "必填,商品ID数组",
+      "dateType": "day/recent7/recent30(默认day)",
+      "dateRange": "可选",
+      "page": 1,
+      "pageSize": "≤20"
+    }
+  },
+  "shop-core-overview": {
+    "path": "vendor_scripts/shop-core-overview.js",
+    "scene": "sycm",
+    "desc": "生意参谋首页全店数据概览（原始汇总及比较字段，日期可选，默认昨日；不是单商品概况）",
+    "args": {
+      "dateType": "可选，默认day；today/yesterday/day/week/month/recent7/recent30/compareRange",
+      "dateRange": "可选，YYYY-MM-DD|YYYY-MM-DD；compareRange必填且单次最多31天（超出分批串行调用）；day默认昨日，week默认上一完整周，month默认上一完整月，recent7/30截至昨日"
+    }
+  }
+}

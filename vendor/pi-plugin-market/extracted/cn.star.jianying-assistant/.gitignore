@@ -1,0 +1,8 @@
+dist/
+Jianying/
+Temp/
+__pycache__/
+*.pyc
+.runtime/
+.venv/
+node_modules/

@@ -1,0 +1,6 @@
+{
+  "name": "stop-that-shit",
+  "version": "0.2.7",
+  "description": "PI-Desktop plugin: explicit task contracts checked before every tool call, with a local audit panel",
+  "license": "MIT"
+}

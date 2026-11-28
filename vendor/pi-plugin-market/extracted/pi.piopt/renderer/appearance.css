@@ -1,0 +1,652 @@
+/*
+ * PiOpt 外观：界面动效与窗口材质共用的设置页版式。
+ *
+ * 只用 --ds-* 令牌，明暗由 html[data-base] 决定；这里不画磨砂层本身，
+ * 那一层由 features/appearance/glass.js 生成后经运行时主题下发。
+ */
+
+@scope (#view-appearance) {
+* { box-sizing: border-box; }
+:not(.confirm, .toast)[hidden] { display: none !important; }
+
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ds-focus) 55%, transparent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--ds-accent) 26%, transparent);
+  color: var(--ds-text-primary);
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb {
+  background: var(--ds-border-strong);
+  border: 3px solid transparent;
+  border-radius: var(--radius-full);
+  background-clip: content-box;
+}
+
+/* ------------------------------------------------------------------ 版面 */
+
+.workspace {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px clamp(16px, 4vw, 40px) 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  background: var(--ds-bg-primary);
+  scrollbar-gutter: stable;
+}
+
+.appearance-section {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.appearance-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+
+h1 {
+  margin: 0;
+  color: var(--ds-text-primary);
+  font-size: var(--text-lg);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.015em;
+  line-height: var(--leading-compact);
+}
+
+.appearance-heading p {
+  margin: 3px 0 0;
+  color: var(--ds-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+
+/* ------------------------------------------------------------- 分组与行 */
+
+.settings-group {
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--radius-xs);
+  background: var(--ds-bg-secondary);
+  overflow: hidden;
+}
+
+.settings-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 54px;
+  padding: 12px 16px;
+}
+.settings-row + .settings-row,
+.settings-sub + .settings-row { border-top: 1px solid var(--ds-border-subtle); }
+label.settings-row { cursor: pointer; }
+
+.settings-row-copy {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-row-title {
+  color: var(--ds-text-primary);
+  font-size: var(--text-md);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--leading-compact);
+}
+.settings-row-detail {
+  color: var(--ds-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.settings-row-control {
+  flex: none;
+  min-width: 0;
+  max-width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* --------------------------------------------------------- 二级内容 */
+
+/*
+ * 依赖某个父选项的项收进父行下方：整块缩进成一枚浅槽，缩进由槽的边界自己
+ * 表达，不画引导线。折叠用 grid-template-rows 0fr/1fr 做高度过渡，不写死
+ * max-height；折叠时 opacity 归零并把整块设成 inert（由脚本同步），键盘与
+ * 读屏都不会落进去。
+ */
+.settings-sub {
+  display: grid;
+  grid-template-rows: 1fr;
+  padding: 0 14px 12px;
+  opacity: 1;
+  transition:
+    grid-template-rows var(--motion-duration-normal) var(--motion-ease-out),
+    padding-bottom var(--motion-duration-normal) var(--motion-ease-out),
+    opacity var(--motion-duration-normal) var(--motion-ease-out);
+}
+.settings-sub[data-collapsed="true"] {
+  grid-template-rows: 0fr;
+  padding-bottom: 0;
+  opacity: 0;
+}
+
+/*
+ * 槽比卡片再退一格：--ds-bg-inset 在明暗两种基底里都是「凹」的方向，与卡片
+ * 底色混合后不会在某一主题下反过来发亮，所以两侧都用它而不另配颜色。
+ */
+.settings-sub-body {
+  min-height: 0;
+  overflow: hidden;
+  border-radius: var(--radius-2xs);
+  background: color-mix(in oklab, var(--ds-bg-inset) 45%, var(--ds-bg-secondary));
+}
+
+.settings-sub .settings-row {
+  min-height: 46px;
+  padding: 9px 14px;
+}
+.settings-sub .settings-row-title {
+  color: var(--ds-text-secondary);
+  font-size: var(--text-sm);
+}
+.settings-sub .settings-row-detail { font-size: var(--text-xs-plus); }
+
+/* 没有背景图时填充方式没有可作用的对象：文字跟着按钮一起变淡。 */
+.settings-row[data-empty="true"] .settings-row-title,
+.settings-row[data-empty="true"] .settings-row-detail { opacity: 0.5; }
+.settings-sub .range-inline input[type="range"] { width: 132px; }
+.settings-sub .range-inline output { font-size: var(--text-xs-plus); }
+
+/*
+ * 不可用的整层只靠控件自身的 disabled 状态来看出来，不另设一层状态标记：
+ * 开关（input 是隐藏的，画的是 .switch）与滑杆同时变淡，行文字跟着淡，
+ * 行也不再是手型。少一个状态就少一处会漏掉的地方。
+ */
+.settings-row:has(input:disabled) { cursor: default; }
+.settings-row:has(input:disabled) .settings-row-title,
+.settings-row:has(input:disabled) .settings-row-detail { opacity: 0.5; }
+.switch-row input:disabled + .switch { opacity: 0.4; filter: grayscale(1); }
+
+/* ------------------------------------------------------------- 分段控件 */
+
+.segmented {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--radius-2xs);
+  background: var(--ds-bg-inset);
+}
+
+.segmented button {
+  appearance: none;
+  min-width: 0;
+  height: var(--ds-control-sm);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--radius-3xs);
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background var(--motion-duration-fast) var(--motion-ease-out),
+    color var(--motion-duration-fast) var(--motion-ease-out);
+}
+.segmented button:hover { color: var(--ds-text-primary); }
+.segmented button[aria-pressed="true"] {
+  background: var(--ds-raised);
+  color: var(--ds-text-primary);
+  box-shadow: var(--ds-raised-shadow), 0 0 0 1px var(--ds-border-subtle);
+}
+/* tab 用 aria-selected（语义比 aria-pressed 准），样式与分段按钮同一套。 */
+.segmented button[aria-selected="true"] {
+  background: var(--ds-raised);
+  color: var(--ds-text-primary);
+  box-shadow: var(--ds-raised-shadow), 0 0 0 1px var(--ds-border-subtle);
+}
+/* 面板切换靠 hidden；这个兜底防止别的 display 规则把它盖掉。 */
+[role="tabpanel"][hidden] { display: none; }
+
+/* ---------------------------------------------------------------- 滑杆 */
+
+.range-inline { display: flex; align-items: center; gap: 10px; }
+
+.range-inline output {
+  width: 44px;
+  text-align: right;
+  color: var(--ds-text-secondary);
+  font: var(--text-sm)/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.range-inline input[type="range"] {
+  --fill: 50%;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 156px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
+}
+.range-inline input[type="range"]::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    90deg,
+    var(--ds-accent) 0 var(--fill),
+    color-mix(in oklab, var(--ds-text-primary) 14%, var(--ds-bg-primary)) var(--fill) 100%
+  );
+}
+.range-inline input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4.5px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--ds-raised);
+  box-shadow: 0 0 0 2px var(--ds-accent), var(--ds-raised-shadow);
+  transition: transform var(--motion-duration-fast) var(--motion-ease-out);
+}
+.range-inline input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+.range-inline input[type="range"]:focus-visible { outline: none; }
+.range-inline input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow:
+    0 0 0 2px var(--ds-accent),
+    0 0 0 4px var(--ds-bg-secondary),
+    0 0 0 6px color-mix(in oklab, var(--ds-focus) 55%, transparent);
+}
+.range-inline input[type="range"]:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* ---------------------------------------------------------------- 开关 */
+
+.switch-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--ds-switch-track-off);
+  transition: background var(--motion-duration-fast) var(--motion-ease-out);
+}
+.switch-row:hover .switch { background: var(--ds-switch-track-off-hover); }
+.switch span {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--ds-switch-knob-off);
+  box-shadow: var(--ds-raised-shadow);
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    background var(--motion-duration-fast) var(--motion-ease-out);
+}
+.switch-row input:checked + .switch { background: var(--ds-accent); }
+.switch-row input:checked + .switch span {
+  transform: translateX(12px);
+  background: var(--ds-switch-knob-on);
+}
+.switch-row input:focus-visible + .switch {
+  outline: 2px solid color-mix(in oklab, var(--ds-focus) 55%, transparent);
+  outline-offset: 2px;
+}
+/* 分段按钮在从属项里也要能读出「现在不可改」。 */
+.segmented button:disabled { cursor: default; color: var(--ds-text-muted); }
+
+/* ------------------------------------------------------------ 背景图 */
+
+.glass-wallpaper-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.glass-wallpaper-name[data-empty="true"] { color: var(--ds-text-muted); }
+
+/*
+ * 最近使用：背景图二级块里的一格网格，一张图一张卡片。缩略图固定 1:1 裁切，
+ * 名字在图片下面；删除图标只在 hover 或键盘焦点进入卡片时出现，避免每张图上
+ * 都常驻一个按钮。
+ */
+.wallpaper-recent {
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--ds-border-subtle);
+}
+.wallpaper-recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs-plus);
+}
+
+/* 超出第一屏才出现的「显示全部 / 收起」：贴着标题右侧，不另起一行。 */
+.wallpaper-more {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ds-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+.wallpaper-more:hover { color: var(--ds-text-primary); }
+.wallpaper-more:focus-visible {
+  outline: none;
+  color: var(--ds-text-primary);
+  text-decoration: underline;
+}
+
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 10px;
+}
+
+.wallpaper-card { position: relative; min-width: 0; }
+
+.wallpaper-apply {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wallpaper-thumb {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: var(--radius-xs);
+  background: var(--ds-bg-inset);
+  box-shadow: inset 0 0 0 1px var(--ds-border-subtle);
+  transition: box-shadow var(--motion-duration-fast) var(--motion-ease-out);
+}
+.wallpaper-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 「不使用」这一格没有照片：一条斜线表示空，尺寸与圆角跟其它缩略图一致。 */
+.wallpaper-thumb.is-off {
+  background-image:
+    linear-gradient(
+      to top right,
+      transparent calc(50% - 1px),
+      var(--ds-border-strong) calc(50% - 1px),
+      var(--ds-border-strong) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+}
+/* 当前正在用的那张：一圈强调色，和「点了会换过去」的按钮状态区分开。 */
+.wallpaper-card.is-current .wallpaper-thumb {
+  box-shadow: 0 0 0 2px var(--ds-accent);
+}
+.wallpaper-card:not(.is-current) .wallpaper-apply:hover .wallpaper-thumb {
+  box-shadow: inset 0 0 0 1px var(--ds-border-strong);
+}
+.wallpaper-apply:focus-visible { outline: none; }
+.wallpaper-apply:focus-visible .wallpaper-thumb {
+  outline: 2px solid color-mix(in oklab, var(--ds-focus) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.wallpaper-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-secondary);
+  font-size: var(--text-xs-plus);
+  line-height: var(--leading-body);
+}
+
+/* Wallpaper Engine 卡片：第二行说清这一张是「会动的」还是「只是一张静帧」。 */
+.wallpaper-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs);
+  line-height: var(--leading-body);
+}
+.wallpaper-card.is-unsupported .wallpaper-apply { cursor: default; }
+.wallpaper-card.is-unsupported .wallpaper-thumb { opacity: 0.4; }
+.wallpaper-card.is-unsupported .wallpaper-name { color: var(--ds-text-muted); }
+.wallpaper-engine-empty {
+  margin: 0;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs-plus);
+  line-height: var(--leading-body);
+}
+
+/* 顶替每张卡片上的重复标注：场景由内置引擎渲染，脚本效果缺。 */
+.wallpaper-engine-note {
+  margin: 8px 0 0;
+  color: var(--ds-text-muted);
+  font-size: var(--text-xs-plus);
+  line-height: var(--leading-body);
+}
+
+/* 挂载失败的那一句：它要说清原因，所以用告警色而不是提示色。 */
+.wallpaper-engine-note[data-failed="true"] {
+  color: var(--ds-danger, #e06c75);
+}
+
+/*
+ * 删除图标浮在照片上，配色不跟随界面表面色：深色主题半透明黑底白叉，浅色
+ * 主题在文件末尾换成白底深叉。两种主题下它都只出现在照片上，所以底不与
+ * --ds-* 表面色对齐。
+ */
+.wallpaper-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  --remove-fill: color-mix(in oklab, #000000 55%, transparent);
+  --remove-ink: #ffffff;
+  --remove-edge: transparent;
+  background: var(--remove-fill);
+  color: var(--remove-ink);
+  box-shadow: inset 0 0 0 1px var(--remove-edge);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--motion-duration-fast) var(--motion-ease-out);
+}
+.wallpaper-card:hover .wallpaper-remove,
+.wallpaper-card:focus-within .wallpaper-remove { opacity: 1; }
+/* 悬停时两种主题都落到同一个红底白叉，表示这一下是删除。 */
+.wallpaper-remove:hover {
+  background: color-mix(in oklab, var(--ds-error) 82%, #000000);
+  color: #ffffff;
+  box-shadow: none;
+}
+.wallpaper-remove:focus-visible {
+  opacity: 1;
+  outline: 2px solid color-mix(in oklab, var(--ds-focus) 55%, transparent);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------- 确认弹窗 */
+
+.confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--ds-scrim);
+  backdrop-filter: blur(2px);
+  opacity: 1;
+  transition:
+    opacity var(--motion-duration-normal) var(--motion-ease-out),
+    display var(--motion-duration-normal) allow-discrete;
+}
+.confirm[hidden] {
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+}
+@starting-style {
+  .confirm { opacity: 0; }
+  .confirm .confirm-box { opacity: 0; transform: translateY(6px) scale(0.985); }
+}
+
+.confirm-box {
+  width: min(360px, 100%);
+  padding: 18px 18px 14px;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--radius-md);
+  background: var(--ds-bg-elevated-opaque);
+  box-shadow: var(--ds-shadow-dialog);
+  transform: none;
+  transition:
+    opacity var(--motion-duration-normal) var(--motion-ease-out),
+    transform var(--motion-duration-normal) var(--motion-ease-out);
+}
+.confirm[hidden] .confirm-box {
+  opacity: 0;
+  transform: translateY(6px) scale(0.985);
+}
+.confirm-box h2 {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-weight-semibold);
+}
+.confirm-box p {
+  margin: 6px 0 0;
+  color: var(--ds-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* ---------------------------------------------------------------- 提示 */
+
+.toast {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: 18px;
+  max-width: min(400px, calc(100vw - 32px));
+  transform: translateX(-50%) translateY(0);
+  padding: 8px 12px;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--radius-2xs);
+  background: var(--ds-bg-raised);
+  color: var(--ds-text-primary);
+  box-shadow: var(--ds-shadow-dialog);
+  font-size: var(--text-sm);
+  opacity: 1;
+  transition:
+    opacity var(--motion-duration-fast) var(--motion-ease-out),
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    display var(--motion-duration-fast) allow-discrete;
+}
+.toast[hidden] {
+  display: none;
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
+  pointer-events: none;
+}
+@starting-style {
+  .toast { opacity: 0; transform: translateX(-50%) translateY(4px); }
+}
+.toast.error {
+  border-color: color-mix(in oklab, var(--ds-error) 60%, var(--ds-border-default));
+  color: var(--ds-error);
+}
+
+@media (max-width: 560px) {
+  .settings-row { align-items: flex-start; }
+  .settings-row-control { flex-direction: column; align-items: flex-end; }
+  .range-inline input[type="range"] { width: 120px; }
+  .settings-sub { padding: 0 8px 10px; }
+  .settings-sub .settings-row { padding: 9px 12px; }
+  .settings-sub .range-inline input[type="range"] { width: 104px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm,
+  .confirm-box,
+  .toast,
+  .settings-sub { transition: none; }
+  .segmented button,
+  .switch,
+  .switch span,
+  .range-inline input[type="range"]::-webkit-slider-thumb {
+    transition-duration: 0.01ms;
+  }
+}
+}
+
+/* 填充方式的说明文字跟着当前选项走。 */
+.glass-fit-hint { color: var(--ds-text-muted); }
+
+/* 浅色主题的删除图标：白底深叉，加一圈细线，压在浅色照片上也立得住。 */
+:root[data-base="light"] .wallpaper-remove {
+  --remove-fill: color-mix(in oklab, #ffffff 84%, transparent);
+  --remove-ink: color-mix(in oklab, #101214 86%, transparent);
+  --remove-edge: color-mix(in oklab, #000000 12%, transparent);
+}

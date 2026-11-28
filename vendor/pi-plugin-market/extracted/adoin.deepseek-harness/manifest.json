@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "adoin.deepseek-harness",
+  "name": "DeepSeek Harness 优化",
+  "version": "0.2.0",
+  "description": "DeepSeek 条件提示词；官方 Messages 路由的 Flash 历史提示／新增工具缓存投影及思考强度适配，其他路由保守回退。",
+  "main": "main.js",
+  "contributes": {
+    "agentExtensions": [
+      "agent-extension.mjs"
+    ]
+  },
+  "permissions": [
+    "agent.extension"
+  ],
+  "engines": {
+    "piDesktop": ">=0.17.0"
+  },
+  "activationEvents": [
+    "onStartup"
+  ]
+}

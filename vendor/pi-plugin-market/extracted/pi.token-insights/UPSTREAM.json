@@ -1,0 +1,12 @@
+{
+  "id": "pi.token-insights",
+  "version": "0.4.8",
+  "publishedAt": "2026-09-18T17:42:56Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/pi.token-insights-0.4.8.piplug",
+  "shasum": "319a1fd69aec06b032b2cd3aedcb8d99444599d2834e4c39761ad9209ca0acc2",
+  "repository": null,
+  "homepage": "https://github.com/vastsa/pi-plugin-token-insights",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/pi.token-insights/0.4.8",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

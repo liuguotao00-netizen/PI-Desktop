@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "id": "local.task-board",
+  "name": "任务看板（会话 × 待审批）",
+  "version": "0.3.9",
+  "description": "把 PI-Desktop 的会话、回合与等待状态整理成一页只读看板：等待人工介入（等你批计划或回答）/ 执行中 / 待审批 / 24h 内活跃，四列各自内部滚动，点一条可直接跳回对应会话；另提供置顶浮窗形态（四段＝等你批计划 / 执行中 / 待审批 / 5 分钟内完成，其中「刚完成」按检测到停下的时刻起算、跨轮保留满 5 分钟，可拖边缘改大小、双击任务跳到会话并叫醒主窗口、可一键回侧栏看全量）。刷新节奏自适应：有人等你或在跑 2 秒、只剩刚完成 5 秒、全空闲 15 秒；会话清单按 10 秒缓存复用，每轮只重查在跑状态。「等待人工介入」同时覆盖计划审批与 Agent 反问（只数题数，不读题干）。M1 只读，不创建任务卡、不调用模型、不写入任何宿主状态。",
+  "author": "wangs",
+  "license": "MIT",
+  "main": "main.js",
+  "engines": { "piDesktop": ">=0.22.0" },
+  "activationEvents": ["onStartup"],
+  "permissions": ["ui.view", "ui.panel", "desktop.control", "notify"],
+  "ui": {
+    "title": "任务看板 · 浮窗",
+    "panel": "widget/index.html",
+    "shape": "widget",
+    "alwaysOnTop": true,
+    "resizable": true,
+    "width": 400,
+    "height": 475
+  },
+  "contributes": {
+    "views": [
+      {
+        "id": "board",
+        "title": "任务看板",
+        "entry": "view/index.html",
+        "icon": "list-checks"
+      }
+    ],
+    "commands": [
+      {
+        "id": "taskboard.openWidget",
+        "title": "任务看板：打开浮窗"
+      }
+    ]
+  },
+  "safetyNotes": "只读插件，三项权限各司其职：ui.view 只用来在宿主的视图区里放一页 HTML，页面没有 Node、只有 window.pluginBridge；desktop.control 只用来调用四个只读操作 session/list（列会话）、plans/pending（列待审批的 Plan/Goal）、agent/getStatus（逐会话查执行状态与 planningState，一次最多 20 个）与 agent/pendingInteractive（只对正在跑的会话查有没有待回答的反问，仅取题数、不取题干与选项文本），以及用户点卡片时调 session/open 跳回会话——不调用任何写操作，不变更权限模式，不创建或删除会话。notify 只用于浮窗双击任务后发一条「点击恢复窗口」的系统通知：宿主对该通知的点击会恢复并聚焦主窗口，这也正是插件唯一能叫醒主窗口的路径（宿主没有给插件任何窗口控制 API）；通知正文是固定文案，不含会话标题、项目名或任何消息内容。浮窗右上「在侧栏打开」按钮只通过 ui.revealView 打开本插件自己的看板视图，不传 sessionId（由宿主回落到当前活跃会话），不涉及任何其它插件或页面。全程不联网、不申请 fs/net/clipboard/agent 权限，不直接打开 pi.sqlite，不读取消息正文（只读会话标题与时间戳这类清单字段，反问只数题数不看题目内容），不向任何外部服务发送数据。所有失败一律 fail-open：某个通道不可用时只是该列显示降级原因，不影响宿主会话与其它功能。",
+  "i18n": {
+    "en": {
+      "name": "Task board (sessions x approvals)",
+      "description": "A read-only board with four columns: awaiting your plan approval or answer, running turns, pending approvals, and sessions active in the last 24h, each scrolling inside its own card; click a row to jump back to that session. Refresh cadence is adaptive: 2s while something waits or runs, 5s while only just-finished items remain, 15s when idle. The session list is cached for 10s, so each refresh only re-reads run state; the waiting column covers both plan approvals and Agent questions. M1 is read-only: no task cards, no model calls, no writes to host state.",
+      "safetyNotes": "Read-only plugin. ui.view places one HTML page in the host view area (no Node, only window.pluginBridge). desktop.control is used for four read operations (session/list, plans/pending, agent/getStatus per session for run state and planningState at most 20 per refresh, and agent/pendingInteractive for running sessions to count pending Agent questions — only the count, never the question or option text) plus session/open when the user clicks a row. notify is used only to raise one fixed-text system notification after a double-click in the floating panel: the host restores and focuses the main window when that notification is clicked, which is the only path a plugin has to wake the main window (no window-control API is exposed); the notification body carries no session title, project name or message content. The open-in-sidebar button only reveals this plugin's own board view through ui.revealView, with no sessionId, so the host falls back to the active session; no other plugin or page is touched. No write operations, no network, no fs/net/clipboard/agent permissions, pi.sqlite is never opened, message bodies are never read (only listing fields such as title and timestamps). Every failure is fail-open: an unavailable channel only degrades its own column."
+    },
+    "zh-CN": {
+      "name": "任务看板（会话 × 待审批）",
+      "description": "四列只读看板：等待人工介入（等你批计划或回答）、执行中、待审批、24h 内活跃。每列在卡片内独立滚动；点一行跳回对应会话。刷新节奏自适应：有人等你或在跑 2 秒、只剩刚完成 5 秒、全空闲 15 秒。会话清单按 10 秒缓存复用，每轮只重查在跑状态；「等待人工介入」同时覆盖计划审批与 Agent 反问。M1 只读：不建任务卡、不调模型、不写宿主状态。",
+      "safetyNotes": "只读插件。ui.view 只把一页 HTML 放进宿主视图区（无 Node，只有 window.pluginBridge）；desktop.control 只用于四个只读操作 session/list、plans/pending、agent/getStatus（逐会话读执行状态与 planningState，一次最多 20 个）与 agent/pendingInteractive（只对正在跑的会话数一数有几个待答问题，不读题干与选项文本），以及点击卡片时的 session/open。notify 只用于浮窗双击后发一条固定文案的系统通知，宿主点该通知会恢复并聚焦主窗口（这是插件唯一能叫醒主窗口的路径，宿主未暴露窗口控制 API），通知不含会话标题、项目名或任何消息内容。浮窗「在侧栏打开」按钮只通过 ui.revealView 打开本插件自己的看板视图（不传 sessionId），不涉及其它插件。不执行任何写操作，不联网，不申请 fs/net/clipboard/agent 权限，不打开 pi.sqlite，不读消息正文（只读标题与时间戳），失败一律 fail-open。"
+    }
+  }
+}

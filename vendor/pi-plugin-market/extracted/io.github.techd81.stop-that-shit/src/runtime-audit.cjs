@@ -1,0 +1,218 @@
+'use strict';
+
+const crypto = require('node:crypto');
+const fs = require('node:fs');
+const path = require('node:path');
+const packageJson = require('../package.json');
+const { PROTOCOL_VERSION, isShellAnalysisReason } = require('./control-protocol.cjs');
+const { inspectDelegation } = require('./delegation-state.cjs');
+const { readAnnotations } = require('./runtime-annotations.cjs');
+const { appendJsonl, scanJsonl, runtimeRoot } = require('./runtime-storage.cjs');
+const { sessionKey } = require('./state.cjs');
+
+// Host families a mode-change record may name. The desktop adapter reports
+// `desktop`; anything else stays `other` so an unknown host is never invented.
+const HOST_FAMILIES = ['codex', 'claude-code', 'deepseek-harness', 'opencode', 'pi', 'omp', 'hermes-agent', 'desktop'];
+
+function controlState(contract) {
+  if (contract.level === 'off') return 'off';
+  return contract.level === 'watch' ? 'observing' : 'armed';
+}
+
+function eventPath(sessionId, options) {
+  return path.join(runtimeRoot(options), `${sessionKey(sessionId)}.jsonl`);
+}
+
+function recordModeChange(event, previousMode, contract, options = {}) {
+  // Separate from decision events so existing runtime readers retain their schema.
+  // Never persist prompts or host-provided free text.
+  const record = {
+    schemaVersion: 1,
+    occurredAt: new Date().toISOString(),
+    previousMode,
+    nextMode: contract.mode,
+    source: contract.source,
+    eventKind: 'prompt.submit',
+    hostFamily: HOST_FAMILIES.includes(event.host?.family) ? event.host.family : 'other'
+  };
+  appendJsonl(path.join(runtimeRoot(options), 'mode-changes', `${sessionKey(event.sessionId)}.jsonl`), record);
+}
+
+function runtimeAgent(event) {
+  return event && event.agent && typeof event.agent.agentId === 'string' ? event.agent.agentId : null;
+}
+
+function agentEventPath(sessionId, agentKey, options) {
+  return path.join(runtimeRoot(options), 'children',
+    sessionKey(sessionId), `${agentKey}.jsonl`);
+}
+
+function recordDecision(facts, options = {}) {
+  const contract = facts && facts.contract || {};
+  const delegation = facts && facts.delegation || {};
+  const state = controlState(contract);
+  if (state === 'off') return null;
+
+  const action = facts.action || {};
+  const decision = facts.decision || {};
+  const activity = inspectDelegation(delegation);
+  const event = {
+    schemaVersion: 1,
+    eventId: `evt_${crypto.randomUUID()}`,
+    occurredAt: (options.now ? options.now() : new Date()).toISOString(),
+    sessionKey: sessionKey(facts.sessionId),
+    policyRevision: {
+      pluginVersion: packageJson.version,
+      controlVersion: PROTOCOL_VERSION
+    },
+    controlState: state,
+    action: {
+      toolName: String(action.name || 'unknown'),
+      mutability: String(action.mutability || 'unknown'),
+      ...(isShellAnalysisReason(action.analysisReason) ? { analysisReason: action.analysisReason } : {}),
+      delegationCount: Number.isInteger(action.delegationCount) ? action.delegationCount : 0,
+      pathCount: Array.isArray(action.affectedPaths) ? action.affectedPaths.length : 0,
+      hashIntent: Boolean(action.hashIntent),
+      dependencyIntent: Boolean(action.dependencyIntent),
+      unboundedDelegation: Boolean(action.unboundedDelegation)
+    },
+    ...(runtimeAgent(facts) ? { agent: { agentKey: sessionKey(runtimeAgent(facts)) } } : {}),
+    contract: {
+      mode: String(contract.mode || 'unconfirmed'),
+      level: String(contract.level || 'watch'),
+      agentBudget: Number.isSafeInteger(contract.agentBudget) ? contract.agentBudget : Number.MAX_SAFE_INTEGER,
+      reservedUpperBound: activity.reservedUpperBound,
+      countUnproven: activity.unresolvedReasons.length > 0,
+      hashPolicy: String(contract.hashPolicy || 'deny'),
+      dependencyPolicy: String(contract.dependencyPolicy || 'ask'),
+      allowedPathCount: Array.isArray(contract.allowedPaths) ? contract.allowedPaths.length : 0
+    },
+    ...(facts.approval ? { approval: facts.approval } : {}),
+    decision: {
+      policyOutcome: String(decision.outcome || 'allow'),
+      family: decision.family || null,
+      reasonCode: String(decision.reasonCode || 'WITHIN_CONTRACT'),
+      ...(typeof facts.storageErrorCode === 'string' && /^[A-Z][A-Z0-9_]*$/.test(facts.storageErrorCode)
+        ? { storageErrorCode: facts.storageErrorCode } : {}),
+      responseOutcome: String(facts.responseOutcome || 'none'),
+      hostEffect: 'unobserved'
+    }
+  };
+
+  try {
+    appendJsonl(runtimeAgent(facts)
+      ? agentEventPath(facts.sessionId, sessionKey(runtimeAgent(facts)), options)
+      : eventPath(facts.sessionId, options), event);
+    return event;
+  } catch {
+    return null;
+  }
+}
+
+function listDirectory(directory) {
+  try {
+    return fs.readdirSync(directory);
+  } catch (error) {
+    // A path that is not a readable directory holds no records. The panel and
+    // the doctor must still answer while the data directory is damaged.
+    if (error && ['ENOENT', 'ENOTDIR', 'EACCES', 'EPERM'].includes(error.code)) return [];
+    throw error;
+  }
+}
+
+function eventFiles(query, options) {
+  const root = runtimeRoot(options);
+  if (query.sessionId) return [eventPath(query.sessionId, options)];
+  if (query.sessionKey) return [path.join(root, `${query.sessionKey}.jsonl`)];
+  const files = [];
+  for (const directory of [root, path.join(root, 'children')]) {
+    for (const name of listDirectory(directory)) {
+      const entry = path.join(directory, name);
+      if (directory === root) {
+        if (name.endsWith('.jsonl') && name !== 'annotations.jsonl') files.push(entry);
+        continue;
+      }
+      for (const child of listDirectory(entry)) {
+        if (child.endsWith('.jsonl')) files.push(path.join(entry, child));
+      }
+    }
+  }
+  return files.sort();
+}
+
+function childEventFiles(query, options) {
+  const agentId = query.agentId;
+  if (agentId) return [agentEventPath(query.sessionId, sessionKey(agentId), options)];
+  if (query.agentKey) return [agentEventPath(query.sessionId, query.agentKey, options)];
+  if (!query.sessionId) return [];
+  const directory = path.join(runtimeRoot(options), 'children', sessionKey(query.sessionId));
+  return listDirectory(directory).filter(name => name.endsWith('.jsonl'))
+    .sort().map(name => path.join(directory, name));
+}
+
+function summarize(events, annotations, damagedRecords) {
+  const latestLabels = new Map();
+  for (const annotation of annotations) latestLabels.set(annotation.eventId, annotation.label);
+  const labeledEvents = events.map((event) => ({ ...event, label: latestLabels.get(event.eventId) || null }));
+  const summary = {
+    checkedActions: labeledEvents.length,
+    contextResponses: 0,
+    permissionDenyResponses: 0,
+    reasons: {},
+    labels: { correct: 0, incorrect: 0, inconclusive: 0 },
+    damagedRecords
+  };
+  for (const event of labeledEvents) {
+    if (event.decision.responseOutcome === 'context_returned') summary.contextResponses += 1;
+    if (event.decision.responseOutcome === 'permission_deny_returned') summary.permissionDenyResponses += 1;
+    if (event.decision.responseOutcome === 'execution_denial_returned') {
+      summary.executionDenialResponses = (summary.executionDenialResponses || 0) + 1;
+    }
+    summary.reasons[event.decision.reasonCode] = (summary.reasons[event.decision.reasonCode] || 0) + 1;
+    if (event.label) summary.labels[event.label] += 1;
+  }
+  return { events: labeledEvents, summary };
+}
+
+function isRuntimeEvent(event) {
+  return event && event.schemaVersion === 1
+    && typeof event.eventId === 'string' && /^evt_[0-9a-f-]+$/i.test(event.eventId)
+    && typeof event.occurredAt === 'string' && Number.isFinite(Date.parse(event.occurredAt))
+    && ['off', 'observing', 'armed'].includes(event.controlState)
+    && event.action && typeof event.action.toolName === 'string' && typeof event.action.mutability === 'string'
+    && event.contract && typeof event.contract.mode === 'string'
+    && event.decision && typeof event.decision.policyOutcome === 'string'
+    && typeof event.decision.reasonCode === 'string' && /^[A-Z][A-Z_0-9]*$/.test(event.decision.reasonCode)
+    && typeof event.decision.responseOutcome === 'string';
+}
+
+function readRuntime(query = {}, options = {}) {
+  let events = [];
+  let damagedRecords = 0;
+  const files = query.agentId || query.agentKey
+    ? childEventFiles(query, options)
+    : [...eventFiles(query, options), ...childEventFiles(query, options)];
+  for (const file of files) {
+    const parsed = scanJsonl(file, event => {
+      if (!isRuntimeEvent(event)) {
+        damagedRecords += 1;
+        return;
+      }
+      // Retain only selected events, while still counting damage in the whole log.
+      if (query.limit !== 0 && (!query.eventId || event.eventId === query.eventId)) events.push(event);
+    });
+    damagedRecords += parsed.damaged;
+  }
+  // V8's stable sort preserves append order for equal timestamps within a log.
+  events.sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+  if (Number.isInteger(query.limit) && query.limit >= 0) events = events.slice(-query.limit);
+
+  const eventIds = new Set(events.map((event) => event.eventId));
+  const annotationResult = readAnnotations(options, eventIds);
+  damagedRecords += annotationResult.damaged;
+  const annotations = annotationResult.records;
+  const result = summarize(events, annotations, damagedRecords);
+  return { schemaVersion: 1, ...result, annotations };
+}
+
+module.exports = { readRuntime, recordDecision, recordModeChange };

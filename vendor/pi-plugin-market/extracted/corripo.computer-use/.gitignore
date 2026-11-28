@@ -1,0 +1,18 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.piplug
+
+# 运行时产物：截图与日志都不要进仓库
+/tmp/
+shots/
+*.png
+!docs/*.png
+*.log
+*.jsonl
+
+# 编辑器 / 系统
+.DS_Store
+.idea/
+.vscode/
+*.swp

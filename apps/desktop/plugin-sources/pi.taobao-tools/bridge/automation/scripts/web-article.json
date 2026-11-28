@@ -1,0 +1,67 @@
+{
+  "id": "web-article",
+  "platform": "web",
+  "name": "网页文章 · 获取并导出 Markdown",
+  "description": "获取网页文章内容，提取标题、作者、发布时间及正文，导出为 Markdown 文件。微信公众号文章用专用提取（最精准），其他网站用通用正文提取，支持环境异常检测。",
+  "startUrl": "{{url}}",
+  "variables": [
+    {
+      "key": "url",
+      "label": "文章 URL",
+      "type": "text",
+      "required": true,
+      "placeholder": "https://… 任意文章链接（微信公众号 / 博客 / 新闻 / 知乎等）"
+    },
+    {
+      "key": "exportDir",
+      "label": "导出目录（可选）",
+      "type": "text",
+      "required": false,
+      "placeholder": "/Users/xxx/Documents/articles（留空则发布到 Workspace 下载目录）"
+    }
+  ],
+  "steps": [
+    {
+      "action": "wait",
+      "duration": [
+        4000,
+        6000
+      ],
+      "description": "等待文章页面加载"
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 3000,
+      "description": "检测验证拦截（微信）",
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "完成验证后即可继续访问"
+          }
+        ],
+        "errorMessage": "检测到环境异常，请先在浏览器中完成验证后重试"
+      }
+    },
+    {
+      "action": "execute",
+      "description": "提取标题/作者/发布时间/正文（微信专用 + 通用兜底）",
+      "postWait": 0,
+      "params": {
+        "saveAs": "article",
+        "fn": "async function(__ctx) {\n  var result = {title:'',author:'',publishTime:'',errorHint:'',contentText:'',contentHtml:'',imageUrls:[]};\n  var isWeixin = location.hostname.indexOf('mp.weixin.qq.com') >= 0;\n  if (isWeixin) {\n    var pickFirst = function() { for (var i=0; i<arguments.length; i++) { var el = document.querySelector(arguments[i]); if (el) { var t = (el.textContent||'').replace(/\\s+/g,' ').trim(); if (t && t !== 'Name cleared') return t; } } return ''; };\n    result.title = pickFirst('#activity-name','#js_text_title','.rich_media_title');\n    result.author = pickFirst('#js_name','.wx_follow_nickname','#profileBt .profile_nickname','.rich_media_meta_nickname');\n    var ptEl = document.querySelector('#publish_time');\n    var ptText = ptEl ? (ptEl.textContent||'').trim() : '';\n    if (!ptText) { var html = document.documentElement.innerHTML; var m1 = html.match(/create_time\\s*:\\s*JsDecode\\('([^']+)'\\)/); var rawTs = m1 ? m1[1] : ''; if (!rawTs) { var m2 = html.match(/create_time\\s*[:=]\\s*(?:\"([^\"]+)\"|'([^']+)'|([0-9A-Za-z]+))/); rawTs = m2 ? (m2[1]||m2[2]||m2[3]||'') : ''; } if (/^\\d{10}$|^\\d{13}$/.test(rawTs)) { var ts = parseInt(rawTs,10); var ms = rawTs.length===13 ? ts : ts*1000; var d = new Date(ms+28800000); var pad = function(n){ return String(n).padStart(2,'0'); }; ptText = d.getUTCFullYear()+'-'+pad(d.getUTCMonth()+1)+'-'+pad(d.getUTCDate())+' '+pad(d.getUTCHours())+':'+pad(d.getUTCMinutes())+':'+pad(d.getUTCSeconds()); } }\n    result.publishTime = ptText;\n    var bodyText = document.body ? (document.body.innerText||'').replace(/\\s+/g,' ').trim() : '';\n    var fullHtml = document.documentElement.innerHTML;\n    if (bodyText.indexOf('完成验证后即可继续访问') >= 0 || bodyText.indexOf('去验证') >= 0) { result.errorHint = 'environment verification required'; return result; }\n    if (fullHtml.indexOf('secitptpage/verify.html') >= 0 || fullHtml.indexOf('id=\"js_verify\"') >= 0) { result.errorHint = 'environment verification required'; return result; }\n    var contentEl = document.querySelector('#js_content');\n    if (!contentEl) { result.errorHint = 'content not found'; return result; }\n    contentEl.querySelectorAll('img').forEach(function(img){ var ds = img.getAttribute('data-src'); if (ds) img.setAttribute('src', ds); });\n    ['script','style','.qr_code_pc','.reward_area','.video_iframe','mpvideosnap'].forEach(function(sel){ contentEl.querySelectorAll(sel).forEach(function(el){ el.remove(); }); });\n    contentEl.querySelectorAll('img').forEach(function(img){ var es=img.getAttribute('src')||''; var ec=img.className||''; if (/emoji|wp-smiley/i.test(ec) || es.indexOf('/emoji/')>=0) { img.replaceWith(document.createTextNode(img.getAttribute('alt')||'')); } });\n    var seen = {}; contentEl.querySelectorAll('img[src]').forEach(function(img){ var src = img.getAttribute('src'); if (src && !seen[src]) { seen[src] = true; result.imageUrls.push(src); } });\n    result.contentHtml = contentEl.innerHTML;\n    result.contentText = (contentEl.innerText||contentEl.textContent||'').replace(/\\n{3,}/g,'\\n\\n').trim();\n    return result;\n  } else {\n    var pick = function() { for (var i=0;i<arguments.length;i++){ var el=document.querySelector(arguments[i]); if(el){ var raw = el.tagName==='META' ? (el.getAttribute('content')||'') : (el.textContent||''); var t=raw.replace(/\\s+/g,' ').trim(); if(t) return t; } } return ''; };\n    result.title = pick('meta[property=\"og:title\"]','meta[name=\"twitter:title\"]','h1','.article-title','.entry-title') || (document.title||'').trim();\n    result.author = pick('meta[name=\"author\"]','meta[property=\"article:author\"]','[rel=\"author\"]','.author','.byline','.post-author','.author-name');\n    var tEl = document.querySelector('meta[property=\"article:published_time\"]') || document.querySelector('meta[name=\"pubdate\"]') || document.querySelector('meta[itemprop=\"datePublished\"]');\n    if (tEl) { result.publishTime = (tEl.getAttribute('content')||'').trim(); }\n    if (!result.publishTime) { var tt = document.querySelector('time[datetime]'); if (tt) { result.publishTime = (tt.getAttribute('datetime')||tt.textContent||'').trim(); } }\n    var best=null, bestLen=0;\n    var cands = document.querySelectorAll('article,[role=\"main\"],main,.article-content,.post-content,.entry-content,.rich_text,.article,.post,.content,#content,#article,#main');\n    cands.forEach(function(el){ var len=0; el.querySelectorAll('p').forEach(function(p){ len += (p.textContent||'').length; }); if (len>bestLen) { bestLen=len; best=el; } });\n    if (!best || bestLen<150) { best = document.querySelector('article') || document.body; }\n    if (!best) { result.errorHint = 'content not found'; return result; }\n    var clone = best.cloneNode(true);\n    clone.querySelectorAll('img').forEach(function(img){ var ds = img.getAttribute('data-src')||img.getAttribute('data-original')||img.getAttribute('data-lazy-src')||img.getAttribute('data-actualsrc'); if (ds) img.setAttribute('src', ds); });\n    ['script','style','nav','header','footer','aside','noscript','iframe','form','button','.comment','.comments','.related','.sidebar','.share','.advertisement','.ad','.recommend'].forEach(function(sel){ try { var ns=clone.querySelectorAll(sel); for (var j=0;j<ns.length;j++){ ns[j].remove(); } } catch(e){} });\n    clone.querySelectorAll('img').forEach(function(img){ var es=img.getAttribute('src')||''; var ec=img.className||''; if (/emoji|wp-smiley/i.test(ec) || es.indexOf('/emoji/')>=0) { img.replaceWith(document.createTextNode(img.getAttribute('alt')||'')); } });\n    var seen2={}; clone.querySelectorAll('img[src]').forEach(function(img){ var src=img.getAttribute('src'); if (src && src.indexOf('data:')!==0 && !seen2[src]) { seen2[src]=true; result.imageUrls.push(src); } });\n    result.contentHtml = clone.innerHTML;\n    result.contentText = (clone.textContent||'').replace(/\\n{3,}/g,'\\n\\n').trim();\n    if (!result.contentHtml && !result.contentText) { result.errorHint = 'content not found'; }\n    return result;\n  }\n}"
+      }
+    },
+    {
+      "action": "saveMarkdown",
+      "description": "将文章导出为 Markdown 文件",
+      "postWait": 0,
+      "params": {
+        "inputFrom": "article",
+        "destDir": "{{exportDir}}",
+        "defaultDir": "openclaw-articles",
+        "saveAs": "exportResult"
+      }
+    }
+  ]
+}

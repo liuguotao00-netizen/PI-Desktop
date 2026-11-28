@@ -1,0 +1,12 @@
+{
+  "id": "pi.session-orchestrator",
+  "version": "0.7.1",
+  "publishedAt": "2026-10-13T09:33:39Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/pi.session-orchestrator-0.7.1.piplug",
+  "shasum": "4b7c380692614761f0be9b8408665e722e77bc656e36d2efff18ac023fcd5e36",
+  "repository": null,
+  "homepage": "https://github.com/vastsa/pi-plugin-session-orchestrator",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/pi.session-orchestrator/0.7.1",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

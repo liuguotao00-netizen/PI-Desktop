@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.taobao-tools",
+  "name": "淘宝取数与浏览器自动化",
+  "version": "0.3.0",
+  "description": "生意参谋/万相台等平台取数与浏览器自动化。内置 36 个采集/互动/发布脚本，覆盖淘宝、阿里妈妈、拼多多、抖音、小红书、快手、视频号与网页正文；工具以原生 agent tool 注册，经 pi.browser 驱动 PI-Desktop 内置浏览器。",
+  "author": "PI-Desktop",
+  "main": "compiled/main.js",
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "list_scripts",
+        "description": "列出白名单取数脚本，按平台汇总。只读，不访问浏览器。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "eval_script",
+        "description": "在店铺页面执行一个白名单取数脚本。",
+        "risk": "medium",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "check_session",
+        "description": "检查生意参谋登录状态与主营类目。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "fetch_search_keywords",
+        "description": "拉取本期/上期搜索词排行，结果落盘。",
+        "risk": "medium",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "finish_task",
+        "description": "结束本次取数并关闭本次打开的页面。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "list_automations",
+        "description": "列出自动化脚本：平台、类型、参数、步骤、动作。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "prepare_automation",
+        "description": "干跑：解析参数、校验文件与内容、预览步骤，不打开浏览器。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "run_automation",
+        "description": "提交自动化执行，立即返回 runId，任务串行。含采集、互动与发布。",
+        "risk": "high",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "get_automation_run",
+        "description": "按 runId 查询执行状态、进度、结果与产物。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      },
+      {
+        "name": "cancel_automation_run",
+        "description": "按 runId 取消排队中或运行中的自动化。",
+        "risk": "low",
+        "schema": {
+          "type": "object"
+        }
+      }
+    ],
+    "services": [
+      {
+        "id": "automation-runner",
+        "name": "Automation runner"
+      }
+    ]
+  },
+  "permissions": [
+    "agent.tool.register",
+    "browser.cdp",
+    "net.fetch",
+    "net.anyHost",
+    "background.service"
+  ],
+  "net": {
+    "domains": [
+      "127.0.0.1"
+    ]
+  },
+  "engines": {
+    "piDesktop": ">=0.24.0"
+  }
+}

@@ -1,0 +1,104 @@
+/* pi-theme-dracula — PI-Desktop design token overrides.
+ * Declared in manifest.json contributes.themes; requires the ui.theme
+ * permission. The host sanitizes this file (no imports, no non-data URLs).
+ *
+ * The PI-Desktop UI is built on the `--ds-*` design token family; the legacy
+ * `--color-*` aliases below cover the few surfaces that still read them.
+ * Palette: https://draculatheme.com — background #282a36, current line
+ * #44475a, foreground #f8f8f2, purple #bd93f9, green #50fa7b,
+ * orange #ffb86c, red #ff5555, cyan #8be9fd, yellow #f1fa8c, comment #6272a4.
+ */
+
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+  /* Backgrounds */
+  --ds-bg-primary: #282a36;
+  --ds-bg-secondary: #343746;
+  --ds-bg-tertiary: #44475a;
+  --ds-bg-inset: #21222c;
+  --ds-bg-hover: #44475a;
+  --ds-bg-active: #6272a4;
+  --ds-bg-elevated: #343746;
+  --ds-bg-elevated-opaque: #343746;
+  --ds-bg-elevated-primary: #282a36;
+  --ds-bg-sidebar: #21222c;
+  --ds-bg-dock: #21222c;
+  --ds-bg-dock-raised: #343746;
+  --ds-bg-under: #21222c;
+  --ds-bg-composer: #343746;
+  --ds-bg-chip: #44475a;
+  --ds-tile: #343746;
+  --ds-tile-deep: #21222c;
+  --ds-tile-hover: #44475a;
+
+  /* Text */
+  --ds-text-primary: #f8f8f2;
+  --ds-text-secondary: rgba(248, 248, 242, 0.75);
+  --ds-text-tertiary: #6272a4;
+  --ds-text-muted: #6272a4;
+  --ds-text-faint: rgba(98, 114, 164, 0.7);
+  --ds-placeholder-ink: rgba(98, 114, 164, 0.8);
+
+  /* Borders */
+  --ds-border: #44475a;
+  --ds-border-default: #44475a;
+  --ds-border-subtle: #343746;
+  --ds-border-strong: #6272a4;
+
+  /* Accent — Dracula purple */
+  --ds-accent: #bd93f9;
+  --ds-accent-hover: #d6acff;
+  --ds-accent-foreground: #282a36;
+  --ds-accent-soft: rgba(189, 147, 249, 0.18);
+  --ds-purple: #bd93f9;
+  --ds-focus: #bd93f9;
+
+  /* Status — Dracula green / orange / red / cyan / yellow */
+  --ds-success: #50fa7b;
+  --ds-warning: #ffb86c;
+  --ds-danger: #ff5555;
+  --ds-error: #ff5555;
+  --ds-info: #8be9fd;
+
+  /* Fields, controls, tools */
+  --ds-field-inset-bg: #21222c;
+  --ds-field-inset-focus-bg: #343746;
+  --ds-settings-field-bg: #21222c;
+  --ds-settings-nav-active: #44475a;
+  --ds-settings-rail-bg: #21222c;
+  --ds-tool-row-bg: #343746;
+  --ds-thinking-code-bg: #21222c;
+  --ds-code-head-bg: #343746;
+  --ds-code-hover-bg: #44475a;
+  --ds-send-disabled-bg: #44475a;
+  --ds-send-disabled-fg: #6272a4;
+  --ds-switch-knob-off: #f8f8f2;
+  --ds-switch-knob-on: #bd93f9;
+  --ds-switch-track-off: #44475a;
+  --ds-switch-track-off-hover: #6272a4;
+  --ds-switch-ring-off: #6272a4;
+
+  /* Overlays & shadows */
+  --ds-scrim: rgba(21, 22, 28, 0.6);
+  --ds-modal-veil: rgba(21, 22, 28, 0.6);
+  --ds-raised-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --ds-shadow-composer: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --ds-shadow-dialog: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --ds-elevation-stroke: rgba(68, 71, 90, 0.9);
+  --ds-mermaid-canvas: #21222c;
+  --ds-prose-kbd-fg: #f8f8f2;
+
+  /* Legacy aliases still read by a few host surfaces */
+  --color-bg-primary: #282a36;
+  --color-bg-secondary: #343746;
+  --color-bg-hover: #44475a;
+  --color-text-primary: #f8f8f2;
+  --color-text-secondary: rgba(248, 248, 242, 0.75);
+  --color-text-muted: #6272a4;
+  --color-border-default: #44475a;
+  --color-border-subtle: #343746;
+  --color-border-strong: #6272a4;
+  --color-success: #50fa7b;
+  --color-error: #ff5555;
+}

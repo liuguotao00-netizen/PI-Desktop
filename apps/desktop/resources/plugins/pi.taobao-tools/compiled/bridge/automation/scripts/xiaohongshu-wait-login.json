@@ -1,0 +1,42 @@
+{
+  "id": "xiaohongshu-wait-login",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 等待扫码登录",
+  "description": "在当前浏览器会话等待登录成功（默认最多 120 秒，可通过 timeoutSeconds 调整 5–600）。配合 xiaohongshu-login-qrcode，不跳转 URL。",
+  "variables": [
+    {
+      "key": "timeoutSeconds",
+      "label": "等待秒数（默认 120，最大 600）",
+      "type": "text",
+      "required": false,
+      "default": "120"
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_wait_login"
+    }
+  },
+  "steps": [
+    {
+      "id": "waitLogin",
+      "action": "waitForState",
+      "timeout": 125000,
+      "params": {
+        "expression": "(function(){return !!document.querySelector('.main-container .user .link-wrapper .channel');})()",
+        "errorCode": "LOGIN_WAIT_TIMEOUT",
+        "errorMessage": "等待登录超时，请重新运行 xiaohongshu-login-qrcode 后再试"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 10000,
+      "params": {
+        "saveAs": "xhsWaitLogin",
+        "fn": "function(){\n  var link=document.querySelector('.main-container .user .link-wrapper .channel,a[href*=\"/user/profile/\"]');\n  return {\n    logged_in:!!link,\n    nickname:link?(link.textContent||'').trim():''\n  };\n}"
+      }
+    }
+  ]
+}

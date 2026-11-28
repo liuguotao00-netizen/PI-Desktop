@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "cn.star.jianying-assistant",
+  "name": "剪映助手",
+  "version": "0.1.1",
+  "description": "本地剪映草稿助手：检测环境、读取素材、校验时间轴、生成并备份导入可编辑工程。",
+  "author": "TheFlareStar",
+  "license": "MIT",
+  "safetyNotes": "在独立 Node 进程中调用本机 Python 和文件系统。仅经显式确认安装 pyJianYingDraft 0.3.0 及依赖（PyPI）；运行环境和缓存位于当前工作区。读取指定本地素材、不上传媒体；新建工程，不覆写原草稿。导入会向用户配置的剪映草稿目录复制新工程并保留备份。启动操作仅运行 JianyingPro.exe。非剪映官方插件，不承诺新版剪映自动导出 MP4。",
+  "main": "main.js",
+  "ui": { "panel": "renderer/index.html", "title": "剪映助手", "width": 940, "height": 860 },
+  "contributes": {
+    "commands": [{ "id": "jianying-assistant.open", "title": "剪映助手：打开面板", "keywords": ["剪映", "视频", "jianying", "剪辑"] }],
+    "agentTools": [
+      {
+        "name": "check_environment",
+        "description": "只读检查当前工作区、Python、隔离草稿库环境、剪映程序及草稿目录候选。不会安装或启动软件。",
+        "risk": "low",
+        "schema": { "type": "object", "properties": {}, "additionalProperties": false }
+      },
+      {
+        "name": "setup_environment",
+        "description": "经用户确认后，在当前工作区安装隔离 Python venv 和 pyJianYingDraft==0.3.0；需要已安装 Python>=3.10 和访问 PyPI。不会下载 Python 或上传素材。",
+        "risk": "high",
+        "schema": { "type": "object", "properties": { "confirmed": { "type": "boolean", "description": "用户已同意安装依赖时才可设为 true。" } }, "required": ["confirmed"], "additionalProperties": false }
+      },
+      {
+        "name": "inspect_media",
+        "description": "读取本地视频或音频的时长和轨道信息，不上传文件。path 为绝对路径或工作区相对路径。",
+        "risk": "low",
+        "schema": { "type": "object", "properties": { "path": { "type": "string" } }, "required": ["path"], "additionalProperties": false }
+      },
+      {
+        "name": "validate_timeline",
+        "description": "校验剪辑方案与实际媒体时长，不生成工程。时间单位秒。请先读取本插件技能，了解 timeline 的 clips/audio/texts 结构。",
+        "risk": "low",
+        "schema": { "type": "object", "properties": { "timeline": { "type": "object", "description": "{title,width,height,fps,clips:[{path,start,duration,speed?,volume?}],audio?:[{path,start,duration,at?,volume?}],texts?:[{text,start,duration,fontSize?,color?}]}。clips 按顺序拼接；duration 是源时长，输出时长=duration/speed；audio.at 与 texts.start 是成片时间。至少一个视频片段。" } }, "required": ["timeline"], "additionalProperties": false }
+      },
+      {
+        "name": "create_draft",
+        "description": "按 timeline 新建可编辑剪映草稿并保存剪辑方案。视频裁剪排序/变速/音量、背景音频和文字字幕；本操作不是 MP4 导出。返回 jobDir 供 import_draft 使用。",
+        "risk": "medium",
+        "schema": { "type": "object", "properties": { "timeline": { "type": "object", "description": "{title,width,height,fps,clips:[{path,start,duration,speed?,volume?}],audio?:[{path,start,duration,at?,volume?}],texts?:[{text,start,duration,fontSize?,color?}]}，单位秒；width/height 偶数；fps 为24/25/30/50/60；color 为#RRGGBB。" } }, "required": ["timeline"], "additionalProperties": false }
+      },
+      {
+        "name": "import_draft",
+        "description": "用户确认后，将本插件生成的 jobDir/draft 备份并复制到面板配置的剪映草稿目录。只新建，不覆盖、不修改其他项目。必要时重启剪映刷新列表。",
+        "risk": "high",
+        "schema": { "type": "object", "properties": { "jobDir": { "type": "string" }, "confirmed": { "type": "boolean" } }, "required": ["jobDir", "confirmed"], "additionalProperties": false }
+      },
+      {
+        "name": "launch_jianying",
+        "description": "启动检测到或用户配置的剪映 JianyingPro.exe。仅启动应用，不保证自动打开指定草稿，不执行 MP4 导出。",
+        "risk": "high",
+        "schema": { "type": "object", "properties": {}, "additionalProperties": false }
+      }
+    ],
+    "skills": ["skills/pi-jianying-assistant.md"],
+    "settings": [
+      { "key": "pythonPath", "type": "string", "default": "", "title": "Python 可执行文件（留空自动检测）" },
+      { "key": "draftRoot", "type": "string", "default": "", "title": "剪映草稿根目录（导入前必须确认并填写）" },
+      { "key": "jianyingPath", "type": "string", "default": "", "title": "JianyingPro.exe 路径（留空自动检测）" },
+      { "key": "workDir", "type": "string", "default": "Jianying", "title": "工作区内输出目录" }
+    ]
+  },
+  "permissions": ["ui.panel", "agent.tool.register", "agent.prompt.inject"],
+  "engines": { "piDesktop": ">=0.14.0" },
+  "activationEvents": ["onCommand:jianying-assistant.open", "onStartup"]
+}

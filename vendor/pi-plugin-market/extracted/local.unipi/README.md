@@ -1,0 +1,76 @@
+# UniPi — PI-Desktop 对话插件
+
+这是一个用于学习、交流与兼容适配的迁移项目，基于 [Muse Desktop](https://github.com/robzilla1738/muse-desktop) 将其界面和交互迁移到 PI-Desktop 的插件体系中。原项目由 **Robert Courson（[@robzilla1738](https://github.com/robzilla1738)）** 开发，本项目保留原作者署名和 MIT 许可。感谢原作者的开源工作。
+
+本分支是非官方的 PI-Desktop 适配版，与上游作者及 Meta 没有隶属或背书关系。UniPi 在独立仓库维护，与上游 Muse Desktop 区分；本仓库的 main 分支提供 PI-Desktop 插件。
+
+## 为什么替换图标、Logo 和背景
+
+上游在 [素材与许可说明](https://github.com/robzilla1738/muse-desktop/blob/main/NOTICE.md) 中明确指出：MIT 许可适用于源码和文档，并不授予第三方名称、商标、参考图片或角色设计的使用权。因此，本适配版没有将源码开源理解为这些图片也可以自由复用，而是将图标、Logo、背景及角色图片替换为维护者提供的独角兽素材，并保留对原项目的出处说明。
+
+替换素材不改变本项目基于 Muse Desktop 迁移的事实，也不代表获得了上游品牌授权。替换图片不因源码的 MIT 许可自动获得相同授权；如需再次分发素材，请自行确认相应权利。详见 [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+
+## 安装与使用
+
+1. 从本仓库 Releases 下载 `local.unipi-0.3.24.piplug`。
+2. 在 PI-Desktop 插件管理中安装本地插件包，查看并确认所需权限。需要 PI-Desktop >= 0.21.0。
+3. 点击侧栏独角兽图标，或在命令面板执行 **UniPi: Open**。
+4. 使用 PI-Desktop 中已配置的模型。设置项 `modelKey` 可填写 `providerId/modelId`，留空使用默认模型。
+
+左上角提供关闭页面、最小化、最大化/还原按钮与简洁的返回入口。关闭 Muse 页面或点击返回箭头即可返回 PI-Desktop 原生界面。入口图标会自动寻找空位，不依赖 PI Bot。
+
+## 迁移内容与能力边界
+
+- 使用 PI-Desktop 的 manifest、插件主进程、renderer extension 和宿主 layer API。
+- 将原 Electron preload API 适配到插件桥接；通过 Shadow DOM 隔离界面样式。
+- 通过 `agent.complete` 使用宿主模型，不需要 Muse Code CLI 或额外 Meta 账号。纯文字回复为一次性返回，图片会话会轮询更新回复。
+- 支持会话、偏好、模型选择、项目文件预览、只读 Git 信息与对话压缩。
+- 纯文字补全不执行工具；图片消息使用原生 Agent 会话，原生工具和审批遵循宿主权限。支持文件粘贴、拖放和选择为附件；普通文字粘贴保持不变。麦克风暂不可用。
+- 发送消息时，对话与项目路径会发送给宿主中配置的模型服务商。插件保存自己的会话及偏好，可以打开链接、定位目录与打开终端。
+- 保留上游界面结构，并调整素材、亮色主题光标、窗口控件、中文适配和宿主界面切换。
+
+本版本已在本机 PI-Desktop 上安装和使用；发布到 GitHub 不等于已通过官方插件市场审核。
+
+## 目录与构建
+
+- `main.js`：PI-Desktop 插件后端。
+- `renderer/`：宿主界面入口、窗口控制和嵌入素材。
+- `source/`：用于迁移构建的 Muse React 源码及共享类型。
+- `views/muse/app/muse-app.mjs`：可直接运行的界面构建产物。
+- `scripts/package.py`：按明确文件清单生成 `.piplug` ZIP 包。
+
+插件运行不需要额外构建。重新构建 React 界面：
+
+```powershell
+npm ci
+npm run build
+py scripts/package.py
+```
+
+构建后仍应在 PI-Desktop 内验证插件桥接、权限、侧栏布局与窗口控件。
+
+## 许可与出处
+
+- 上游：[robzilla1738/muse-desktop](https://github.com/robzilla1738/muse-desktop)
+- 原作者：Robert Courson
+- 源码许可：[MIT](LICENSE)，保留原版权声明。
+- 上游原始说明：[UPSTREAM-NOTICE.md](UPSTREAM-NOTICE.md)。
+- 适配与素材说明：[THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)。
+
+## 从旧适配版升级
+
+UniPi 使用独立标识 `local.unipi`，旧版为 `local.muse-desktop`。安装后请禁用旧版，避免重复入口。两者的数据目录独立，旧版会话不会自动迁移；请保留旧版数据。
+
+## 图片消息（0.3.14）
+
+附件按钮支持 PNG、JPEG、WebP、GIF，单张最多 10 MB，每条消息最多 5 张；选择后显示预览。图片上传使用 60,000 字符分段，避免超过插件桥限制。图片消息通过 desktop.control 创建原生 Agent 会话，回复读回 UniPi，无需安装 PI Bot 或修改宿主。需要视觉模型；原生工具和审批遵循宿主权限。等待审批时可在 Pi Desktop 会话列表打开 UniPi 会话处理。升级必须确认新增权限。保留最近最多 5 个原生附件作为后续对话上下文。TXT、代码等小型 UTF-8 文件以附件卡片显示，内容在发送时提供给模型；PDF、Word 等其他文件作为原生文件附件交给 Pi Desktop，具体解析能力取决于宿主和模型。每个文件最多 10 MB，每条消息最多 5 个附件。复制文件后 Ctrl+V 会添加附件，不会将文件内容灌入输入框；复制普通文字仍按文字粘贴。
+
+### 0.3.21 外观与附件修复
+
+- Plush 使用暖桃粉色，不再沿用 Muse 蓝色配色。
+- 五种主题按背景强度设置显示，取消对话中的额外透明度衰减和重复背景叠图；文字区域添加轻薄底板以保持可读性。
+- 粘贴文件保留附件卡片，发送后保留文件名；普通文字粘贴保持不变。
+
+### 0.3.22 对话删除
+
+鼠标移到对话上，点击右侧垃圾桶即可删除单条。点击对话记录标题旁的批量管理按钮，可勾选多条或全选当前列表后删除。删除前会确认，无法撤销；正在回复的对话需先停止。只删除 UniPi 对话及消息，保留 Pi Desktop 原生会话和原始附件文件。

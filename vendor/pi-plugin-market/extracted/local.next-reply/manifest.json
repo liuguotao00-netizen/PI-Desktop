@@ -1,0 +1,65 @@
+{
+  "activationEvents": [
+    "onStartup"
+  ],
+  "author": "RugkeyPro",
+  "contributes": {
+    "commands": [
+      {
+        "id": "suggest",
+        "title": "生成下一句建议"
+      }
+    ],
+    "settings": [
+      {
+        "default": true,
+        "key": "enabled",
+        "title": "自动推荐下一句",
+        "type": "boolean"
+      },
+      {
+        "default": "",
+        "key": "modelKey",
+        "title": "推荐模型（留空使用当前会话模型）",
+        "type": "string"
+      }
+    ]
+  },
+  "description": "回答结束后基于近期对话智能推荐用户的下一句回复，支持 Tab 填入可编辑草稿、Esc 忽略或通过命令手动生成，完全独立运行，无需文件打开组件。",
+  "engines": {
+    "piDesktop": ">=0.21.0"
+  },
+  "homepage": "https://github.com/RugkeyPro/agent-skills",
+  "i18n": {
+    "en": {
+      "name": "Next Reply Suggestion",
+      "description": "Suggests the user's likely next reply in the composer after each assistant turn. Press Tab to insert as an editable draft, Esc to dismiss, or trigger manually via command. Works standalone without any file-opening helper.",
+      "safetyNotes": "Calls the current session model (or a user-configured modelKey) after a completed turn or manual command, sending at most the latest 12 messages and 12,000 characters of visible conversation text, which incurs one normal model completion call. Never reads credentials or local files, makes no external network requests, and never auto-sends messages. The renderer extension only syncs visible session messages inside the app window."
+    },
+    "zh-CN": {
+      "name": "下一句推荐",
+      "description": "回答结束后基于近期对话智能推荐用户的下一句回复，支持 Tab 填入可编辑草稿、Esc 忽略或通过命令手动生成，完全独立运行，无需文件打开组件。",
+      "safetyNotes": "仅在回合完成或手动触发时调用当前会话模型（或插件设置中指定的模型），最多发送当前会话最近 12 条、12000 字符的已加载对话文本，会产生一次常规模型调用费用。不读取任何密钥或本地文件，不发起外部网络请求，生成的建议仅填入输入框草稿，绝不自动发送消息。渲染扩展仅用于在应用窗口内同步当前可见会话消息。"
+    }
+  },
+  "id": "local.next-reply",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "下一句推荐",
+  "permissions": [
+    "agent.complete",
+    "composer.suggest",
+    "models.list",
+    "renderer.extension"
+  ],
+  "renderer": "renderer.mjs",
+  "rendererActions": [
+    "plugin.call"
+  ],
+  "rendererCallMethods": [
+    "context.update"
+  ],
+  "safetyNotes": "仅在回合完成或手动触发时调用当前会话模型（或插件设置中指定的模型），最多发送当前会话最近 12 条、12000 字符的已加载对话文本，会产生一次常规模型调用费用。不读取任何密钥或本地文件，不发起外部网络请求，生成的建议仅填入输入框草稿，绝不自动发送消息。渲染扩展仅用于在应用窗口内同步当前可见会话消息。",
+  "schemaVersion": 1,
+  "version": "1.0.0"
+}

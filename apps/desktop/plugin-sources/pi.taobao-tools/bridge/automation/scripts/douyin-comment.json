@@ -1,0 +1,251 @@
+{
+  "id": "douyin-comment",
+  "platform": "douyin",
+  "kind": "interact",
+  "name": "抖音 · 评论作品",
+  "description": "打开作品页，点开评论输入区，检查有没有已有草稿，输入后点发送，再按评论列表里是否出现这段文字确认。评论框已有草稿时不覆盖、不发送。",
+  "variables": [
+    {
+      "key": "videoId",
+      "label": "作品 ID（纯数字）",
+      "type": "text",
+      "default": ""
+    },
+    {
+      "key": "content",
+      "label": "评论内容",
+      "type": "textarea",
+      "default": ""
+    }
+  ],
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "douyin_comment"
+    }
+  },
+  "steps": [
+    {
+      "id": "openVideo",
+      "action": "navigate",
+      "value": "https://www.douyin.com/video/{{videoId}}",
+      "timeout": 30000
+    },
+    {
+      "action": "assertPageState",
+      "timeout": 15000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "请完成验证"
+          },
+          {
+            "type": "text",
+            "value": "安全验证"
+          },
+          {
+            "type": "text",
+            "value": "身份验证"
+          },
+          {
+            "type": "text",
+            "value": "接收短信验证码"
+          },
+          {
+            "type": "exist",
+            "selector": "[class*='captcha'], iframe[src*='captcha']"
+          }
+        ],
+        "errorCode": "RISK_CAPTCHA",
+        "errorMessage": "抖音触发了验证码/风控，请先在浏览器里完成验证"
+      }
+    },
+    {
+      "id": "assertCanComment",
+      "action": "assertPageState",
+      "timeout": 10000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "登录后评论"
+          },
+          {
+            "type": "text",
+            "value": "登录后可评论"
+          },
+          {
+            "type": "text",
+            "value": "扫码登录"
+          }
+        ],
+        "errorCode": "AUTH_REQUIRED",
+        "errorMessage": "抖音未登录，无法评论"
+      }
+    },
+    {
+      "id": "waitDetail",
+      "action": "waitForState",
+      "timeout": 30000,
+      "params": {
+        "expression": "(function(){try{var el=document.querySelector('h1');return !!(el&&(el.innerText||'').trim());}catch(e){return false;}})()",
+        "errorCode": "DETAIL_NOT_READY",
+        "errorMessage": "作品详情没有加载出来（作品可能不可见，或页面改版）"
+      }
+    },
+    {
+      "id": "prepare",
+      "action": "execute",
+      "timeout": 10000,
+      "params": {
+        "saveAs": "douyinCommentPrepare",
+        "fn": "function(ctx){window.__qiworkComment={text:String(ctx.content||''),before:document.querySelectorAll('[data-e2e=\"comment-item\"]').length,blocked:''};return {before:window.__qiworkComment.before};}"
+      }
+    },
+    {
+      "id": "openComposer",
+      "description": "评论输入区默认是折叠的，点占位文案展开",
+      "action": "click",
+      "trusted": true,
+      "target": {
+        "selector": "[class*='comment-input-inner-container'] span",
+        "text": "留下你的精彩评论吧"
+      }
+    },
+    {
+      "id": "waitInput",
+      "action": "waitForElement",
+      "timeout": 8000,
+      "target": {
+        "selector": ".public-DraftEditor-content[contenteditable=\"true\"]"
+      }
+    },
+    {
+      "id": "checkDraft",
+      "description": "已有草稿就停，不覆盖",
+      "action": "execute",
+      "timeout": 10000,
+      "params": {
+        "saveAs": "douyinCommentDraft",
+        "fn": "function(){var el=document.querySelector('.public-DraftEditor-content[contenteditable=\"true\"]');if(!el){window.__qiworkComment.blocked='comment_input_not_found';return {found:false};}var current=String(el.innerText||'').replace(/\\u00a0/g,' ').trim();window.__qiworkComment.blocked=(current&&current!==window.__qiworkComment.text)?'comment_input_not_empty':'';return {found:true,blocked:window.__qiworkComment.blocked,current:current.slice(0,200)};}"
+      }
+    },
+    {
+      "id": "assertDraftEmpty",
+      "action": "waitForState",
+      "timeout": 3000,
+      "params": {
+        "expression": "window.__qiworkComment && !window.__qiworkComment.blocked",
+        "errorCode": "COMMENT_INPUT_NOT_EMPTY",
+        "errorMessage": "评论框不可用或已有草稿；为避免覆盖，本次没有发送"
+      }
+    },
+    {
+      "id": "typeComment",
+      "action": "type",
+      "value": "{{content}}",
+      "maxChars": 500,
+      "target": {
+        "selector": ".public-DraftEditor-content[contenteditable=\"true\"]"
+      }
+    },
+    {
+      "id": "think",
+      "action": "wait",
+      "duration": [
+        600,
+        1200
+      ]
+    },
+    {
+      "id": "checkSubmit",
+      "action": "execute",
+      "timeout": 10000,
+      "params": {
+        "saveAs": "douyinCommentSubmit",
+        "fn": "function(){var btn=document.querySelector('.commentInput-right-ct span:last-of-type');return {found:!!btn,text:btn?(btn.innerText||'').trim():''};}"
+      }
+    },
+    {
+      "id": "assertSubmitFound",
+      "action": "waitForState",
+      "timeout": 3000,
+      "params": {
+        "expression": "!!document.querySelector('.commentInput-right-ct span:last-of-type')",
+        "errorCode": "COMMENT_SUBMIT_NOT_FOUND",
+        "errorMessage": "没有找到评论发送按钮，本次没有发送"
+      }
+    },
+    {
+      "id": "submit",
+      "action": "click",
+      "trusted": true,
+      "target": {
+        "selector": ".commentInput-right-ct span:last-of-type"
+      }
+    },
+    {
+      "id": "settle",
+      "action": "wait",
+      "duration": [
+        1500,
+        2500
+      ]
+    },
+    {
+      "id": "assertNoError",
+      "action": "assertPageState",
+      "timeout": 5000,
+      "params": {
+        "failWhen": [
+          {
+            "type": "text",
+            "value": "操作频繁"
+          },
+          {
+            "type": "text",
+            "value": "评论失败"
+          },
+          {
+            "type": "text",
+            "value": "发送失败"
+          },
+          {
+            "type": "text",
+            "value": "请勿重复评论"
+          }
+        ],
+        "errorCode": "COMMENT_FAILED",
+        "errorMessage": "抖音没有接受这条评论（文案见页面提示）"
+      }
+    },
+    {
+      "id": "verify",
+      "action": "waitForState",
+      "timeout": 15000,
+      "params": {
+        "expression": "(function(){try{var st=window.__qiworkComment;if(!st||!st.text)return false;var n=document.querySelectorAll('[data-e2e=\"comment-item\"]');for(var i=0;i<n.length;i++){if((n[i].innerText||'').indexOf(st.text)>=0)return true;}return false;}catch(e){return false;}})()",
+        "errorCode": "COMMENT_NOT_CONFIRMED",
+        "errorMessage": "评论没有在限定时间内确认；不要重复发送，先看评论区"
+      }
+    },
+    {
+      "id": "result",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "douyinCommentResult",
+        "fn": "function(ctx){var st=window.__qiworkComment||{};var n=document.querySelectorAll('[data-e2e=\"comment-item\"]');var found=false;for(var i=0;i<n.length;i++){if(st.text&&(n[i].innerText||'').indexOf(st.text)>=0){found=true;break;}}return {video_id:String(ctx.videoId||''),text:st.text||'',comments_before:st.before||0,comments_after:n.length,confirmed:found,blocked:st.blocked||''};}"
+      }
+    },
+    {
+      "id": "delay",
+      "action": "wait",
+      "duration": [
+        300,
+        700
+      ]
+    }
+  ]
+}

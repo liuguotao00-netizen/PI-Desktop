@@ -1,0 +1,12 @@
+{
+  "id": "cc.fee.pi-terminal",
+  "version": "1.0.0",
+  "publishedAt": "2026-10-26T16:53:32Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/cc.fee.pi-terminal-1.0.0.piplug",
+  "shasum": "75f9641e3df48ac13768592dfd5f4998af41dd0d46eea54890d9aa322ead41fb",
+  "repository": null,
+  "homepage": "https://github.com/yanecc/PI-Terminal",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/cc.fee.pi-terminal/1.0.0",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output / packaged plugin bundles
+dist/
+build/
+*.piplug
+
+# Test & coverage artifacts
+coverage/
+.nyc_output/
+*.tap
+test-results/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local environment and secrets (never commit)
+.env
+.env.*
+!.env.example
+*.local
+credentials*
+*.pem
+*.key
+
+# Temp
+*.tmp
+tmp/

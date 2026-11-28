@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="pi-plugin-chrome" content="v3" />
+  <!-- PI-Desktop owns exactly a transparent 46px drag band and a three-button
+       window-control capsule. Fixed/sticky controls start at
+       var(--pi-plugin-titlebar-height, 46px); no duplicate draggable titlebar. -->
+  <title>Agents Anywhere</title>
+  <script src="./appearance-boot.js"></script>
+  <link rel="stylesheet" href="./panel.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand"><span class="brandmark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M12 10l-4 4a6 6 0 008 8l4-4M20 22l4-4a6 6 0 00-8-8l-4 4M12 20l8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg></span><h1>Agents Anywhere</h1></div>
+      <span class="badge">2.2.2</span>
+    </header>
+    <nav class="tabs" role="tablist" aria-label="Anywhere" aria-orientation="horizontal">
+      <button id="tab-status" type="button" role="tab" aria-selected="true" aria-controls="panel-status" tabindex="0" data-i18n="tabStatus">Status</button>
+      <button id="tab-connections" type="button" role="tab" aria-selected="false" aria-controls="panel-connections" tabindex="-1" data-i18n="tabConnections">Connections</button>
+      <button id="tab-events" type="button" role="tab" aria-selected="false" aria-controls="panel-events" tabindex="-1" data-i18n="tabEvents">Events</button>
+    </nav>
+    <aside id="readiness" class="card readiness" aria-label="Sharing readiness">
+      <div role="status" aria-live="polite">
+        <p id="runtimeSetup" data-i18n="runtimeSetup" hidden>Device connected, runtime not running. In Anywhere → device, enable the existing Pi Desktop instance. If not configured: Available to add → Pi Desktop → Add, save its empty config, then enable it. First setup only; reconnect normally restores the configured active instance. Connector token cannot create runtime.</p>
+        <p id="readinessMessage">Checking connection and sharing readiness…</p>
+      </div>
+      <button id="readinessAction" type="button" hidden></button>
+    </aside>
+    <div id="panel-status" role="tabpanel" aria-labelledby="tab-status" tabindex="0">
+    <section class="card status-card" aria-labelledby="status-title">
+      <div class="row"><h2 id="status-title" data-i18n="status">Connection status</h2><button id="refresh" type="button" data-i18n="refresh">Refresh</button></div>
+      <p id="state" role="status"></p>
+      <dl><div class="metric"><dt data-i18n="discovered">Runtime discovered</dt><dd id="discovered">—</dd></div><div class="metric"><dt data-i18n="running">Runtime running</dt><dd id="running">—</dd></div></dl>
+      <dl class="sharing-status">
+        <div class="metric wide"><dt data-i18n="runtimeId">Runtime instance ID</dt><dd id="runtimeId">—</dd></div>
+        <div class="metric"><dt data-i18n="sharingEnabled">Session sharing allowed</dt><dd id="sharingEnabled">—</dd></div>
+        <div class="metric"><dt data-i18n="sharingReady">Sharing ready</dt><dd id="sharingReady">—</dd></div>
+        <div class="metric wide"><dt data-i18n="workspaceName">Approved workspace</dt><dd id="workspaceName">—</dd></div>
+        <div class="metric"><dt data-i18n="sessionCount">Shared sessions</dt><dd id="sessionCount">—</dd></div>
+        <div class="metric"><dt data-i18n="lastSyncAt">Last status sync</dt><dd id="lastSyncAt">—</dd></div>
+      </dl>
+      <p data-i18n="visibility">An online socket does not prove device visibility in Cloud.</p>
+    </section>
+      <aside class="card notes"><h2 data-i18n="boundaries">Capabilities and limits</h2><p data-i18n="verification">Current protocol is tested offline, not Cloud-proven. Legacy is disabled. Remote tool approval and fine-grained streaming are not supported; local permissions still apply.</p></aside>
+    </div>
+    <div id="panel-connections" role="tabpanel" aria-labelledby="tab-connections" tabindex="0" hidden>
+    <form id="connection" class="card settings-card" autocomplete="off">
+      <h2 data-i18n="settings">Connection settings</h2>
+      <label for="command" data-i18n="command">Paste CLI command (parsed only, never executed)</label>
+      <textarea id="command" rows="3" spellcheck="false" autocomplete="off" maxlength="8192"></textarea>
+      <button id="parse" type="button" data-i18n="parse">Parse command</button>
+      <div class="fields">
+        <div class="wide"><label for="serverUrl" data-i18n="origin">Server origin (official or self-hosted HTTPS, optional port)</label><input id="serverUrl" type="url" value="https://web.agents-anywhere.com" required spellcheck="false" /></div>
+        <div><label for="connectorId" data-i18n="connectorId">Connector ID</label><input id="connectorId" required spellcheck="false" /></div>
+        <div><label for="connectorToken" data-i18n="token">Connector token</label><input id="connectorToken" type="password" autocomplete="new-password" required /></div>
+        <div class="wide"><label for="profile" data-i18n="profile">Protocol profile</label><select id="profile"><option value="current">Current</option><option value="legacy" disabled>Legacy</option></select></div>
+      </div>
+      <fieldset class="saved-connection">
+        <legend data-i18n="savedTitle">Saved connection</legend>
+        <p data-i18n="savedHint">Address and ID are saved on Connect. Optionally encrypt the token with a password; the password is never saved. Upgrade in place; uninstall may remove plugin data.</p>
+        <p id="savedState" role="status"></p>
+        <label class="consent"><input id="useSaved" type="checkbox" /><span data-i18n="useSaved">Use the saved encrypted token</span></label>
+        <label class="consent"><input id="rememberConnection" type="checkbox" /><span data-i18n="rememberConnection">Encrypt and remember the entered token</span></label>
+        <label for="vaultPassword" data-i18n="vaultPassword">Encryption / unlock password (at least 12 characters)</label>
+        <input id="vaultPassword" type="password" autocomplete="off" maxlength="1024" />
+        <label class="consent"><input id="forgetConsent" type="checkbox" /><span data-i18n="forgetConsent">Disconnect and forget saved connection only; keep session mappings</span></label>
+        <button id="forgetConnection" type="button" data-i18n="forgetConnection" disabled>Forget saved connection</button>
+      </fieldset>
+      <fieldset class="saved-connection project-scope" aria-describedby="projectsHelp">
+        <legend data-i18n="projectsTitle">Sharing scope</legend>
+        <input id="useProjects" type="checkbox" hidden aria-hidden="true" tabindex="-1" />
+        <div class="scope-options">
+          <label class="scope-option"><input id="scopeCurrent" type="radio" name="sharingScope" value="current" checked /><span data-i18n="scopeCurrent">Current workspace</span></label>
+          <label class="scope-option"><input id="scopeProjects" type="radio" name="sharingScope" value="projects" /><span data-i18n="scopeProjects">Selected saved projects</span></label>
+        </div>
+        <p id="scopeHelp"></p>
+        <p id="projectsHelp" data-i18n="projectsHelp">Load local saved projects, then select up to 32. On Connect, with sharing consent, paths, titles and conversation text are uploaded. Empty projects appear remotely only after a real session exists. New projects are not automatically selected. Changes apply only on reconnect; Disconnect to revoke immediately.</p>
+        <div class="actions project-actions">
+          <button id="loadProjects" type="button" data-i18n="loadProjects">Load saved projects</button>
+          <button id="selectAllProjects" type="button" data-i18n="selectAllProjects" disabled>Select all</button>
+          <button id="clearProjects" type="button" data-i18n="clearProjects" disabled>Clear selection</button>
+        </div>
+        <p id="projectsState" role="status" aria-live="polite"></p>
+        <p id="projectsCount" role="status" aria-live="polite"></p>
+        <div id="projectsList" class="project-list"></div>
+      </fieldset>
+      <label class="consent"><input id="shareSessions" type="checkbox" /><span data-i18n="shareSessions">Share paths, titles and conversation text in the scope selected above; allow remote create/send/interrupt under existing session permissions.</span></label>
+      <p data-i18n="applyHint">Changes take effect only when you connect again. Disconnect to revoke immediately.</p>
+      <label class="consent"><input id="consent" type="checkbox" /><span data-i18n="consent">I trust the server origin entered above and allow sending my Connector credentials to it. Sharing requires the separate consent above.</span></label>
+      <div class="actions"><button id="connect" type="submit" data-i18n="connect" disabled>Connect / apply sharing</button><button id="disconnect" type="button" data-i18n="disconnect">Disconnect</button></div>
+      <p id="message" role="alert"></p>
+    </form>
+      <aside class="card notes"><h2 data-i18n="connectionSafety">Connection safety</h2><p data-i18n="security">Requires PI-Desktop 0.18.0+. Approve net.anyHost when installing/updating; it is an arbitrary-host grant, not a per-domain prompt. Enter a trusted direct HTTPS origin without /api/v2 or proxy subpaths. Authentication and uploads refuse redirects; TLS checks remain enabled. No automatic connection after restart.</p></aside>
+    </div>
+    <div id="panel-events" role="tabpanel" aria-labelledby="tab-events" tabindex="0" hidden>
+    <section class="card logs-card">
+      <div class="row"><h2 data-i18n="logs">Connection events</h2><button id="diagnostics" type="button" data-i18n="diagnostics">Generate diagnostic report / 生成诊断报告</button></div>
+      <p data-i18n="logPrivacy">Only recognized event codes and bounded diagnostic details are shown; credentials are excluded.</p>
+      <ul id="logs"><li>Panel initializing. Reload the plugin if this persists. / 面板初始化中，若长时间不变请重新加载插件。</li></ul>
+      <label for="report" data-i18n="reportLabel">Diagnostic report / 诊断报告</label>
+      <textarea id="report" rows="9" readonly hidden spellcheck="false"></textarea>
+      <p data-i18n="reportHint">Select and copy with Ctrl+C. No credentials are included. / 全选后按 Ctrl+C 复制，不含凭据。</p>
+    </section>
+    </div>
+  </main>
+  <script src="./appearance.js"></script>
+  <script src="../src/connection-input.js"></script>
+  <script src="./panel.js"></script>
+</body>
+</html>

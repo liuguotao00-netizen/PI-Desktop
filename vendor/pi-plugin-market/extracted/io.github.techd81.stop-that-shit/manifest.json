@@ -1,0 +1,84 @@
+{
+  "activationEvents": [
+    "onStartup"
+  ],
+  "author": "Techd81 (PI-Desktop port) / lennney (upstream)",
+  "categories": [
+    "developer-tools",
+    "productivity"
+  ],
+  "changelog": "- Slash commands work right after installation, and stay current: on load the plugin\n  writes the `/stop-that-shit` and `/sts` composer templates into `~/.pi/agent/prompts`\n  and replaces either one when the shipped text changed, so an upgrade reaches users who\n  never run the installer. The displaced text is kept once as a `.md.bak` copy.\n- `npm run prompts:desktop` performs the same write from a checkout.",
+  "contributes": {
+    "agentExtensions": [
+      "src/desktop/extension.mjs"
+    ],
+    "commands": [
+      {
+        "id": "sts.openpanel",
+        "title": "Stop That Shit: 打开面板"
+      }
+    ],
+    "skills": [
+      {
+        "id": "stop-that-shit",
+        "path": "skills/stop-that-shit/SKILL.md"
+      },
+      {
+        "id": "stss",
+        "path": "skills/stss/SKILL.md"
+      }
+    ],
+    "views": [
+      {
+        "entry": "views/index.html",
+        "icon": "shield",
+        "id": "sts",
+        "order": 70,
+        "title": {
+          "en": "Stop That Shit",
+          "zh-CN": "别再造史了"
+        }
+      }
+    ]
+  },
+  "description": "Task-boundary Guard and Skill for PI-Desktop: explicit read-only or change contracts, checked before every tool call, with a local audit panel.",
+  "engines": {
+    "piDesktop": ">=0.22.0"
+  },
+  "homepage": "https://github.com/Techd81/pi-desktop-stop-that-shit",
+  "i18n": {
+    "en": {
+      "name": "Stop That Shit",
+      "description": "Task-boundary Guard and Skill for PI-Desktop: explicit read-only or change contracts, checked before every tool call, with a local audit panel.",
+      "safetyNotes": "Declares agent.extension to check tool calls before they run and to block the ones the active task contract forbids; a block is a denial returned to the agent, and the host's final effect is not observed. Contract and audit records are metadata only (no code, no conversation text) and are written with Node's filesystem API inside this plugin's own data directory (~/.pi-desktop/plugins/data/io.github.techd81.stop-that-shit). On load it also writes the two composer templates stop-that-shit.md and sts.md into ~/.pi/agent/prompts, replacing either one when the shipped text changed and copying the displaced text once to a sibling .md.bak file; no other name in that directory is written. Declares agent.prompt.inject only so the two bundled Skills are indexed by the host. The panel reads the same data directory and calls no host write API. No network access, no telemetry, no clipboard, no shell commands."
+    },
+    "zh-CN": {
+      "name": "别再造史了",
+      "description": "面向 PI-Desktop 的任务边界护栏与技能：显式的只读／改动契约，在每次工具调用前检查，并自带本地审计面板。",
+      "safetyNotes": "声明 agent.extension 以便在工具执行前检查，并按当前任务契约拦截；拦截是回给 Agent 的拒绝，宿主最终是否执行并未被观测。契约与审计记录只含元数据（不含代码、不含对话文本），用 Node 文件接口写入本插件自己的数据目录（~/.pi-desktop/plugins/data/io.github.techd81.stop-that-shit）。加载时还会在 ~/.pi/agent/prompts 写入 stop-that-shit.md 与 sts.md 两个补全模板，模板文案随版本变化时直接覆盖，被替换的旧文本另存为同名 .md.bak 文件；不写该目录里的其它文件名。声明 agent.prompt.inject 仅用于让宿主索引随包的两个 Skill。面板只读取同一数据目录，不调用任何宿主写入接口。无网络访问、无遥测、不读写剪贴板、不调用 shell。"
+    }
+  },
+  "id": "io.github.techd81.stop-that-shit",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "Stop That Shit",
+  "permissions": [
+    "agent.extension",
+    "agent.prompt.inject",
+    "ui.panel",
+    "ui.view"
+  ],
+  "safetyNotes": "Checks supported agent tool calls against an explicit task contract and writes metadata-only state under its own plugin data directory, plus the two composer templates in ~/.pi/agent/prompts, refreshed on upgrade with the displaced text kept once as .bak. No network access, no telemetry, no shell.",
+  "schemaVersion": 1,
+  "ui": {
+    "height": 780,
+    "panel": "views/index.html",
+    "resizable": true,
+    "title": {
+      "en": "Stop That Shit",
+      "zh-CN": "别再造史了"
+    },
+    "width": 1080
+  },
+  "version": "0.2.7"
+}

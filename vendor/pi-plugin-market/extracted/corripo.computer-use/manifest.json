@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "id": "corripo.computer-use",
+  "name": "PI Computer Use",
+  "version": "0.1.2",
+  "description": "Linux 桌面自动化工具：截屏、鼠标、文本与组合键输入，并探测会话和窗口。支持 Wayland 与 X11；Wayland 下 fcitx5 文本注入默认 fail-closed，需显式允许短暂停用输入法。\nLinux desktop automation: screenshots, mouse control, text and key input, plus session and window inspection. Supports Wayland and X11; text injection with fcitx5 is fail-closed by default and requires explicit opt-in to suspend the input method.",
+  "main": "main.js",
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "cu_screenshot",
+        "description": "截取当前桌面屏幕（可选区域），保存为 PNG 并返回文件路径；同时把图片内联返回给模型。Wayland 用 grim，X11 用 ImageMagick import 或 scrot。",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "path": {
+              "type": "string",
+              "description": "保存路径（可选，默认写到系统临时目录）"
+            },
+            "label": {
+              "type": "string",
+              "description": "文件名标签，便于区分多张截图"
+            },
+            "inline": {
+              "type": "boolean",
+              "description": "是否把图片数据内联返回（默认 true；只想要路径时设 false）"
+            },
+            "region": {
+              "type": "object",
+              "description": "可选：只截取一块区域",
+              "properties": {
+                "x": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "y": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "required": [
+                "x",
+                "y",
+                "width",
+                "height"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "name": "cu_mouse_move",
+        "description": "把鼠标移到绝对坐标 (x, y)。坐标以屏幕左上角为原点，单位像素。Wayland 用 ydotool（需 ydotoold），X11 用 xdotool。",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "x 像素坐标"
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "y 像素坐标"
+            }
+          },
+          "required": [
+            "x",
+            "y"
+          ]
+        }
+      },
+      {
+        "name": "cu_mouse_click",
+        "description": "点击鼠标。可选先移动到 (x, y)；支持左/中/右键与单击/双击/三击。",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "可选：点击前先移动到的 x"
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "可选：点击前先移动到的 y"
+            },
+            "button": {
+              "type": "string",
+              "enum": [
+                "left",
+                "middle",
+                "right"
+              ],
+              "description": "鼠标键，默认 left"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 3,
+              "description": "点击次数，默认 1（2=双击）"
+            }
+          }
+        }
+      },
+      {
+        "name": "cu_mouse_scroll",
+        "description": "滚轮滚动。Wayland 的 ydotool 1.x 没有滚轮子命令，此工具在 Wayland 下会返回不支持。",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "direction": {
+              "type": "string",
+              "enum": [
+                "up",
+                "down"
+              ],
+              "description": "滚动方向"
+            },
+            "amount": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "滚动格数，默认 1"
+            },
+            "x": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "可选：滚动前先把指针移到该 x"
+            },
+            "y": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "可选：滚动前先把指针移到该 y"
+            }
+          },
+          "required": [
+            "direction"
+          ]
+        }
+      },
+      {
+        "name": "cu_type_text",
+        "description": "把文本输入到当前焦点窗口。Wayland 检测到 fcitx5 默认返回 input_blocked_by_ime；只有显式 allowImeSuspend=true 才短暂停用并重启 fcitx5。",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "description": "要输入的文本，最多 20000 字符"
+            },
+            "delayMs": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2000,
+              "description": "可选：X11 下每个字符之间的延时毫秒"
+            },
+            "allowImeSuspend": {
+              "type": "boolean",
+              "description": "默认 false。true 会在输入前短暂停用 fcitx5 并重启；中英状态可能变化。"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      },
+      {
+        "name": "cu_key_press",
+        "description": "按下一个组合键，例如 \"ctrl+c\"、\"ctrl+shift+t\"、\"Return\"、\"Escape\"。一次可给多个按键依次按下（keys 数组）。",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "单个组合键，如 \"ctrl+c\""
+            },
+            "keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "依次按下的组合键数组，如 [\"ctrl+a\", \"Delete\"]"
+            }
+          }
+        }
+      },
+      {
+        "name": "cu_screen_info",
+        "description": "只读探测：会话类型（X11/Wayland）、屏幕尺寸、当前可用的截图与输入后端、以及各依赖是否安装。在动手前先用它确认环境。",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "cu_window_list",
+        "description": "列出当前窗口标题与 id。X11 用 wmctrl/xdotool；Wayland 仅在 niri 下可用。",
+        "risk": "low",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      }
+    ]
+  },
+  "permissions": [
+    "agent.tool.register"
+  ],
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "activationEvents": [
+    "onStartup"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "local.pi-session-filter",
+  "version": "0.4.0",
+  "publishedAt": "2026-10-14T11:51:12Z",
+  "catalogUrl": "https://plugins.aiuo.net/packages/local.pi-session-filter-0.4.0.piplug",
+  "shasum": "d4f44cae088812fe8e61df299bc051bd88410c515204e7ef12268846316aeb4a",
+  "repository": null,
+  "homepage": "https://github.com/mai-ming/pi-desktop-session-filter",
+  "license": null,
+  "downloadUrl": "https://plugins.aiuo.net/download/local.pi-session-filter/0.4.0",
+  "mirroredAt": "2026-11-25T14:35:14.812Z"
+}

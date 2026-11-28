@@ -1,0 +1,150 @@
+{
+  "activationEvents": [
+    "onStartup",
+    "onCommand:com.vastsa.side-chat.open"
+  ],
+  "author": "VastSa",
+  "categories": [
+    "productivity"
+  ],
+  "changelog": "Release 0.1.15: hide inactive automatically empty history buckets and distinguish same-name nonempty project histories without merging, deleting or changing their keys. Preserve attachments, permissions and main/side isolation.",
+  "contributes": {
+    "agentExtensions": [
+      "agent/attachment-guard-0.1.11.js"
+    ],
+    "commands": [
+      {
+        "category": "Agent",
+        "id": "com.vastsa.side-chat.open",
+        "keywords": [
+          "side",
+          "chat",
+          "sidebar",
+          "assistant",
+          "侧边",
+          "聊天",
+          "旁路"
+        ],
+        "title": "Side Chat: Open"
+      }
+    ],
+    "settings": [
+      {
+        "default": "",
+        "description": "providerId/modelId used for side-chat completions.",
+        "key": "modelKey",
+        "title": "Model",
+        "type": "string"
+      },
+      {
+        "default": "low",
+        "enum": [
+          {
+            "label": "off",
+            "value": "off"
+          },
+          {
+            "label": "minimal",
+            "value": "minimal"
+          },
+          {
+            "label": "low",
+            "value": "low"
+          },
+          {
+            "label": "medium",
+            "value": "medium"
+          },
+          {
+            "label": "high",
+            "value": "high"
+          },
+          {
+            "label": "xhigh",
+            "value": "xhigh"
+          },
+          {
+            "label": "max",
+            "value": "max"
+          }
+        ],
+        "key": "thinkingLevel",
+        "title": "Thinking effort",
+        "type": "select"
+      },
+      {
+        "default": true,
+        "description": "Include the automatically followed current session transcript in side-chat messages.",
+        "key": "includeSession",
+        "title": "Attach session by default",
+        "type": "boolean"
+      }
+    ],
+    "views": [
+      {
+        "entry": "renderer/index.html",
+        "icon": "chat",
+        "id": "chat",
+        "order": 15,
+        "title": {
+          "en": "Side Chat",
+          "zh-CN": "侧边聊天"
+        }
+      }
+    ]
+  },
+  "description": "A project-scoped sidebar chat that follows the current session and can return replies to the main input without sending.",
+  "engines": {
+    "piDesktop": ">=0.21.1-0"
+  },
+  "homepage": "https://github.com/vastsa/pi-desktop-side-chat",
+  "i18n": {
+    "en": {
+      "name": "Side Chat",
+      "description": "A project-scoped sidebar chat that follows the current session and can return replies to the main input without sending.",
+      "safetyNotes": "Host-owned models keep API keys private. Attachments are copied from user-selected File contents into bounded plugin-private caches and sent to separate Plan-mode sessions. agent.extension limits those sessions to read tools; reload and explicit approval are required. Main-session access remains optional context reading and draft-only return."
+    },
+    "zh-CN": {
+      "name": "侧边聊天",
+      "description": "按项目保存历史的侧边聊天：自动跟随当前会话，可将回复放回主输入框，不自动发送。",
+      "safetyNotes": "通过宿主模型调用，不接触密钥。用户选择的附件内容保存在有上限的插件私有缓存，由独立 Plan 会话只读问答；agent.extension 限制该会话工具，需重载并明确授权。主会话仅可选读取上下文及主动回填草稿，不自动发送。"
+    }
+  },
+  "id": "com.vastsa.side-chat",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "Side Chat",
+  "permissions": [
+    "ui.view",
+    "ui.panel",
+    "models.list",
+    "agent.complete",
+    "desktop.control",
+    "clipboard.write",
+    "shell.openExternal",
+    "renderer.extension",
+    "agent.extension"
+  ],
+  "renderer": "renderer/draft-bridge.mjs",
+  "rendererActions": [
+    "plugin.call",
+    "composer.readDraft",
+    "composer.insertText"
+  ],
+  "rendererCallMethods": [
+    "takeDraft",
+    "finishDraft"
+  ],
+  "safetyNotes": "User-selected attachment bytes are stored in plugin-private per-conversation caches. Separate Plan sessions and an explicitly granted Agent extension restrict attachment Q&A to read tools. This is not an OS sandbox. No provider credentials, automatic main-session sending or main-composer attachment access.",
+  "schemaVersion": 1,
+  "ui": {
+    "height": 720,
+    "panel": "renderer/index.html",
+    "title": {
+      "en": "Side Chat",
+      "zh-CN": "侧边聊天"
+    },
+    "width": 420
+  },
+  "version": "0.1.15"
+}

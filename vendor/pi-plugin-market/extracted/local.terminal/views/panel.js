@@ -1,0 +1,768 @@
+(function () {
+  "use strict";
+  var bridge = window.pluginBridge;
+  var tabsEl = document.getElementById("tabs");
+  var hostEl = document.getElementById("terms");
+  var statusEl = document.getElementById("status");
+  var tabs = []; // {id, gen, term, fit, el, btn, alive, pending, sending}
+  var active = null;
+  var curKey = ""; // key (conversation, else project) the visible tabs belong to, as the backend reports it
+  var groups = {}; // key -> { tabs, active, at }: other conversations' terminals, kept off screen
+  var MAX_GROUPS = 6;
+  function allTabs() {
+    var all = tabs.slice();
+    Object.keys(groups).forEach(function (k) { all = all.concat(groups[k].tabs); });
+    return all;
+  }
+
+  function invoke(ch, p) {
+    return bridge.invoke(ch, p || {});
+  }
+  function b64ToBytes(s) {
+    if (!s) return new Uint8Array(0);
+    var bin = atob(s), n = bin.length, u = new Uint8Array(n);
+    for (var i = 0; i < n; i++) u[i] = bin.charCodeAt(i);
+    return u;
+  }
+  var statusTimer = 0;
+  // Any new status text cancels a pending auto-clear, so a persistent error (failed start, no bridge) is
+  // never wiped by the timer of an earlier transient message.
+  function setStatus(msg) {
+    clearTimeout(statusTimer);
+    statusEl.textContent = msg || "";
+  }
+  var ctxEl = document.getElementById("ctx");
+  // Transient message (clipboard / open-link failures): shown on the status line, then cleared.
+  function flash(msg) {
+    setStatus(msg);
+    statusTimer = setTimeout(function () { setStatus(""); }, 4000);
+  }
+  var ZH = /^zh/i.test((navigator.language || "") + "");
+  // Panel copy: one table per language with the same keys. Values go in through textContent / setAttribute only.
+  var I18N = {
+    en: { copy: "Copy", paste: "Paste", pasteLine: "Paste as Single Line", pasteRaw: "Paste with Line Breaks", selectAll: "Select All", clear: "Clear Scrollback", newTab: "New Tab", closeTab: "Close Tab", openLink: "Open Link", copyLink: "Copy Link Address", linkHint: "Hold \u2318 and click to open the link", copyFail: "Cannot copy: ", pasteFail: "Cannot paste: ", openFail: "Cannot open ", saveFail: "Cannot save font size: ", noBridge: "pluginBridge unavailable", startFail: "Failed to start terminal: ", exited: "process exited", dropped: "output dropped: this panel fell too far behind to keep it", superseded: "this terminal is now attached to another panel", backendLost: "terminal backend lost: ", newTabAria: "New terminal", newTabTip: "New terminal (\u2318T)", tmuxTip: "Runs inside tmux, session: ", remoteTip: "Remote host: ", detached: "detached from tmux, the session keeps running. Press Enter to reattach (the \u00d7 on the tab ends it)", reattachFail: "Cannot reattach: ", selHintMac: "Hold \u2325 to select text", selHintOther: "Hold Shift to select text" },
+    "zh-CN": { copy: "\u590d\u5236", paste: "\u7c98\u8d34", pasteLine: "\u7c98\u8d34\u4e3a\u5355\u884c", pasteRaw: "\u7c98\u8d34\uff08\u4fdd\u7559\u6362\u884c\uff09", selectAll: "\u5168\u9009", clear: "\u6e05\u9664\u6eda\u52a8\u7f13\u51b2", newTab: "\u65b0\u5efa\u6807\u7b7e", closeTab: "\u5173\u95ed\u6807\u7b7e", openLink: "\u6253\u5f00\u94fe\u63a5", copyLink: "\u590d\u5236\u94fe\u63a5\u5730\u5740", linkHint: "\u6309\u4f4f \u2318 \u70b9\u51fb\u94fe\u63a5\u624d\u4f1a\u6253\u5f00", copyFail: "\u65e0\u6cd5\u590d\u5236: ", pasteFail: "\u65e0\u6cd5\u7c98\u8d34: ", openFail: "\u65e0\u6cd5\u6253\u5f00 ", saveFail: "\u65e0\u6cd5\u4fdd\u5b58\u5b57\u4f53\u5927\u5c0f: ", noBridge: "\u63d2\u4ef6\u6865\u63a5\u4e0d\u53ef\u7528", startFail: "\u542f\u52a8\u7ec8\u7aef\u5931\u8d25: ", exited: "\u8fdb\u7a0b\u5df2\u9000\u51fa", dropped: "\u8f93\u51fa\u5df2\u4e22\u5f03\uff1a\u9762\u677f\u843d\u540e\u592a\u591a\uff0c\u65e0\u6cd5\u4fdd\u7559", superseded: "\u6b64\u7ec8\u7aef\u5df2\u8fde\u63a5\u5230\u53e6\u4e00\u4e2a\u9762\u677f", backendLost: "\u7ec8\u7aef\u540e\u7aef\u5df2\u65ad\u5f00: ", newTabAria: "\u65b0\u5efa\u7ec8\u7aef", newTabTip: "\u65b0\u5efa\u7ec8\u7aef\uff08\u2318T\uff09", tmuxTip: "\u8fd0\u884c\u5728 tmux \u4e2d\uff0c\u4f1a\u8bdd\uff1a", remoteTip: "\u8fdc\u7a0b\u4e3b\u673a\uff1a", detached: "\u5df2\u4ece tmux \u8131\u79bb\uff0c\u4f1a\u8bdd\u4ecd\u5728\u540e\u53f0\u8fd0\u884c\u3002\u6309\u56de\u8f66\u91cd\u65b0\u63a5\u5165\uff08\u6807\u7b7e\u4e0a\u7684 \u00d7 \u4f1a\u7ed3\u675f\u5b83\uff09", reattachFail: "\u65e0\u6cd5\u91cd\u65b0\u63a5\u5165: ", selHintMac: "\u6309\u4f4f \u2325 \u62d6\u9009\u6587\u5b57", selHintOther: "\u6309\u4f4f Shift \u62d6\u9009\u6587\u5b57" },
+  };
+  var L = ZH ? I18N["zh-CN"] : I18N.en;
+  function errText(e) { return (e && e.message) || e || "unknown error"; }
+  // Clipboard goes through the host channels (manifest permissions clipboard.write / clipboard.read);
+  // navigator.clipboard is only a fallback, and a refusal on both lands on the status line.
+  async function copyText(text) {
+    if (!text) return false;
+    try {
+      await invoke("clipboard.writeText", { text: text });
+      return true;
+    } catch (e) {
+      try { await navigator.clipboard.writeText(text); return true; } catch (e2) { flash(L.copyFail + errText(e)); return false; }
+    }
+  }
+  async function readClipboard() {
+    try {
+      var r = await invoke("clipboard.readText");
+      return typeof r === "string" ? r : (r && typeof r.text === "string" ? r.text : "");
+    } catch (e) {
+      try { return await navigator.clipboard.readText(); } catch (e2) { flash(L.pasteFail + errText(e)); return null; }
+    }
+  }
+  // term.paste (not a raw write) so bracketed-paste mode and newline normalisation apply. Single-line
+  // mode folds every line break into one space first, so a copied multi-line command cannot run by itself.
+  // mode: "line" / "raw" force one way for this paste; anything else follows the setting.
+  async function pasteInto(t, mode) {
+    if (!t || !t.alive) return;
+    var text = await readClipboard();
+    var fold = mode === "line" || (mode !== "raw" && cfg.pasteSingleLine);
+    if (text && fold) text = text.replace(/\s*[\r\n]+\s*/g, " ").trim();
+    if (text) t.term.paste(text);
+    if (tabs.indexOf(t) >= 0) t.term.focus();
+  }
+  var FONT_DEFAULT = 13, FONT_MIN = 8, FONT_MAX = 32;
+  var DEFAULT_FAMILY = 'ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", monospace';
+  var cfg = { fontSize: FONT_DEFAULT, fontFamily: "", linkNeedsModifier: false, pasteSingleLine: false };
+  var fontSize = FONT_DEFAULT; // shared by every tab; a tab that is not visible refits when it is activated
+  // A bare name like `JetBrains Mono` or `3270 Nerd Font` is quoted so it is valid CSS; a list the user
+  // wrote themselves (commas / quotes) is kept as it is. The built-in stack always follows as fallback.
+  // A value the browser would reject as a whole must not reach xterm (an invalid font-family silently
+  // drops the terminal to a proportional font), so it is checked and falls back to a safely quoted
+  // form, and finally to the built-in stack.
+  function familyOf(name) {
+    name = (name || "").trim();
+    if (!name) return DEFAULT_FAMILY;
+    var candidates = [
+      /[,"']/.test(name) ? name : '"' + name + '"',
+      '"' + name.replace(/["'\\]/g, "") + '"',
+    ];
+    for (var i = 0; i < candidates.length; i++) {
+      var full = candidates[i] + ", " + DEFAULT_FAMILY;
+      if (!window.CSS || !CSS.supports || CSS.supports("font-family", full)) return full;
+    }
+    return DEFAULT_FAMILY;
+  }
+  var fontEpoch = 0; // bumped by every local zoom and every finished save, see applySettings
+  var fontSaveTimer = 0, fontPending = null;
+  // Static page text: the markup carries English, and is switched to the app language here.
+  ["add", "float-add"].forEach(function (id) {
+    var b = document.getElementById(id);
+    if (b) { b.setAttribute("aria-label", L.newTabAria); b.title = L.newTabTip; }
+  });
+  // persist=true for a zoom the user did (it is kept across restarts); false when the value came from the
+  // stored settings, which must not be written straight back.
+  function setFont(n, persist) {
+    n = Math.max(FONT_MIN, Math.min(FONT_MAX, n));
+    if (n === fontSize) return;
+    fontSize = n;
+    allTabs().forEach(function (t) { t.term.options.fontSize = n; });
+    refit(active);
+    if (persist) saveFontSoon(n);
+  }
+  // Cmd +/- can fire many times in a row: only the last size is written, shortly after the user stops.
+  function saveFontSoon(n) {
+    fontEpoch++;
+    fontPending = n;
+    clearTimeout(fontSaveTimer);
+    fontSaveTimer = setTimeout(flushFont, 600);
+  }
+  function flushFont() {
+    clearTimeout(fontSaveTimer);
+    if (fontPending === null || !bridge || !bridge.invoke) return;
+    var n = fontPending;
+    fontPending = null;
+    invoke("term.saveFont", { fontSize: n }).then(function () {
+      cfg.fontSize = n; // the stored value is now ours: a poll that returns it is not a change
+      fontEpoch++;
+    }, function (err) {
+      flash(L.saveFail + errText(err));
+    });
+  }
+  // Apply what the backend hands back. The stored size is adopted only when it really differs from the
+  // last known stored one AND the user has not zoomed since this read began (or has a save still pending);
+  // otherwise a read that was already in flight would pull the font back to the old size.
+  function applySettings(next, epoch) {
+    if (!next || typeof next !== "object") return;
+    var prev = cfg;
+    var size = typeof next.fontSize === "number" ? Math.max(FONT_MIN, Math.min(FONT_MAX, next.fontSize)) : FONT_DEFAULT;
+    cfg = {
+      fontSize: prev.fontSize,
+      fontFamily: typeof next.fontFamily === "string" ? next.fontFamily : "",
+      linkNeedsModifier: next.linkNeedsModifier === true,
+      pasteSingleLine: next.pasteSingleLine === true,
+    };
+    if (epoch === fontEpoch && fontPending === null) {
+      cfg.fontSize = size;
+      if (size !== prev.fontSize) setFont(size, false);
+    }
+    if (cfg.fontFamily !== prev.fontFamily) {
+      var fam = familyOf(cfg.fontFamily);
+      allTabs().forEach(function (t) { t.term.options.fontFamily = fam; });
+      refit(active);
+    }
+  }
+  // Never rejects: an old backend without the channel, or a bridge that is still loading, just keeps
+  // the defaults / the last values.
+  function refreshSettings() {
+    if (!bridge || !bridge.invoke || document.visibilityState === "hidden") return Promise.resolve();
+    var epoch = fontEpoch;
+    return invoke("term.settings").then(function (s) { applySettings(s, epoch); }, function () {});
+  }
+  function openLink(uri) {
+    invoke("shell.openExternal", { url: uri }).catch(function (err) {
+      flash(L.openFail + uri + ": " + errText(err));
+    });
+  }
+  // Palette follows the host: same base colors as the built-in panels, switched by the app's own light/dark setting.
+  var THEMES = {
+    dark: {
+      background: "#181818", foreground: "#d4d4d4", cursor: "#ffffff", cursorAccent: "#181818",
+      selectionBackground: "rgba(255,255,255,0.18)",
+    },
+    light: {
+      background: "#fafafa", foreground: "#1a1c1f", cursor: "#1a1c1f", cursorAccent: "#fafafa",
+      selectionBackground: "rgba(0,0,0,0.15)",
+      black: "#1a1c1f", red: "#c4352b", green: "#1f7a3d", yellow: "#8a6a00",
+      blue: "#1d5fbf", magenta: "#9b3fa8", cyan: "#0f7c8a", white: "#5d5d5d",
+      brightBlack: "#6b6b6b", brightRed: "#d9453a", brightGreen: "#2a9650", brightYellow: "#a07d00",
+      brightBlue: "#2f74da", brightMagenta: "#b44fc2", brightCyan: "#1796a6", brightWhite: "#3a3a3a",
+    },
+  };
+  var base = "dark";
+  function applyAppearance(a) {
+    var b = a && a.base;
+    if (b !== "light" && b !== "dark") {
+      b = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+    }
+    base = b;
+    document.documentElement.dataset.base = b;
+    allTabs().forEach(function (t) { t.term.options.theme = THEMES[b]; });
+  }
+
+  function updateChrome() {
+    document.querySelector(".app").classList.toggle("single", tabs.length < 2);
+  }
+
+  // Badge in the corner (single tab) saying which backend the active tab is on.
+  function updateMode() {
+    var m = document.getElementById("mode");
+    if (!active) { m.textContent = ""; return; }
+    // On a remote host the badge names it: which machine a command lands on must be visible.
+    var kind = active.tmux ? "tmux" : "shell";
+    m.textContent = active.remote ? active.remote + " \u00b7 " + kind : kind;
+    m.className = "mode" + (active.tmux ? " tmux" : "") + (active.remote ? " remote" : "");
+    m.title = (active.remote ? L.remoteTip + active.remote + (active.tmux ? "; " : "") : "") + (active.tmux ? L.tmuxTip + active.id : "");
+  }
+
+  function makeTab(id, replayB64, gen, nextSeq, isTmux, remote) {
+    var el = document.createElement("div");
+    el.className = "term";
+    hostEl.appendChild(el);
+    var term = new window.Terminal({
+      fontFamily: familyOf(cfg.fontFamily),
+      fontSize: fontSize,
+      lineHeight: 1.15,
+      cursorBlink: true,
+      scrollback: 10000,
+      // On macOS xterm only lets the mouse select while a program reports it (tmux mouse on, vim...) when
+      // Option is held and this is set; Shift does nothing there. Without it such a tab cannot be selected.
+      macOptionClickForcesSelection: true,
+      allowProposedApi: true,
+      theme: THEMES[base],
+    });
+    var fit = new window.FitAddon.FitAddon();
+    term.loadAddon(fit);
+    if (window.WebLinksAddon) {
+      // Clicking an http(s) link hands the URL to the host bridge channel `shell.openExternal`,
+      // which the host gates on the manifest permission of the same name. A refusal is not silent:
+      // it lands on the status line instead of vanishing into an empty catch. hover/leave remember
+      // which link the mouse is over so the right-click menu can offer it.
+      term.loadAddon(new window.WebLinksAddon.WebLinksAddon(function (e, uri) {
+        // Optional guard against opening the browser while merely selecting text near a link.
+        if (cfg.linkNeedsModifier && !(e && (e.metaKey || e.ctrlKey))) { flash(L.linkHint); return; }
+        openLink(uri);
+      }, {
+        hover: function (e, text) { t.link = text; },
+        leave: function () { t.link = ""; },
+      }));
+    }
+    // Copy / paste / select-all / clear. Cmd+C only counts as "copy" while there is a selection, so it can
+    // never be mistaken for an interrupt; Ctrl+C (no Shift) is left alone and still reaches the shell.
+    term.attachCustomKeyEventHandler(function (e) {
+      if (e.type !== "keydown" || e.altKey) return true;
+      if (!(e.metaKey || (e.ctrlKey && e.shiftKey))) return true;
+      var k = (e.key || "").toLowerCase();
+      if (k === "c" && term.hasSelection()) { e.preventDefault(); copyText(term.getSelection()); return false; }
+      if (k === "v") { e.preventDefault(); pasteInto(t); return false; }
+      if (k === "a" && e.metaKey) { e.preventDefault(); term.selectAll(); return false; }
+      if (k === "k" && e.metaKey) { e.preventDefault(); term.clear(); return false; }
+      return true;
+    });
+    term.open(el);
+
+    var btn = document.createElement("button");
+    btn.className = "tab";
+    btn.type = "button";
+    var label = document.createElement("span");
+    label.textContent = "shell";
+    var x = document.createElement("span");
+    x.className = "x";
+    x.textContent = "\u00d7";
+    if (remote) {
+      var rtag = document.createElement("span");
+      rtag.className = "tag remote";
+      rtag.textContent = remote;
+      rtag.title = L.remoteTip + remote;
+      btn.appendChild(rtag);
+    }
+    if (isTmux) {
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = "tmux";
+      tag.title = L.tmuxTip + id;
+      btn.appendChild(tag);
+    }
+    btn.appendChild(label);
+    btn.appendChild(x);
+    tabsEl.insertBefore(btn, document.getElementById("add"));
+
+    var t = { id: id, tmux: !!isTmux, remote: remote || "", gen: gen | 0, nextSeq: nextSeq | 0, term: term, fit: fit, el: el, btn: btn, alive: true, pending: "", sending: false, link: "" };
+    tabs.push(t);
+    btn.addEventListener("click", function (ev) {
+      if (ev.target === x) closeTab(t); else activate(t);
+    });
+    term.onTitleChange(function (title) { label.textContent = (title || "shell").slice(-24); });
+    term.onData(function (d) {
+      // A tab whose tmux client left (prefix + d) takes no input; Enter brings the session back.
+      if (t.detached) { if (d === "\r") reattach(t); return; }
+      send(t, d);
+    });
+    if (replayB64) term.write(b64ToBytes(replayB64));
+    updateChrome();
+    return t;
+  }
+
+  // One in-flight write per tab: keys that arrive mid-write are batched into the next one, so order is
+  // kept and a paste never starts N overlapping calls.
+  async function send(t, d) {
+    t.pending += d;
+    if (t.sending) return;
+    t.sending = true;
+    try {
+      while (t.pending) {
+        var chunk = t.pending;
+        t.pending = "";
+        await invoke("term.write", { id: t.id, data: chunk }).catch(function () {});
+      }
+    } finally {
+      t.sending = false;
+    }
+  }
+
+  // The tmux session is still alive after prefix + d: start a new client for it. tmux repaints the whole
+  // screen, so the old text (including the hint) is cleared first.
+  async function reattach(t) {
+    if (!t.detached || t.attaching) return;
+    t.attaching = true;
+    try {
+      var a = await invoke("term.attach", { id: t.id, cols: t.term.cols, rows: t.term.rows });
+      t.detached = false;
+      t.gen = a.gen;
+      t.nextSeq = a.nextSeq;
+      t.alive = true;
+      t.btn.classList.remove("dead");
+      t.term.reset();
+      pollLoop(t);
+    } catch (e) {
+      flash(L.reattachFail + errText(e));
+    } finally {
+      t.attaching = false;
+    }
+  }
+
+  function sendSize(t) {
+    if (!t.alive) return;
+    invoke("term.resize", { id: t.id, cols: t.term.cols, rows: t.term.rows }).catch(function () {});
+  }
+
+  function refit(t) {
+    if (!t || t.el.offsetParent === null) return;
+    try {
+      var before = t.term.cols + "x" + t.term.rows;
+      t.fit.fit();
+      if (before !== t.term.cols + "x" + t.term.rows) sendSize(t);
+    } catch (e) {}
+  }
+
+  function activate(t) {
+    active = t;
+    updateMode();
+    tabs.forEach(function (o) {
+      var on = o === t;
+      o.el.classList.toggle("on", on);
+      o.btn.classList.toggle("on", on);
+    });
+    // refit only reports a size that differs from xterm's own previous one; a re-attached tmux client
+    // started from an estimate, so state the real size once whenever a tab comes to the front.
+    requestAnimationFrame(function () { refit(t); if (t.el.offsetParent !== null) sendSize(t); t.term.focus(); });
+  }
+
+  async function pollLoop(t) {
+    // One loop per tab: resuming a parked tab while its old poll is still in flight just lets that poll
+    // carry on, instead of starting a second reader that would fetch the same block twice.
+    if (t.polling) return;
+    t.polling = true;
+    try {
+      var fails = 0;
+      while (t.alive && !t.parked) {
+        var r;
+        // Ask for the chunk after the last one this screen rendered. The backend keeps whole chunks and
+        // answers truncated when that position is already gone, instead of handing back a shorter
+        // stream that looks like the whole output.
+        var req = { id: t.id, gen: t.gen };
+        if (t.nextSeq > 0) req.from = t.nextSeq;
+        try {
+          r = await invoke("term.poll", req);
+          fails = 0;
+        } catch (e) {
+          if (++fails > 3) { t.alive = false; t.term.write("\r\n\x1b[31m[" + L.backendLost + (e && e.message || e) + "]\x1b[0m\r\n"); break; }
+          await new Promise(function (res) { setTimeout(res, 300); });
+          continue;
+        }
+        if (!t.alive) break; // tab closed while this poll was in flight
+        // A tab parked while its poll was in flight still takes what came back (the loop stops after it).
+        if (r.superseded) {
+          t.alive = false;
+          t.btn.classList.add("dead");
+          t.term.write("\r\n\x1b[2m[" + L.superseded + "]\x1b[0m\r\n");
+          break;
+        }
+        if (r.truncated) {
+          t.term.write("\r\n\x1b[2m[" + L.dropped + "]\x1b[0m\r\n");
+        }
+        if (r.data) t.term.write(b64ToBytes(r.data));
+        if (r.nextSeq > 0) t.nextSeq = r.nextSeq;
+        if (r.exited && r.gone && !r.error) {
+          // The shell inside the tmux session exited, so the session is gone: close the tab instead of
+          // leaving a dead one behind (closeTab opens a fresh tab when it was the last). With an error
+          // (tmux failed to start) the tab stays, so the message is not swallowed and no tab loop starts.
+          closeTab(t);
+          break;
+        }
+        if (t.tmux && r.exited && !r.gone && !r.error) {
+          // Only this client left; the tmux session lives on.
+          t.alive = false;
+          t.detached = true;
+          t.term.write("\r\n\x1b[2m[" + L.detached + "]\x1b[0m\r\n");
+          break;
+        }
+        if (r.exited) {
+          t.alive = false;
+          t.btn.classList.add("dead");
+          var msg = "\r\n\x1b[2m[" + L.exited + (r.exitCode != null ? " (" + r.exitCode + ")" : "") + "]\x1b[0m\r\n";
+          if (r.error) msg += "\x1b[31m" + r.error.replace(/\n/g, "\r\n") + "\x1b[0m\r\n";
+          t.term.write(msg);
+          break;
+        }
+      }
+    } finally {
+      t.polling = false;
+    }
+  }
+
+  async function newTab() {
+    var size = estimateSize();
+    try {
+      var r = await invoke("term.open", { cols: size.cols, rows: size.rows, key: curKey });
+      var t = makeTab(r.id, null, r.gen, r.nextSeq, r.tmux, r.remote);
+      activate(t);
+      await new Promise(function (res) { requestAnimationFrame(res); });
+      refit(t);
+      pollLoop(t);
+      setStatus("");
+    } catch (e) {
+      setStatus(L.startFail + (e && e.message || e));
+    }
+  }
+
+  function estimateSize() {
+    var w = hostEl.clientWidth || 800, h = hostEl.clientHeight || 400;
+    return { cols: Math.max(20, Math.floor(w / 8)), rows: Math.max(5, Math.floor(h / 17)) };
+  }
+
+  function closeTab(t) {
+    t.alive = false;
+    invoke("term.close", { id: t.id }).catch(function () {});
+    t.term.dispose();
+    t.el.remove();
+    t.btn.remove();
+    var i = tabs.indexOf(t);
+    if (i < 0) {
+      // Closed while its conversation is off screen (a tmux session that ended in the background): take it
+      // out of the cache, and leave the visible tabs alone.
+      Object.keys(groups).forEach(function (k) {
+        var j = groups[k].tabs.indexOf(t);
+        if (j < 0) return;
+        groups[k].tabs.splice(j, 1);
+        if (!groups[k].tabs.length) delete groups[k];
+      });
+      return;
+    }
+    tabs.splice(i, 1);
+    updateChrome();
+    if (!tabs.length) newTab();
+    else if (active === t) activate(tabs[tabs.length - 1]);
+  }
+
+  // Take the visible tabs off screen without killing their shells or their xterm instances. They are kept
+  // per key, so coming back to a conversation is a show/hide plus a resume of the poll from where it
+  // stopped: no re-attach and no replay of the whole buffer. Output that arrived meanwhile is still in
+  // the backend ring and is read on resume.
+  function disposeTabs(list) {
+    list.forEach(function (t) {
+      t.alive = false;
+      t.term.dispose();
+      t.el.remove();
+      t.btn.remove();
+    });
+  }
+  function park() {
+    tabs.forEach(function (t) {
+      t.parked = true;
+      t.el.classList.remove("on");
+      t.btn.classList.remove("on");
+      t.btn.style.display = "none";
+    });
+    if (tabs.length) groups[curKey] = { tabs: tabs, active: active, at: Date.now() };
+    tabs = [];
+    active = null;
+    // Bounded: the oldest cached conversations are released. Their shells keep running in the backend, so
+    // coming back to one of those costs an attach + replay, like before.
+    var keys = Object.keys(groups).sort(function (a, b) { return groups[a].at - groups[b].at; });
+    while (keys.length > MAX_GROUPS) {
+      var k = keys.shift();
+      disposeTabs(groups[k].tabs);
+      delete groups[k];
+    }
+  }
+
+  // Show the terminals of the key the backend reports (`l` is a term.list / term.watch answer).
+  async function enter(l) {
+    park();
+    curKey = l.key;
+    var live = {};
+    l.sessions.forEach(function (s) { if (!s.exited && s.key === l.key) live[s.id] = s; });
+    var g = groups[l.key];
+    var preferred = null;
+    if (g) {
+      delete groups[l.key];
+      // A cached tab stays if its session is still alive and the tab can be used: reading, or a tmux tab
+      // whose client left (prefix + d) and waits for Enter. Anything else is released and, if its session
+      // lives on, attached afresh below.
+      var keep = [], drop = [];
+      g.tabs.forEach(function (t) { (live[t.id] && (t.alive || t.detached) ? keep : drop).push(t); });
+      disposeTabs(drop);
+      tabs = keep;
+      keep.forEach(function (t) {
+        t.parked = false;
+        t.btn.style.display = "";
+        if (t.alive) pollLoop(t);
+      });
+      if (keep.indexOf(g.active) >= 0) preferred = g.active;
+    }
+    var have = {};
+    tabs.forEach(function (t) { have[t.id] = true; });
+    for (var id in live) {
+      if (have[id]) continue;
+      try {
+        var size = estimateSize();
+        var a = await invoke("term.attach", { id: id, cols: size.cols, rows: size.rows });
+        var t2 = makeTab(id, a.replay, a.gen, a.nextSeq, live[id].tmux, live[id].remote);
+        pollLoop(t2);
+      } catch (e) {}
+    }
+    updateChrome();
+    // tmuxMode was switched on after this conversation's shells were opened: they stay (they may be running
+    // something), but it gets a tmux tab too, and the panel lands on a tmux tab, not on an older plain
+    // shell that sits first.
+    var tmuxWanted = !!l.tmuxWanted;
+    var firstTmux = tabs.filter(function (t) { return t.tmux; })[0];
+    if (!tabs.length || (tmuxWanted && !firstTmux)) { await newTab(); return; }
+    var pick = preferred || tabs[0];
+    if (tmuxWanted && !pick.tmux) pick = firstTmux;
+    activate(pick);
+  }
+
+  async function restore() {
+    var l = null;
+    try { l = await invoke("term.list"); } catch (e) {}
+    if (l) await enter(l); else await newTab();
+  }
+
+  // Follow the host's selected conversation. term.watch is a long poll that the backend answers the moment
+  // the selection moves (it hears the host's session event; the panel itself is never sent one), and its
+  // answer already carries the terminal list, so a switch is one round trip.
+  async function watchLoop() {
+    for (;;) {
+      try {
+        var r = await invoke("term.watch", { key: curKey });
+        if (r.changed) await enter(r);
+      } catch (e) {
+        await new Promise(function (res) { setTimeout(res, 500); });
+      }
+    }
+  }
+
+  document.getElementById("add").addEventListener("click", newTab);
+  document.getElementById("float-add").addEventListener("click", function (e) { e.stopPropagation(); newTab(); });
+  window.addEventListener("resize", function () { refit(active); });
+  if (window.ResizeObserver) new ResizeObserver(function () { refit(active); }).observe(hostEl);
+  document.addEventListener("keydown", function (e) {
+    if (e.metaKey && e.key === "t") { e.preventDefault(); newTab(); }
+    if (e.metaKey && e.key === "w" && active) { e.preventDefault(); closeTab(active); }
+    // Font zoom: Cmd + / Cmd - / Cmd 0. Cmd only: Ctrl+- is readline's undo and must reach the shell.
+    if (e.metaKey && !e.ctrlKey && !e.altKey) {
+      if (e.key === "=" || e.key === "+") { e.preventDefault(); setFont(fontSize + 1, true); }
+      else if (e.key === "-" || e.key === "_") { e.preventDefault(); setFont(fontSize - 1, true); }
+      else if (e.key === "0") { e.preventDefault(); setFont(FONT_DEFAULT, true); }
+    }
+  });
+  // Clicking anywhere keeps the keyboard on the terminal, except inside the context menu (its items
+  // restore focus themselves once they have run).
+  document.addEventListener("click", function (e) {
+    if (ctxEl.contains(e.target)) return;
+    if (active) active.term.focus();
+  });
+
+  // ---- Right-click menu ----
+  var ctxTab = null; // tab the open menu belongs to
+  function ctxIsOpen() { return !ctxEl.hidden; }
+  function closeMenu(refocus) {
+    if (!ctxIsOpen()) return;
+    ctxEl.hidden = true;
+    ctxEl.textContent = "";
+    var t = ctxTab;
+    ctxTab = null;
+    if (refocus && t && tabs.indexOf(t) >= 0) t.term.focus();
+  }
+  function openMenu(x, y, t, sel, link) {
+    closeMenu(false);
+    ctxTab = t;
+    var items = [];
+    if (link) {
+      items.push({ label: L.openLink, run: function () { openLink(link); } });
+      items.push({ label: L.copyLink, run: function () { copyText(link); } });
+      items.push({ sep: true });
+    }
+    items.push(
+      { label: L.copy, hint: "\u2318C", disabled: !sel, run: function () { copyText(sel); } },
+      { label: L.paste, hint: "\u2318V", disabled: !t.alive, run: function () { pasteInto(t); } },
+      // The default paste follows the "fold to a single line" setting; the second entry is the other way.
+      cfg.pasteSingleLine
+        ? { label: L.pasteRaw, disabled: !t.alive, run: function () { pasteInto(t, "raw"); } }
+        : { label: L.pasteLine, disabled: !t.alive, run: function () { pasteInto(t, "line"); } },
+      { label: L.selectAll, hint: "\u2318A", run: function () { t.term.selectAll(); } },
+      { sep: true },
+      { label: L.clear, hint: "\u2318K", run: function () { t.term.clear(); } },
+      { sep: true },
+      { label: L.newTab, hint: "\u2318T", run: function () { newTab(); } },
+      { label: L.closeTab, hint: "\u2318W", run: function () { closeTab(t); } }
+    );
+    items.forEach(function (it) {
+      if (it.sep) {
+        var s = document.createElement("div");
+        s.className = "ctx-sep";
+        s.setAttribute("role", "separator");
+        ctxEl.appendChild(s);
+        return;
+      }
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "ctx-item";
+      b.setAttribute("role", "menuitem");
+      b.disabled = !!it.disabled;
+      var l = document.createElement("span");
+      l.textContent = it.label;
+      var h = document.createElement("span");
+      h.className = "ctx-hint";
+      h.textContent = it.hint || "";
+      b.appendChild(l);
+      b.appendChild(h);
+      b.addEventListener("click", function (ev) {
+        ev.stopPropagation();
+        closeMenu(true);
+        it.run();
+      });
+      ctxEl.appendChild(b);
+    });
+    // Where a program owns the mouse (every tmux tab, vim...), a plain drag selects inside the program and
+    // not in this panel; say which key hands the selection back. Not shown for a plain shell.
+    var mt = t.term.modes && t.term.modes.mouseTrackingMode;
+    if (t.tmux || (mt && mt !== "none")) {
+      var note = document.createElement("div");
+      note.className = "ctx-note";
+      note.setAttribute("role", "note");
+      note.textContent = /Mac/i.test(navigator.platform || navigator.userAgent || "") ? L.selHintMac : L.selHintOther;
+      ctxEl.appendChild(document.createElement("div")).className = "ctx-sep";
+      ctxEl.appendChild(note);
+    }
+    ctxEl.hidden = false;
+    var w = ctxEl.offsetWidth, hgt = ctxEl.offsetHeight;
+    ctxEl.style.left = Math.max(4, Math.min(x, window.innerWidth - w - 4)) + "px";
+    ctxEl.style.top = Math.max(4, Math.min(y, window.innerHeight - hgt - 4)) + "px";
+    var first = ctxEl.querySelector(".ctx-item:not(:disabled)");
+    if (first) first.focus();
+  }
+  // xterm turns a mouse press into escape sequences for the program as soon as tracking is on, before the
+  // contextmenu event exists. In a tmux tab, swallow the right button first (capture phase, ahead of
+  // xterm), so tmux neither sees it nor opens its own menu on top of ours.
+  function eatTmuxRightButton(e) {
+    if (e.button !== 2 || !active || !active.tmux || !active.el.contains(e.target)) return;
+    e.stopPropagation();
+  }
+  hostEl.addEventListener("mousedown", eatTmuxRightButton, true);
+  hostEl.addEventListener("mouseup", eatTmuxRightButton, true);
+  hostEl.addEventListener("contextmenu", function (e) {
+    var t = active;
+    if (!t || !t.el.contains(e.target)) return;
+    // A program that asked for mouse reporting (vim...) owns the right button; Shift takes it back. A tmux
+    // tab is the exception: tmux (mouse on) always asks for reporting, so the menu would never show. Its
+    // right button is ours (see the capture listeners below).
+    var mm = t.term.modes && t.term.modes.mouseTrackingMode;
+    if (!t.tmux && mm && mm !== "none" && !e.shiftKey) return;
+    e.preventDefault();
+    // The addon's hover state can outlive the link (output scrolled it away under a still mouse), so it
+    // only counts while xterm is also showing the pointer cursor, which it does exactly over a link.
+    var link = t.link && t.el.querySelector(".xterm-cursor-pointer") ? t.link : "";
+    openMenu(e.clientX, e.clientY, t, t.term.getSelection(), link);
+  });
+  ctxEl.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  ctxEl.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" || e.key === "Tab") {
+      e.preventDefault();
+      e.stopPropagation();
+      closeMenu(true);
+      return;
+    }
+    var btns = Array.prototype.slice.call(ctxEl.querySelectorAll(".ctx-item:not(:disabled)"));
+    if (!btns.length) return;
+    var i = btns.indexOf(document.activeElement), n = -1;
+    if (e.key === "ArrowDown") n = (i + 1) % btns.length;
+    else if (e.key === "ArrowUp") n = (i - 1 + btns.length) % btns.length;
+    else if (e.key === "Home") n = 0;
+    else if (e.key === "End") n = btns.length - 1;
+    if (n >= 0) { e.preventDefault(); btns[n].focus(); }
+  });
+  window.addEventListener("pointerdown", function (e) { if (ctxIsOpen() && !ctxEl.contains(e.target)) closeMenu(false); }, true);
+  window.addEventListener("wheel", function (e) { if (ctxIsOpen() && !ctxEl.contains(e.target)) closeMenu(false); }, { capture: true, passive: true });
+  window.addEventListener("blur", function () { closeMenu(false); });
+  window.addEventListener("resize", function () { closeMenu(false); });
+
+  // Input method: "focus" here means this panel document actually holds the keyboard. The host docks
+  // the view and never focuses it for us, so clicking into the terminal is what raises focus, and
+  // clicking into chat / another tab / another app lowers it. The backend owns the switching itself;
+  // this side only reports edges, and only believes one once the backend has answered.
+  var imeOn = false; // what the backend has confirmed
+  var imeWant = false; // what this document says it should be
+  var imeBusy = false;
+  // Identifies this document to the backend: after a reload or with a second panel, only the document
+  // that reported focus last may report the blur that restores the previous input source.
+  var imeClient = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  function docFocused() {
+    try { return document.hasFocus() === true && document.visibilityState !== "hidden"; } catch (e) { return false; }
+  }
+  function imePump() {
+    if (imeBusy || imeWant === imeOn || !bridge || !bridge.invoke) return;
+    var target = imeWant;
+    imeBusy = true;
+    invoke("ime.sync", { focused: target, client: imeClient }).then(function () {
+      imeOn = target;
+    }, function () {
+      /* bridge rejected the send (plugin still loading): leave imeOn alone so the reconciler re-sends */
+    }).then(function () {
+      imeBusy = false;
+      imePump();
+    });
+  }
+  function imeSync(focused) {
+    imeWant = focused === true;
+    imePump();
+  }
+  window.addEventListener("focus", function () { imeSync(docFocused()); });
+  window.addEventListener("blur", function () { imeSync(docFocused()); });
+  document.addEventListener("visibilitychange", function () { imeSync(docFocused()); });
+  window.addEventListener("pagehide", function () { imeSync(false); flushFont(); });
+  // Reconcile: a detached view may never deliver a blur, and a send the bridge rejected (plugin still
+  // loading) was never delivered. A reply of {ok:false} (im-select failed) counts as delivered: the
+  // backend keeps what it needs to undo a half-done switch, so it is not retried every 500ms.
+  setInterval(function () { imeSync(docFocused()); }, 500);
+  // Plugin settings are pushed to the backend by the host, the panel picks them up from there.
+  setInterval(refreshSettings, 2000);
+  window.addEventListener("focus", function () { refreshSettings(); });
+  document.addEventListener("visibilitychange", function () { refreshSettings(); });
+
+  if (!bridge || !bridge.invoke) { setStatus(L.noBridge); }
+  else {
+    applyAppearance(null);
+    if (bridge.on) bridge.on("appearance:changed", applyAppearance);
+    invoke("app.getAppearance").then(applyAppearance).catch(function () {});
+    // Settings first, so the first terminal already opens with the user's font instead of flashing the default.
+    // Once the first screen is up, watchLoop follows the host's selected session for as long as the panel lives.
+    refreshSettings().then(restore).then(watchLoop);
+  }
+})();

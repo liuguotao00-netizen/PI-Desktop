@@ -1,0 +1,55 @@
+{
+  "id": "xiaohongshu-risk-signals",
+  "platform": "xiaohongshu",
+  "name": "小红书 · 页面风控信号采集",
+  "description": "在当前会话页面采集可见的风控/验证/限流文案与 captcha 容器（只读采集，不触发登录或发布）。可选 url 打开指定页后再采集。",
+  "variables": [
+    {
+      "key": "url",
+      "label": "要检测的页面 URL（留空=当前浏览器页）",
+      "type": "text",
+      "required": false,
+      "default": ""
+    }
+  ],
+  "contextSetup": {
+    "hasCustomUrl": {
+      "type": "derived",
+      "source": "url",
+      "op": "!=",
+      "value": ""
+    }
+  },
+  "outputSchema": {
+    "json": true,
+    "filename": {
+      "prefix": "xhs_risk_signals"
+    }
+  },
+  "steps": [
+    {
+      "id": "openUrl",
+      "action": "navigate",
+      "when": "hasCustomUrl",
+      "value": "{{url}}",
+      "timeout": 30000
+    },
+    {
+      "action": "waitForLoad",
+      "timeout": 20000
+    },
+    {
+      "action": "wait",
+      "duration": [600, 1200]
+    },
+    {
+      "id": "collect",
+      "action": "execute",
+      "timeout": 15000,
+      "params": {
+        "saveAs": "xhsRiskSignals",
+        "fn": "function(){\n  var body=(document.body&&document.body.innerText)||'';\n  var needles=['请完成下方验证','当前访问环境存在异常','操作频繁','扫码登录','验证码','禁止发笔记','违反','账号异常'];\n  var hits=[];\n  for(var i=0;i<needles.length;i++){\n    if(body.indexOf(needles[i])>=0){hits.push(needles[i]);}\n  }\n  var captcha=!!document.querySelector('.captcha-container,[class*=\"captcha\"]');\n  var loginMask=!!document.querySelector('.login-container,[class*=\"login-mask\"]');\n  var level='low';\n  if(captcha||hits.indexOf('当前访问环境存在异常')>=0||hits.indexOf('请完成下方验证')>=0){level='high';}\n  else if(hits.indexOf('操作频繁')>=0||loginMask){level='medium';}\n  return {\n    risk_level:level,\n    captcha_visible:captcha,\n    login_mask_visible:loginMask,\n    matched_texts:hits,\n    page_url:location.href\n  };\n}"
+      }
+    }
+  ]
+}

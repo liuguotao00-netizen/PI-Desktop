@@ -1,0 +1,40 @@
+{
+  "author": "Readon",
+  "categories": [
+    "productivity",
+    "developer-tools"
+  ],
+  "changelog": "Initial release: deepseek_search + deepseek_fetch agent tools, /search command, dual-host support (pi CLI + PI-Desktop).",
+  "contributes": {
+    "agentExtensions": [
+      "extensions/deepseek-web/index.ts"
+    ]
+  },
+  "description": "Real-time web search and URL content extraction powered by DeepSeek's Search & Fetch APIs.",
+  "engines": {
+    "piDesktop": ">=0.2.0"
+  },
+  "homepage": "https://github.com/Readon/pi-deepseek-web",
+  "i18n": {
+    "en": {
+      "name": "DeepSeek Web",
+      "description": "Real-time web search and URL content extraction powered by DeepSeek's Search & Fetch APIs.",
+      "safetyNotes": "Makes authenticated HTTPS calls to api.deepseek.com using your existing DeepSeek API key, resolved from pi's model registry, the DEEPSEEK_API_KEY environment variable, or ~/.pi/agent/auth.json. No key is bundled in the package and none is sent anywhere except the DeepSeek API."
+    },
+    "zh-CN": {
+      "name": "DeepSeek 联网搜索",
+      "description": "基于 DeepSeek Search 与 Fetch API 的实时网络搜索与网页正文抽取工具，为智能体提供联网能力。",
+      "safetyNotes": "使用你已有的 DeepSeek API Key（依次从 pi 模型注册表、DEEPSEEK_API_KEY 环境变量、~/.pi/agent/auth.json 解析）向 api.deepseek.com 发起认证 HTTPS 请求。包内不捆绑任何密钥，除 DeepSeek API 外不会把密钥发送到别处。"
+    }
+  },
+  "id": "io.github.readon.deepseek-web",
+  "license": "MIT",
+  "main": "main.js",
+  "name": "DeepSeek Web",
+  "permissions": [
+    "agent.extension"
+  ],
+  "safetyNotes": "Makes authenticated HTTPS calls to api.deepseek.com using your existing DeepSeek API key, resolved from pi's model registry, the DEEPSEEK_API_KEY environment variable, or ~/.pi/agent/auth.json. No key is bundled in the package and none is sent anywhere except the DeepSeek API.",
+  "schemaVersion": 1,
+  "version": "0.1.0"
+}
