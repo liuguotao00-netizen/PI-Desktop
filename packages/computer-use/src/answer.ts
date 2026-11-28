@@ -24,6 +24,10 @@ export const COMPUTER_ACTION_KINDS: readonly ComputerActionKind[] = [
   "press_keys",
   "scroll",
   "select",
+  "drag",
+  "launch_app",
+  "paste_text",
+  "secondary_action",
 ];
 
 export type LoopAnswer =
@@ -124,7 +128,7 @@ export function parseLoopAnswer(text: string): AnswerParse {
   const raw = value.action;
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return reject("action without a body");
   const body = raw as Record<string, unknown>;
-  const allowed = ["kind", "uid", "point", "text", "keys", "scroll", "option"];
+  const allowed = ["kind", "uid", "point", "toPoint", "text", "keys", "scroll", "option"];
   if (Object.keys(body).some((key) => !allowed.includes(key))) {
     return reject("action body with unexpected fields");
   }
@@ -149,7 +153,19 @@ export function parseLoopAnswer(text: string): AnswerParse {
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return reject("non-finite point");
     action.point = { x: point.x, y: point.y };
   }
-  if (!action.uid && !action.point) return reject("action names neither an element nor a point");
+  if (body.toPoint !== undefined) {
+    if (!body.toPoint || typeof body.toPoint !== "object" || Array.isArray(body.toPoint)) {
+      return reject("malformed drag destination");
+    }
+    const point = body.toPoint as Record<string, unknown>;
+    if (Object.keys(point).some((key) => !["x", "y"].includes(key))) return reject("malformed drag destination");
+    if (typeof point.x !== "number" || typeof point.y !== "number") return reject("malformed drag destination");
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) return reject("non-finite drag destination");
+    action.toPoint = { x: point.x, y: point.y };
+  }
+  if (action.kind !== "launch_app" && !action.uid && !action.point) {
+    return reject("action names neither an element nor a point");
+  }
 
   if (body.text !== undefined) {
     if (typeof body.text !== "string" || body.text.length > COMPUTER_MAX_TEXT_CHARS) {
@@ -187,6 +203,12 @@ export function parseLoopAnswer(text: string): AnswerParse {
 
   // Per-kind requirements, so a missing field is refused here rather than
   // becoming a host-side rejection one round trip later.
+  if (action.kind === "launch_app" && !action.text) return reject("launch_app without an app");
+  if (action.kind === "paste_text" && action.text === undefined) return reject("paste_text without text");
+  if (action.kind === "secondary_action" && !action.option) return reject("secondary_action without an option");
+  if (action.kind === "drag" && (!action.point || !action.toPoint)) {
+    return reject("drag without a start and destination point");
+  }
   if (action.kind === "set_value" && action.text === undefined) return reject("set_value without text");
   if (action.kind === "press_keys" && !action.keys) return reject("press_keys without keys");
   if (action.kind === "select" && !action.option) return reject("select without an option");
@@ -216,13 +238,22 @@ export function validateAnswerAction(
   if (inspection.secureInput) return { ok: false, reason: "secure input is active" };
   const next: ComputerAction = { ...action };
   let node: ComputerNode | undefined;
+  if (action.kind === "launch_app") {
+    if (!action.text?.trim()) return { ok: false, reason: "launch_app needs an app name" };
+    return { ok: true, action: next };
+  }
   if (action.uid) {
     node = inspection.nodes.find((candidate) => candidate.uid === action.uid);
     if (!node) return { ok: false, reason: "the element is not in the current observation" };
     if (!node.enabled) return { ok: false, reason: "the element is disabled" };
     if (action.kind === "set_value") {
       if (!node.hasValue) return { ok: false, reason: "the element holds no value" };
-    } else if (action.kind !== "press_keys" && !node.actions.includes(action.kind)) {
+    } else if (
+      action.kind !== "press_keys"
+      && action.kind !== "paste_text"
+      && action.kind !== "secondary_action"
+      && !node.actions.includes(action.kind)
+    ) {
       return { ok: false, reason: "the element does not offer that action" };
     }
   }
@@ -234,6 +265,19 @@ export function validateAnswerAction(
     }
     // The basis is the host's own measurement, never the model's claim.
     next.basis = { revision: inspection.revision, bounds: inspection.bounds };
+  }
+  if (action.toPoint) {
+    if (!inspection.bounds) return { ok: false, reason: "the scope has no measured bounds" };
+    const { width, height } = inspection.bounds;
+    if (
+      action.toPoint.x < 0 || action.toPoint.y < 0
+      || action.toPoint.x > width || action.toPoint.y > height
+    ) {
+      return { ok: false, reason: "the drag destination is outside the scope" };
+    }
+  }
+  if (action.kind === "drag" && (!action.point || !action.toPoint)) {
+    return { ok: false, reason: "drag needs a start and destination point" };
   }
   return { ok: true, action: next, node };
 }

@@ -160,6 +160,49 @@ describe("validateAnswerAction", () => {
     });
   });
 
+  it("accepts a secondary action from the closed list", () => {
+    const result = parseLoopAnswer(
+      '{"kind":"action","action":{"kind":"secondary_action","uid":"0.1#ab","option":"AXShowMenu"}}',
+    );
+    expect(result).toMatchObject({ ok: true, answer: { kind: "action", action: { kind: "secondary_action", option: "AXShowMenu" } } });
+  });
+
+  it("accepts paste_text with text", () => {
+    const result = parseLoopAnswer(
+      '{"kind":"action","action":{"kind":"paste_text","uid":"0.1#ab","text":"hello"}}',
+    );
+    expect(result).toMatchObject({ ok: true, answer: { kind: "action", action: { kind: "paste_text", text: "hello" } } });
+  });
+
+  it("accepts launch_app without a target element", () => {
+    const result = parseLoopAnswer(
+      '{"kind":"action","action":{"kind":"launch_app","text":"Calculator"}}',
+    );
+    expect(result).toMatchObject({ ok: true, answer: { kind: "action", action: { kind: "launch_app", text: "Calculator" } } });
+    expect(
+      validateAnswerAction({ kind: "launch_app", text: "Calculator" }, inspection()),
+    ).toMatchObject({ ok: true });
+  });
+
+  it("accepts a drag with start and destination inside the scope", () => {
+    const result = parseLoopAnswer(
+      '{"kind":"action","action":{"kind":"drag","point":{"x":10,"y":20},"toPoint":{"x":110,"y":120}}}',
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      answer: { kind: "action", action: { kind: "drag", point: { x: 10, y: 20 }, toPoint: { x: 110, y: 120 } } },
+    });
+  });
+
+  it("refuses a destination outside the scope", () => {
+    expect(
+      validateAnswerAction(
+        { kind: "drag", point: { x: 5, y: 6 }, toPoint: { x: 5_000, y: 1 } },
+        inspection(),
+      ),
+    ).toMatchObject({ ok: false, reason: "the drag destination is outside the scope" });
+  });
+
   it("refuses a point outside the scope", () => {
     expect(validateAnswerAction({ kind: "click", point: { x: 5_000, y: 1 } }, inspection())).toMatchObject({
       ok: false,

@@ -29,6 +29,8 @@ export type DiagnosedHostFailure = Error & { errorCode: string };
 export type HostProcessOptions = {
   /** Absolute path of the `pi-desktop-host-core` binary to spawn. */
   binaryPath: string;
+  /** Arguments passed before host-core's own (used by the macOS TCC shim). */
+  args?: string[];
   /** Data directory handed to host-core as `PI_DESKTOP_DATA_DIR`. */
   dataDir: string;
   /**
@@ -98,7 +100,7 @@ export class HostProcess {
     this.binaryPath = options.binaryPath;
     this.diagnoseFailure = options.diagnoseFailure;
     const onStderr = options.onStderr;
-    this.child = spawn(this.binaryPath, [], {
+    this.child = spawn(this.binaryPath, options.args ?? [], {
       stdio: ["pipe", "pipe", "pipe"],
       env: {
         ...stripProxyEnv(process.env),

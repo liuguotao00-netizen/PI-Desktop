@@ -217,6 +217,8 @@ export type PluginManifest = {
     }>;
   };
   permissions?: string[];
+  /** Executable basenames a `system.process` plugin may spawn. */
+  processAllowlist?: string[];
   /**
    * File scope. The `fs.read` / `fs.write` / `fs.delete` permissions say
    * whether the plugin may touch files; this says which ones. Anything outside
@@ -1079,6 +1081,8 @@ export type PluginCompleteInput = {
   thinkingLevel?: string;
   system?: string;
   messages?: Array<{ role: "user" | "assistant"; content: string }>;
+  /** User-turn images attached to the completion, e.g. a browser screenshot. */
+  images?: Array<{ mimeType: string; data: string }>;
   includeSessionContext?: boolean;
 };
 
@@ -1665,6 +1669,10 @@ export type PluginHostApi = {
     getState: () => Promise<unknown>;
     openExternal: () => Promise<void>;
     snapshot: () => Promise<{ tree: string; url: string; title: string }>;
+    history: () => Promise<{
+      index: number;
+      entries: Array<{ index: number; url: string; title: string }>;
+    }>;
     screenshot: (input?: { fullPage?: boolean }) => Promise<{
       mimeType: string;
       data: string;
@@ -1672,9 +1680,48 @@ export type PluginHostApi = {
     }>;
     click: (input: { uid: string }) => Promise<void>;
     fill: (input: { uid: string; text: string }) => Promise<void>;
+    /** Raw input events for hover/scroll/drag/key actions. */
+    inputEvent: (input: Record<string, unknown>) => Promise<unknown>;
     evaluate: (input: { expression: string }) => Promise<unknown>;
     console: (input?: { limit?: number }) => Promise<{ messages: unknown[] }>;
+    networkIdle: (input?: { timeoutMs?: number; idleMs?: number }) => Promise<{ ok: boolean }>;
+    cancelFileChooser: () => Promise<{ ok: boolean }>;
+    downloads: () => Promise<{ entries: Array<{ id: string; url: string; filename: string; path: string; state: string; receivedBytes: number; totalBytes: number; error?: string }> }>;
+    cancelDownload: (id: string) => Promise<{ ok: boolean }>;
     cdp: (input: { method: string; params?: unknown }) => Promise<unknown>;
+  };
+  /**
+   * Per-session unified CUA inventory (`computer.control`). Read the browser
+   * binding and desktop capabilities/targets together, and remember the
+   * selected desktop target or browser tab for later calls.
+   */
+  cua: {
+    state: () => Promise<unknown>;
+    bind: (input: { targetId?: string; tabId?: string }) => Promise<{ targetId?: string; tabId?: string }>;
+    clear: () => Promise<{ ok: boolean }>;
+    app: (input?: { targetId?: string }) => Promise<unknown>;
+    browser: (input?: { tabId?: string }) => Promise<unknown>;
+    createTab: (input: { url?: string; visible?: boolean }) => Promise<unknown>;
+    capture: (input?: { targetId?: string }) => Promise<{ mimeType: string; data: string }>;
+    claimTab: (input: { tabId: string }) => Promise<{ ok: boolean; tabId: string }>;
+    releaseTab: () => Promise<{ ok: boolean }>;
+    act: (input: {
+      surface: "app" | "browser";
+      action: string;
+      targetId?: string;
+      tabId?: string;
+      uid?: string;
+      point?: { x: number; y: number };
+      toPoint?: { x: number; y: number };
+      text?: string;
+      keys?: string[];
+      scroll?: { dx: number; dy: number };
+      option?: string;
+      url?: string;
+      expression?: string;
+      fullPage?: boolean;
+      limit?: number;
+    }) => Promise<unknown>;
   };
   net: {
     /** Query before using redirect on hosts that may predate this API. */

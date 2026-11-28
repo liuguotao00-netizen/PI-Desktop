@@ -54,7 +54,7 @@ export const COMPUTER_LOOP_SYSTEM_PROMPT = [
   "You work in one window at a time: the one named as current. Switching to another window in the list is allowed.",
   "",
   "Answer with exactly one JSON object and nothing else. The schemas are:",
-  '{"kind":"action","action":{"kind":"click|double_click|right_click|set_value|press_keys|scroll|select","uid":"<id from the element list>","text":"...","keys":["cmd+a"],"scroll":{"dx":0,"dy":120},"option":"..."},"note":"short reason"}',
+  '{"kind":"action","action":{"kind":"click|double_click|right_click|set_value|press_keys|scroll|select|drag|launch_app|paste_text|secondary_action","uid":"<id from the element list>","text":"...","keys":["cmd+a"],"scroll":{"dx":0,"dy":120},"option":"...","toPoint":{"x":0,"y":0}},"note":"short reason"}',
   '{"kind":"switch","window":"<window id from the window list>","note":"short reason"}',
   '{"kind":"done","summary":"what is now true"}',
   '{"kind":"ask","question":"what you need from the user"}',

@@ -58,6 +58,32 @@ export type StartupAnimationSettings = {
   skipWhenReady?: boolean;
 };
 
+/** In-app browser preferences, aligned with the Codex browser settings. */
+export type BrowserBookmarksBarVisibility = "always" | "new-tab" | "never";
+export type BrowserLinkTarget = "in-app-browser" | "external-browser";
+export type BrowserExternalLinkShortcut = "unassigned" | "primary" | "alt" | "primary-shift";
+
+export type BrowserBackendPreference = {
+  kind?: "embedded" | "cdp" | "extension" | "mcp" | "mcpapps";
+  endpoint?: string;
+  launch?: boolean;
+  profile?: string;
+  headless?: boolean;
+};
+
+export type BrowserSettings = {
+  backend?: BrowserBackendPreference;
+  downloadDirectory?: string | null;
+  downloadPrompt?: boolean;
+  showFullUrl?: boolean;
+  bookmarksBarVisibility?: BrowserBookmarksBarVisibility;
+  extensionsToolbarVisible?: boolean;
+  deviceToolbarVisible?: boolean;
+  linkTarget?: BrowserLinkTarget;
+  externalLinkShortcut?: BrowserExternalLinkShortcut;
+  backgroundNetworkingDisabled?: boolean;
+};
+
 export type AppSettings = {
   imageGeneration?: import("../image-generation.js").ImageGenerationBinding | null;
   /** All models marked for image generation; absent falls back to imageGeneration. */
@@ -74,6 +100,8 @@ export type AppSettings = {
   liveVoice?: LiveVoiceSettings;
   /** Granted native application control (ADR 0342); off and unbound by default. */
   computerUse?: import("../computer-use.js").ComputerUseSettings;
+  /** In-app browser behavior and chrome preferences. */
+  browser?: BrowserSettings;
   defaultMode: Mode;
   /**
    * Keep retryable provider/network failures retrying until the request succeeds.

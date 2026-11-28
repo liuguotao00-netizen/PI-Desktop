@@ -52,6 +52,11 @@ export const HIGH_RISK_PERMISSIONS = [
   "mcp.server.local",
   "mcp.server.remote",
   "browser.cdp",
+  "browser.launch",
+  "computer.control",
+  "processAllowlist",
+  "system.process",
+  "system.shell",
   "audio.capture.background",
   "speech.adapter.register",
 ] as const;

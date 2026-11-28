@@ -271,7 +271,11 @@ export type ComputerActionKind =
   | "set_value"
   | "press_keys"
   | "scroll"
-  | "select";
+  | "select"
+  | "drag"
+  | "launch_app"
+  | "paste_text"
+  | "secondary_action";
 
 /**
  * The geometry a capture was taken against. A coordinate action carries it so
@@ -286,6 +290,8 @@ export type ComputerAction = {
   uid?: string;
   /** Scope-relative coordinate; requires `basis` and is clamped to bounds. */
   point?: { x: number; y: number };
+  /** Drag destination, scope-relative, for `kind: "drag"`. */
+  toPoint?: { x: number; y: number };
   basis?: ComputerBasis;
   text?: string;
   /** Normalized chord list, e.g. `["cmd+a", "delete"]`. */
