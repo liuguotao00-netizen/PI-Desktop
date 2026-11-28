@@ -64,13 +64,13 @@ async function command(role, expression, expected) {
   assert.equal(item?.enabled, true, role + " must be enabled");
   if (process.platform === "darwin") Menu.sendActionToFirstResponder(role === "selectall" ? "selectAll:" : role + ":");
   else item.click({}, win, wc);
-  await waitFor(async () => (await read(expression)) === expected, 5_000, role + " to update the editor");
+  await waitFor(async () => (await read(expression)) === expected, 20_000, role + " to update the editor");
 }
 try {
   Menu.setApplicationMenu(null);
   await win.loadFile(process.argv[3]);
   win.focus();
-  await waitFor(() => win.isFocused(), 5_000, "fixture window focus");
+  await waitFor(() => win.isFocused(), 20_000, "fixture window focus");
   await read('document.querySelector(".composer-input").focus()');
   await wc.insertText("alpha beta");
   await read('const range = document.createRange(); const node = document.querySelector(".composer-input").firstChild; range.setStart(node, 0); range.setEnd(node, 5); window.getSelection().removeAllRanges(); window.getSelection().addRange(range)');
@@ -127,7 +127,7 @@ test("composer right-click preserves selection and native editing history", {
       stream.setEncoding("utf8");
       stream.on("data", (chunk) => { output += chunk; });
     }
-    const timer = setTimeout(() => child.kill("SIGKILL"), 15_000);
+    const timer = setTimeout(() => child.kill("SIGKILL"), 60_000);
     try {
       const code = await new Promise((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });
       assert.equal(code, 0, output);

@@ -316,8 +316,10 @@ test("docked views follow the app's type scale and the window zoom", () => {
   // The browser guest is placed from chrome CSS pixels, so the surface carries
   // the factor the chrome is painting at.
   assert.match(viewHostSource, /scale: this\.viewZoom\(\)/);
+  // The host hands the presenter the chrome surface and its hole; the
+  // presenter scales the hole by the zoom factor the surface reports.
   assert.match(
     browserHostSource,
-    /scaleGuestHole\(this\.hole, this\.chrome\.scale\)/,
+    /scaleGuestHole\(hole, surface\.scale\)/,
   );
 });

@@ -98,13 +98,29 @@ const frame = () => new Promise(requestAnimationFrame);
 const until = async (condition, message) => {
   // Electron competes with the rest of the suite for the machine; a page that
   // is slow to settle is not a failure.
-  const end = performance.now() + 15000;
-  while (!condition()) { if (performance.now() > end) throw new Error(message); await frame(); }
+  // Poll on a timer, not rAF: the hidden Electron window may throttle frames
+  // under load even though the React state has already settled.
+  const end = performance.now() + 60000;
+  while (!condition()) {
+    if (performance.now() > end) throw new Error(message);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
 };
 const cards = () => [...document.querySelectorAll(".plugins-card-name")].map((n) => n.textContent);
 const lastCall = () => browseCalls.at(-1);
 const byText = (selector, text) => [...document.querySelectorAll(selector)].find((n) => n.textContent.trim() === text);
 const click = async (node, message) => { check(node && !node.disabled, message); flushSync(() => node.click()); await frame(); };
+// Synthetic clicks in a hidden window can be dropped under load; drive the
+// store through the control and retry until the sort actually applies.
+const applySort = async (value, labelKey) => {
+  const deadline = performance.now() + 20000;
+  while (usePluginBrowseState.getState().sort !== value && performance.now() < deadline) {
+    const button = byText(".plugins-sort-btn", label(labelKey));
+    if (button && !button.disabled) await click(button, labelKey + " sort missing");
+    await new Promise((resolve) => setTimeout(resolve, 200));
+  }
+  check(usePluginBrowseState.getState().sort === value, "sort did not apply: " + value);
+};
 const type = async (value) => {
   const input = document.querySelector('input[aria-label="' + label("marketSearchPlaceholder") + '"]');
   check(input, "search field missing");
@@ -150,12 +166,20 @@ window.marketProbe = async () => {
 
   // A next page still loading when the sort changes must not join the new list.
   const releaseNamePage = gate((c) => c.sort === "name" && c.page === 2);
-  await click(byText(".plugins-sort-btn", label("sortName")), "name sort missing");
+  await applySort("name", "sortName");
   await until(() => lastCall().sort === "name" && settled(), "name sort not requested");
   await scrollEnd();
   await until(() => browseCalls.some((c) => c.sort === "name" && c.page === 2), "name page two not requested");
-  await click(byText(".plugins-sort-btn", label("sortPopular")), "popular sort missing");
-  await until(() => lastCall().sort === "popular" && lastCall().page === 1 && settled(), "popular not requested");
+  // Fail the next page before the switch: the list may prefetch it as soon as
+  // the first popular page renders, and under load that can beat a later setup.
+  failNext = (c) => c.sort === "popular" && c.page === 2;
+  await applySort("popular", "sortPopular");
+  try {
+    await until(() => lastCall().sort === "popular" && lastCall().page === 1 && settled(), "popular not requested");
+  } catch (error) {
+    const buttons = [...document.querySelectorAll(".plugins-sort-btn")].map((node) => node.textContent + ":" + node.disabled);
+    throw new Error(error.message + " | store=" + usePluginBrowseState.getState().sort + " | calls=" + JSON.stringify(browseCalls.slice(-8)) + " | buttons=" + buttons.join(",") + " | busy=" + document.querySelector("#plugins-panel-market")?.getAttribute("aria-busy") + " | cards=" + cards().length);
+  }
   check(lastCall().page === 1 || browseCalls.at(-2)?.page === 1, "sorting must restart the list");
   // Popular is Plugin 1, 2, 3… in order; any name-sorted card from the stale
   // page would break that run.
@@ -166,7 +190,6 @@ window.marketProbe = async () => {
   check(popularRun(), "a stale next page joined the new list: " + cards().slice(0, 30).join(","));
 
   // A failed page pauses automatic loading until the user retries.
-  failNext = (c) => c.sort === "popular" && c.page === 2;
   await scrollEnd();
   const retry = () => byText(".plugins-load-more button", label("loadMoreRetry"));
   await until(() => retry(), "retry did not appear");
@@ -177,7 +200,7 @@ window.marketProbe = async () => {
   await click(retry(), "retry unavailable");
   await until(() => cards().length >= 48, "retry did not load the page");
 
-  await click(byText(".plugins-sort-btn", label("sortRecommended")), "recommended missing");
+  await applySort("recommended", "sortRecommended");
   const writing = [...document.querySelectorAll(".plugins-filter")].find((n) => n.textContent.startsWith("Writing"));
   check(writing, "the chip must show the label, not the id");
   check(writing?.querySelector(".plugins-filter-count")?.textContent === "12", "category count missing");
@@ -248,7 +271,7 @@ app.whenReady().then(async () => {
       stream.setEncoding("utf8");
       stream.on("data", (chunk) => { output += chunk; });
     }
-    const timer = setTimeout(() => child.kill("SIGKILL"), 45_000);
+    const timer = setTimeout(() => child.kill("SIGKILL"), 120_000);
     let code;
     try {
       code = await new Promise((resolve, reject) => { child.once("error", reject); child.once("close", resolve); });

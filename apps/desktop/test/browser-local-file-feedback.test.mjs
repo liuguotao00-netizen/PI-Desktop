@@ -31,7 +31,12 @@ function render(locale) {
     },
   };
   runInNewContext(script, {
-    document: { getElementById: element, documentElement: { dataset: {}, lang: "" } },
+    document: {
+      getElementById: element,
+      documentElement: { dataset: {}, lang: "" },
+      addEventListener() {},
+      removeEventListener() {},
+    },
     window: { pluginBridge: bridge, matchMedia: () => ({ matches: true }), addEventListener() {} },
     navigator: { language: locale },
     ResizeObserver: class { observe() {} },

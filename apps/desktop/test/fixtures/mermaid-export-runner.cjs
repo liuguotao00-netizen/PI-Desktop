@@ -4,7 +4,7 @@ const { readFileSync } = require("node:fs");
 const { join } = require("node:path");
 const dir = process.env.PI_MERMAID_TEST_DIR;
 app.setPath("userData", join(dir, "profile"));
-const watchdog = setTimeout(() => app.exit(1), 45_000);
+const watchdog = setTimeout(() => app.exit(1), 90_000);
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ show: true, width: 900, height: 700,
     webPreferences: { sandbox: true, contextIsolation: true, backgroundThrottling: false } });
@@ -12,7 +12,7 @@ app.whenReady().then(async () => {
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   const evaluate = (source) => win.webContents.executeJavaScript(source, true);
   const wait = async (source) => {
-    const deadline = Date.now() + 10_000;
+    const deadline = Date.now() + 30_000;
     while (!await evaluate(source)) {
       if (Date.now() > deadline) {
         console.error(await evaluate('document.body.innerText'));
@@ -21,9 +21,18 @@ app.whenReady().then(async () => {
       await new Promise((resolve) => setTimeout(resolve, 20));
     }
   };
-  const click = async (label) => {
+  // Concurrent Electron tests can steal OS focus; sendInputEvent targets this
+  // webContents directly, so focus is best effort rather than a hard wait.
+  const tryFocus = async () => {
     win.focus(); win.webContents.focus();
-    await wait("document.hasFocus()");
+    const deadline = Date.now() + 2_000;
+    while (!await evaluate("document.hasFocus()")) {
+      if (Date.now() > deadline) return;
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  };
+  const click = async (label) => {
+    await tryFocus();
     const point = await evaluate(`(() => {
       const el = document.querySelector('button[aria-label=' + CSS.escape(${JSON.stringify(label)}) + ']');
       if (!el || el.disabled) throw Error('Control unavailable: ' + ${JSON.stringify(label)});

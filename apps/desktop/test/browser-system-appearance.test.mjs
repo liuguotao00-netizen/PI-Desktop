@@ -27,7 +27,7 @@ function harness() {
   const callbacks = new Map();
   const html = readFileSync(new URL("../resources/plugins/pi.browser/views/browser.html", import.meta.url), "utf8");
   runInNewContext(html.match(/<script>([\s\S]*?)<\/script>/)[1], {
-    document: { documentElement: root, getElementById(id) {
+    document: { documentElement: root, addEventListener() {}, removeEventListener() {}, getElementById(id) {
       if (!elements.has(id)) elements.set(id, { addEventListener() {}, setAttribute() {}, getBoundingClientRect: () => ({ x: 0, y: 36, width: 400, height: 300 }) });
       return elements.get(id);
     } },

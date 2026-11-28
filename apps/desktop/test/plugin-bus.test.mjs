@@ -15,6 +15,7 @@ register(pathToFileURL(join(here, "helpers/ts-import-hooks.mjs")));
 const { PluginRuntime } = await import("../electron/main/plugin-runtime.ts");
 
 const hostSrc = readFileSync(hostProcessEntry, "utf8");
+const hostApiSrc = readFileSync(join(desktopRoot, "electron/main/plugin-host-api/api-surface.mjs"), "utf8");
 const runtimeSrc = readFileSync(join(desktopRoot, "electron/main/plugin-runtime.ts"), "utf8");
 
 /** Real host process, forked instead of Electron's utilityProcess. */
@@ -420,6 +421,6 @@ test("the bus is brokered, capped and audited in one place", () => {
   const clear = runtimeSrc.slice(runtimeSrc.indexOf("private clearContributions"));
   assert.match(clear, /this\.busSubscriptions\.delete\(id\)/);
   // The child keeps handlers only; every topic decision is the broker's.
-  assert.match(hostSrc, /busHandlers\.set\(id, handler\)/);
-  assert.doesNotMatch(hostSrc, /isValidBusTopic|matchesBusTopic/);
+  assert.match(hostApiSrc, /busHandlers\.set\(id, handler\)/);
+  assert.doesNotMatch(hostApiSrc, /isValidBusTopic|matchesBusTopic/);
 });

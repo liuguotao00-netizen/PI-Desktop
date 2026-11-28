@@ -138,20 +138,29 @@ test("agent runtime exposes BrowserPreview in every mode and prompts for it", ()
 });
 
 test("Browser tool uses its connected page without forcing the side panel open", async () => {
-  assert.match(browserPluginSource, /side panel is hidden or another session is visible/);
-  assert.match(browserPluginSource, /Background operations never take focus/);
-  assert.doesNotMatch(browserPluginSource, /await pi\.browser\.reveal\(\)/);
+  assert.match(browserPluginSource, /Reuses the connected page by default/);
+  assert.match(browserPluginSource, /Never reveal or focus the tab/);
+  // Revealing is allowed only for an explicit foreground navigation.
+  assert.match(browserPluginSource, /if \(!background\) await pi\.browser\.reveal\(\)/);
 
-  let registeredTool;
+  const tools = new Map();
   const calls = [];
   const previousPi = globalThis.pi;
   globalThis.pi = {
     agent: {
-      registerTool: async (tool) => { registeredTool = tool; },
+      registerTool: async (tool) => { tools.set(tool.name, tool); },
       unregisterTool: async () => {},
     },
     browser: {
       reveal: async () => { calls.push("reveal"); },
+      evaluateIsolated: async ({ expression }) => (String(expression).includes("__PI_REF_STATE")
+        ? { tree: "- e1 WebArea", url: "https://fixture.invalid", title: "Fixture", count: 1, diff: "" }
+        : {
+            url: "https://fixture.invalid",
+            title: "Fixture",
+            focused: "",
+            viewport: { width: 800, height: 600 },
+          }),
       snapshot: async () => {
         calls.push("snapshot");
         return { tree: "- e1 WebArea", url: "https://fixture.invalid", title: "Fixture" };
@@ -161,14 +170,15 @@ test("Browser tool uses its connected page without forcing the side panel open",
   try {
     const plugin = await import("../resources/plugins/pi.browser/main.js");
     await plugin.onLoad();
-    const result = await registeredTool.execute({ action: "snapshot" });
-    assert.deepEqual(calls, ["snapshot"]);
+    const result = await tools.get("browser_snapshot").execute({}, { sessionId: "s" });
+    assert.ok(!calls.includes("reveal"), "snapshot must not reveal the side panel");
     assert.deepEqual(result, {
       ok: true,
-      action: "snapshot",
       tree: "- e1 WebArea",
       url: "https://fixture.invalid",
       title: "Fixture",
+      count: 1,
+      diff: "",
     });
     await plugin.onUnload();
   } finally {

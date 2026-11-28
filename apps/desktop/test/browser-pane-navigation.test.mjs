@@ -10,6 +10,9 @@ import { pathToFileURL } from "node:url";
 // runs in the production BrowserPane, without opening a native window.
 const electron = `data:text/javascript,${encodeURIComponent(`
   import { EventEmitter } from "node:events";
+  export const app = { getPath: () => "", whenReady: async () => {}, on() {}, once() {} };
+  export const dialog = { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) };
+  export const session = { defaultSession: {}, fromPartition: () => ({ setUserAgent() {}, setPermissionRequestHandler() {}, webRequest: { onBeforeSendHeaders() {}, onCompleted() {}, onBeforeRequest() {} } }) };
   export const shell = {
     openedPaths: [],
     openPath(path) { this.openedPaths.push(path); return Promise.resolve(""); },
@@ -51,7 +54,7 @@ const electron = `data:text/javascript,${encodeURIComponent(`
         close: () => {},
         navigationHistory: { canGoBack: () => false, canGoForward: () => false },
         setWindowOpenHandler: () => {},
-        session: { setPermissionRequestHandler: () => {} },
+        session: { setPermissionRequestHandler: () => {}, setPermissionCheckHandler: () => {}, setUserAgent: () => {}, webRequest: { onCompleted: () => {}, onBeforeRequest: () => {}, onBeforeSendHeaders: () => {}, onErrorOccurred: () => {}, onHeadersReceived: () => {}, onResponseStarted: () => {}, onSendHeaders: () => {}, onBeforeRedirect: () => {} } },
       });
       WebContentsView.instances.push(this);
     }

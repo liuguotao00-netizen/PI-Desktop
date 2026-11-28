@@ -218,6 +218,12 @@ test("packaging keeps only shipped locales and excludes non-runtime artifacts", 
       from: "resources/plugins",
       to: "plugins",
     },
+    // Chrome launches this script as the native messaging host, so it must
+    // stay a plain file outside the asar.
+    {
+      from: "resources/browser-native-host",
+      to: "browser-native-host",
+    },
     {
       from: "resources/models.dev",
       to: "models.dev",

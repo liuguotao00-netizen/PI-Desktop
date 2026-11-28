@@ -1,8 +1,18 @@
 import assert from "node:assert/strict";
-import { register } from "node:module";
+import { register, registerHooks } from "node:module";
 import test from "node:test";
 
 register(new URL("./helpers/ts-import-hooks.mjs", import.meta.url));
+// Electron is the native boundary; tests only need the image helpers.
+const electron = `data:text/javascript,${encodeURIComponent(`
+  export const nativeImage = {
+    createFromBuffer: () => ({ getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
+    createFromPath: () => ({ getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
+  };
+`)}`;
+registerHooks({ resolve(specifier, context, next) {
+  return specifier === "electron" ? { url: electron, shortCircuit: true } : next(specifier, context);
+} });
 const { BrowserHost } = await import("../electron/main/browser-host.ts");
 const settled = () => new Promise(setImmediate);
 function deferred() {
@@ -17,6 +27,8 @@ function harness() {
     const pane = {
       visible: false, disposed: false,
       setWindow: () => {}, setBounds: () => {},
+      setSessionId: () => {},
+      setAgentControl: () => {},
       setVisible(value) { this.visible = value; },
       getState: () => state, getWebContents: () => null,
       invalidateNavigation: () => {},

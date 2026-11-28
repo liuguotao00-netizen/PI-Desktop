@@ -144,28 +144,40 @@ test("Browser ships as an ordinary plugin over the public CDP API", () => {
   assert.doesNotMatch(browserView, /require\(|ipcRenderer|webview/);
 });
 
-test("Browser declares plan-safe actions for Plan-mode URL inspection (ADR 0211)", () => {
+test("Browser read-only tools opt into Plan mode (ADR 0211)", () => {
   const browserMain = read("resources/plugins/pi.browser/main.js");
-  // The planSafeActions list must be declared on the registered tool.
-  assert.match(browserMain, /planSafeActions\s*:\s*PLAN_SAFE_ACTIONS/);
-  // The list itself must declare the four read-only actions the user needs.
-  assert.match(
-    browserMain,
-    /PLAN_SAFE_ACTIONS\s*=\s*\[\s*"navigate"\s*,\s*"snapshot"\s*,\s*"screenshot"\s*,\s*"console"\s*\]/,
-  );
-  // The mutating actions must NOT appear in PLAN_SAFE_ACTIONS, otherwise
-  // Plan mode would be able to click/fill/evaluate arbitrary pages.
-  const planSafeMatch = browserMain.match(/PLAN_SAFE_ACTIONS\s*=\s*\[([\s\S]*?)\]/);
-  assert.ok(planSafeMatch, "PLAN_SAFE_ACTIONS array must exist");
-  for (const unsafe of ["click", "fill", "evaluate", "cdp"]) {
-    assert.doesNotMatch(
-      planSafeMatch[1],
-      new RegExp('"' + unsafe + '"'),
-      `mutating action ${unsafe} must not appear in PLAN_SAFE_ACTIONS`,
-    );
+  // Granular tools have no action enum, so the whole tool opts in with "*".
+  assert.match(browserMain, /planSafeActions:\s*\["\*"\]/);
+  const blockOf = (name) => {
+    const at = browserMain.indexOf(`name: "${name}"`);
+    assert.ok(at >= 0, `tool ${name} must be registered`);
+    const nextTool = browserMain.indexOf('name: "browser_', at + 10);
+    const endOfList = browserMain.indexOf("\n];", at);
+    const end = [nextTool, endOfList].filter((index) => index > 0).sort((a, b) => a - b)[0];
+    return browserMain.slice(at, end === undefined ? undefined : end);
+  };
+  for (const readOnly of [
+    "browser_navigate",
+    "browser_snapshot",
+    "browser_take_screenshot",
+    "browser_get_bounding_box",
+    "browser_wait",
+    "browser_console",
+    "browser_network",
+  ]) {
+    assert.match(blockOf(readOnly), /planSafeActions:\s*\["\*"\]/, `${readOnly} must be plan-safe`);
+  }
+  for (const mutating of [
+    "browser_click",
+    "browser_type",
+    "browser_fill",
+    "browser_press_key",
+    "browser_drag",
+    "browser_cdp",
+  ]) {
+    assert.doesNotMatch(blockOf(mutating), /planSafeActions/, `${mutating} must not be plan-safe`);
   }
 });
-
 
 test("Advisor is temporarily not bundled", () => {
   assert.equal(existsSync(resolve("resources/plugins/pi.advisor")), false);

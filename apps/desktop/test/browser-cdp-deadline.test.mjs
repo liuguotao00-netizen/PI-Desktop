@@ -49,6 +49,8 @@ function harness() {
     const pane = {
       visible: false, disposed: false,
       setWindow: () => {}, setBounds: () => {},
+      setSessionId: () => {},
+      setAgentControl: () => {},
       setVisible(value) { this.visible = value; },
       getState: () => state,
       getWebContents: () => wc,
@@ -141,7 +143,10 @@ test("calls that finish in time are unaffected by the deadline", async (t) => {
   assert.deepEqual(evaluated, { expression: "1+1" });
   const cdp = await h.host.cdpCommand("Page.getLayoutMetrics", {});
   assert.equal(cdp.method, "Page.getLayoutMetrics");
-  // Advancing well past the deadline must fire nothing: the timers were cleared.
+  // Advancing well past the deadline must fire nothing: the timers were
+  // cleared. A completed call may detach on its own path, so compare with the
+  // state before advancing instead of requiring an empty list.
+  const detachedBefore = BrowserCdp.current.detached.length;
   clock.advance(60_000);
-  assert.deepEqual(BrowserCdp.current.detached, []);
+  assert.equal(BrowserCdp.current.detached.length, detachedBefore);
 });

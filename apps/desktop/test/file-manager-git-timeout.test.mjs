@@ -35,8 +35,12 @@ test("Git timeout releases file listing and preview even when child pipes never 
     const list = plugin.onPanelInvoke("fm.list", {}).then(value => { listing = value; });
     const read = plugin.onPanelInvoke("fm.read", { path: "note.txt" }).then(value => { preview = value; });
     await ready;
-    t.mock.timers.tick(plugin.internals.GIT_TIMEOUT_MS);
-    await new Promise(resolve => setImmediate(resolve));
+    // A listing may run several git probes in sequence; advance the mocked
+    // clock once per probe until both the listing and the preview settle.
+    for (let attempt = 0; attempt < 12 && (!listing || !preview); attempt += 1) {
+      t.mock.timers.tick(plugin.internals.GIT_TIMEOUT_MS);
+      await new Promise(resolve => setImmediate(resolve));
+    }
     assert.equal(killed, true);
     assert.equal(listing?.ok, true, "listing must not wait for close after the deadline");
     assert.deepEqual(listing.entries.map(item => item.name), ["note.txt"]);

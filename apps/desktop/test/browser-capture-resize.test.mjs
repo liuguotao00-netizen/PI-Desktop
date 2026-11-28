@@ -9,6 +9,18 @@ import test from "node:test";
 const electron = `data:text/javascript,${encodeURIComponent(`
   import { EventEmitter } from "node:events";
   export const shell = {};
+  export const app = { getPath: () => "", whenReady: async () => {}, on() {}, once() {} };
+  export const dialog = { showOpenDialog: async () => ({ canceled: true, filePaths: [] }), showMessageBox: async () => ({ response: 0 }) };
+  export const session = { defaultSession: {}, fromPartition: () => ({
+    setUserAgent() {},
+    setPermissionRequestHandler() {},
+    setPermissionCheckHandler() {},
+    webRequest: { onBeforeSendHeaders() {}, onBeforeRequest() {}, onCompleted() {}, onErrorOccurred() {} },
+  }) };
+  export const ipcMain = { handle() {}, on() {} };
+  export const nativeImage = {
+    createFromBuffer: () => ({ getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
+  };
   export class View {
     children = [];
     parent = null;
@@ -17,6 +29,7 @@ const electron = `data:text/javascript,${encodeURIComponent(`
     addChildView(view) { this.children.push(view); view.parent = this; }
     removeChildView(view) { this.children.splice(this.children.indexOf(view), 1); view.parent = null; }
     setBounds(bounds) { this.bounds = { ...bounds }; }
+    setBackgroundColor() {}
     getBounds() { return { ...this.bounds }; }
     setVisible(visible) { this.visible = visible; }
   }
@@ -57,7 +70,19 @@ const electron = `data:text/javascript,${encodeURIComponent(`
         },
         navigationHistory: { canGoBack: () => false, canGoForward: () => false },
         setWindowOpenHandler: () => {},
-        session: { setPermissionRequestHandler: () => {} },
+        session: {
+          setPermissionRequestHandler: () => {},
+          setPermissionCheckHandler: () => {},
+          setUserAgent: () => {},
+          webRequest: { onBeforeSendHeaders() {}, onBeforeRequest() {}, onCompleted() {}, onErrorOccurred() {} },
+        },
+      });
+      wc.executeJavaScriptInIsolatedWorld = async () => undefined;
+      wc.capturePage = async () => ({
+        toPNG: () => Buffer.from("fixture-image"),
+        toJPEG: () => Buffer.from("fixture-image"),
+        getSize: () => ({ width: 800, height: 600 }),
+        resize: () => ({ toPNG: () => Buffer.from("fixture-image"), toJPEG: () => Buffer.from("fixture-image"), getSize: () => ({ width: 640, height: 480 }) }),
       });
       wc.debugger = Object.assign(new EventEmitter(), {
         attached: false,
@@ -195,14 +220,14 @@ for (const raw of [false, true]) {
 test("a failed capture releases resizing and does not poison the next capture", async (t) => {
   const { host, resize, wc } = await harness(t);
   const started = once(wc, "capture-start");
-  const failed = assert.rejects(host.screenshot(), /fixture capture failure/);
+  const failed = assert.rejects(host.screenshot({ fullPage: true }), /fixture capture failure/);
   await started;
   resize(940, 600);
   wc.captures[0].reject(new Error("fixture capture failure"));
   await failed;
   assert.deepEqual(wc.viewport, { width: 940, height: 600 });
   const nextStarted = once(wc, "capture-start");
-  const next = host.screenshot();
+  const next = host.screenshot({ fullPage: true });
   await nextStarted;
   wc.captures[1].resolve();
   assert.equal((await next).data, "fixture-image");
@@ -213,7 +238,7 @@ for (const raw of [false, true]) {
     const { host, wc } = await harness(t);
     const capture = () => raw
       ? host.cdpCommand("Page.captureScreenshot", { format: "png" })
-      : host.screenshot();
+      : host.screenshot({ fullPage: true });
     const setTimeout = globalThis.setTimeout;
     let expire;
     globalThis.setTimeout = (callback, delay, ...args) => {
@@ -247,7 +272,7 @@ for (const raw of [false, true]) {
 test("overlapping capture APIs serialize per page, not across sibling tabs", async (t) => {
   const { host, resize, wc } = await harness(t);
   const started = once(wc, "capture-start");
-  const first = host.screenshot();
+  const first = host.screenshot({ fullPage: true });
   await started;
   const nextStarted = once(wc, "capture-start");
   const next = host.cdpCommand("Page.captureScreenshot", { format: "png" });
@@ -255,7 +280,7 @@ test("overlapping capture APIs serialize per page, not across sibling tabs", asy
   await host.navigate({ url: "https://fixture.invalid/second" }, "session", "second");
   const sibling = WebContentsView.instances.at(-1).webContents;
   const siblingStarted = once(sibling, "capture-start");
-  const siblingShot = host.screenshot();
+  const siblingShot = host.screenshot({ fullPage: true });
   await siblingStarted;
   assert.equal(wc.captures.length, 1, "the first page must not capture concurrently");
   sibling.captures[0].resolve();
@@ -275,9 +300,9 @@ test("overlapping capture APIs serialize per page, not across sibling tabs", asy
 test("closing a tab rejects its queued capture without capturing a replacement", async (t) => {
   const { host, wc } = await harness(t);
   const started = once(wc, "capture-start");
-  const first = host.screenshot();
+  const first = host.screenshot({ fullPage: true });
   await started;
-  const queued = assert.rejects(host.screenshot(), /browser guest is not available/);
+  const queued = assert.rejects(host.screenshot({ fullPage: true }), /browser guest is not available/);
   host.closeTab("session", "first");
   host.setChromeSession("session", "replacement");
   await host.navigate({ url: "https://fixture.invalid/replacement" }, "session", "replacement");
@@ -292,7 +317,7 @@ test("hiding and restoring a captured page keeps its presentation isolated from 
   const { host, children, view, wc } = await harness(t);
   const surface = view.parent;
   const started = once(wc, "capture-start");
-  const capture = host.screenshot();
+  const capture = host.screenshot({ fullPage: true });
   await started;
   host.setChromeSession("session", "second");
   await host.navigate({ url: "https://fixture.invalid/second" }, "session", "second");
@@ -335,7 +360,7 @@ test("a destroyed native guest can be resized, replaced and disposed safely", as
 test("capture completion after native guest destruction preserves the original capture result", async (t) => {
   const { host, resize, wc } = await harness(t);
   const started = once(wc, "capture-start");
-  const capture = host.screenshot();
+  const capture = host.screenshot({ fullPage: true });
   await started;
   wc.close();
   resize(900, 620);
@@ -362,7 +387,7 @@ test("page-local viewport work restores throttling and resizing on failure", asy
   const paneSurface = WebContentsView.instances.at(-1).parent;
   host.setChromeSurface(null);
   const started = once(wc, "capture-start");
-  const failed = assert.rejects(host.screenshot({}, "session"), /fixture failure/);
+  const failed = assert.rejects(host.screenshot({ fullPage: true }, "session"), /fixture failure/);
   await started;
   assert.equal(wc.getBackgroundThrottling(), false);
   wc.captures[0].reject(new Error("fixture failure"));

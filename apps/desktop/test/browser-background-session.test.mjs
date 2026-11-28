@@ -1,9 +1,19 @@
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { register } from "node:module";
+import { register, registerHooks } from "node:module";
 import test from "node:test";
 
 register(new URL("./helpers/ts-import-hooks.mjs", import.meta.url));
+// Electron is the native boundary; tests only need the image helpers.
+const electron = `data:text/javascript,${encodeURIComponent(`
+  export const nativeImage = {
+    createFromBuffer: () => ({ getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
+    createFromPath: () => ({ getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
+  };
+`)}`;
+registerHooks({ resolve(specifier, context, next) {
+  return specifier === "electron" ? { url: electron, shortCircuit: true } : next(specifier, context);
+} });
 const { BrowserHost } = await import("../electron/main/browser-host.ts");
 
 const settled = () => new Promise(setImmediate);
@@ -28,6 +38,7 @@ function harness() {
         clicks: 0,
         value: "",
         isDestroyed: () => pane.disposed,
+        capturePage: async () => ({ toPNG: () => Buffer.from(wc.getTitle()), toJPEG: () => Buffer.from(wc.getTitle()), getSize: () => ({ width: 0, height: 0 }), resize() { return this; } }),
         getURL: () => state?.url ?? "",
         getTitle: () => state?.title ?? "",
         debugger: Object.assign(new EventEmitter(), {
@@ -42,8 +53,13 @@ function harness() {
             if (method === "DOM.getBoxModel") return { model: { content: wc.hiddenBoxOffset ? [-140, -876, -100, -876, -100, -836, -140, -836] : [0, 0, 40, 0, 40, 40, 0, 40] } };
             if (method === "DOM.resolveNode") return { object: { objectId: `input-${wc.id}` } };
             if (method === "Input.dispatchMouseEvent" && input.type === "mouseReleased" && input.x >= 0 && input.y >= 0) wc.clicks += 1;
+            if (method === "Input.insertText") wc.value = input.text;
             if (method === "Runtime.callFunctionOn" && input.functionDeclaration.includes("getBoundingClientRect")) return { result: { value: { x: 20, y: 20 } } };
-            if (method === "Runtime.callFunctionOn") wc.value = input.arguments[0].value;
+            if (method === "Runtime.callFunctionOn") {
+              const value = input.arguments?.[0]?.value;
+              if (value !== undefined) wc.value = value;
+              return { result: { value: true } };
+            }
             if (method === "Runtime.evaluate") return { result: { value: wc.getTitle() } };
             if (method === "Page.captureScreenshot") return { data: Buffer.from(wc.getTitle()).toString("base64") };
             return {};
@@ -56,6 +72,8 @@ function harness() {
         wc,
         commands,
         setWindow() {},
+        setSessionId() {},
+        setAgentControl() {},
         setBounds() {},
         setVisible(visible) { this.visible = visible; },
         getState: () => state,

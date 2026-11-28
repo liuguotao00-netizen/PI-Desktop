@@ -123,9 +123,10 @@ test("main, plugins, preview, and updater share the allowlist before openExterna
   );
 
   assert.match(runtimeSource, /import \{ parseAllowedExternalUrl \} from "\.\/safe-open-external"/);
-  const openExternalGate = runtimeSource.slice(
-    runtimeSource.indexOf("openExternal: async (url: string)"),
-    runtimeSource.indexOf("net: {"),
+  const backgroundHostApiSource = readMainModuleSync("plugin-host-api/background.ts");
+  const openExternalGate = backgroundHostApiSource.slice(
+    backgroundHostApiSource.indexOf("openExternal: async (url: string)"),
+    backgroundHostApiSource.indexOf("audio: {"),
   );
   assert.match(openExternalGate, /const allowed = parseAllowedExternalUrl\(url\)/);
   assert.match(openExternalGate, /only http\(s\)\/mailto URLs allowed/);

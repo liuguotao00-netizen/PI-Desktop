@@ -350,8 +350,16 @@ test("Windows/Linux explicit minimize paths use the native taskbar", () => {
       to: "bin/pi-desktop-host-core",
     },
     {
+      from: "../../target/release/pi-desktop-host-launcher",
+      to: "bin/pi-desktop-host-launcher",
+    },
+    {
       from: "build/tray-icon-mac.png",
       to: "tray-icon-mac.png",
+    },
+    {
+      from: "resources/browser-extension",
+      to: "browser-extension",
     },
   ]);
   assert.match(iconScriptSource, /tray-icon-mac\.png/);

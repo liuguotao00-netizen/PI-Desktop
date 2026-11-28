@@ -11,7 +11,9 @@ import { resolve as resolveTypeScriptSibling } from "./ts-import-hooks.mjs";
 const stub = new URL("./browser-cdp-stub.mjs", import.meta.url).href;
 
 export async function resolve(specifier, context, next) {
-  if (specifier === "./browser-cdp") {
+  // The host used to import the CDP layer directly; the page registry one
+  // directory deeper now asks for "../browser-cdp".
+  if (specifier === "./browser-cdp" || specifier === "../browser-cdp") {
     return next(stub, { ...context, parentURL: undefined });
   }
   return resolveTypeScriptSibling(specifier, context, next);

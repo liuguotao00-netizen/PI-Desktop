@@ -51,13 +51,10 @@ test("runtime theme APIs and setTheme are allowlisted and wired", () => {
   assert.match(themeServicesSrc, /setThemePreference/);
   assert.match(themeServicesSrc, /IPC\.event\.settingsChanged/);
   assert.match(themeServicesSrc, /reason: "themes"/);
-  // Child host process must expose the same surface.
-  const childSrc = readFileSync(
-    join(desktopRoot, "electron/main/plugin-host-process.mjs"),
-    "utf8",
-  );
-  assert.match(childSrc, /setTheme:\s*\(themeId\)/);
-  assert.match(childSrc, /themes:\s*\{/);
+  // The host API now lives in plugin-runtime's hostApi; the child process
+  // only proxies calls.
+  assert.match(runtimeSrc, /setTheme:\s*async \(themeId: string\)/);
+  assert.match(runtimeSrc, /themes:\s*\{/);
   // Panel bridge channels.
   assert.match(runtimeSrc, /case "app\.setTheme"/);
   assert.match(runtimeSrc, /case "themes\.upsert"/);

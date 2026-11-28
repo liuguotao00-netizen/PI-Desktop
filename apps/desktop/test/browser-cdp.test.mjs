@@ -67,7 +67,7 @@ test("CDP allowlist denies cookies, storage, and target methods", () => {
   assert.doesNotMatch(cdpSource, /"Target\./);
   assert.doesNotMatch(cdpSource, /Fetch\./);
   assert.doesNotMatch(cdpSource, /Page\.navigate/);
-  assert.match(cdpSource, /CDP method not allowed/);
+  assert.match(cdpSource, /CDP .* is denied/);
 });
 
 test("guest bounds are clamped to the plugin view rect", () => {
@@ -111,17 +111,26 @@ const runtimeSource = readFileSync(
   resolve("electron/main/plugin-runtime.ts"),
   "utf8",
 );
+const browserHostApiSource = readFileSync(
+  resolve("electron/main/plugin-host-api/browser.ts"),
+  "utf8",
+);
 const mainSource = readMainSourceSync();
 
 test("browser.reveal is admitted by the plugin host API allowlist", () => {
   const allowlist = runtimeSource.match(/const HOST_API_ALLOWLIST = new Set\(\[([\s\S]*?)\]\);/)?.[1] ?? "";
   assert.match(allowlist, /"browser\.reveal"/);
-  assert.match(runtimeSource, /this\.services\.browser\.reveal\(this\.browserSessionId\(pluginId\)\)/);
+  assert.match(allowlist, /"browser\.networkIdle"/);
+  assert.match(allowlist, /"browser\.downloads"/);
+  assert.match(allowlist, /"browser\.cancelDownload"/);
+  assert.match(allowlist, /"browser\.cancelFileChooser"/);
+  assert.match(browserHostApiSource, /services\.browser\.reveal\(/);
+  assert.match(browserHostApiSource, /sessionId\(\) \?\? contextSessionId/);
 });
 
 test("in-flight tool.execute session survives the child host-api round trip", () => {
   assert.match(runtimeSource, /private readonly toolInvocations = new PluginToolInvocations/);
-  assert.match(runtimeSource, /reveal: async \(\) => \{[\s\S]*browserSessionId\(pluginId\)/);
+  assert.match(browserHostApiSource, /reveal: async [\s\S]*sessionId\(\)/);
   assert.match(runtimeSource, /toolInvocations\.begin\(target/);
   assert.match(runtimeSource, /invocationId: invocation\.id/);
   assert.match(runtimeSource, /this\.browserSessionId\(pluginId\)/);

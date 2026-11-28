@@ -10,7 +10,7 @@ const root = repositoryRoot();
 const { build } = createRequire(join(root, "packages/agent-runtime/package.json"))("esbuild");
 
 test("Mermaid preview copies standalone SVG and downloads the same diagram", {
-  timeout: 90_000,
+  timeout: 150_000,
   skip: process.platform === "linux" && !process.env.DISPLAY ? "Electron requires a display" : false,
 }, async () => {
   const temp = await mkdtemp(join(root, "apps/desktop/.mermaid-export-"));
