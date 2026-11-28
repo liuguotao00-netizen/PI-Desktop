@@ -280,12 +280,10 @@ pub fn resolve_in_workspace(workspace_root: &Path, input: &str) -> Result<PathBu
     };
 
     let normalized = normalize_lexical(&candidate);
-    if !path_is_within(&root, &normalized) {
-        return Err("PATH_OUTSIDE_WORKSPACE".into());
-    }
-
-    // Canonicalize the deepest existing ancestor (resolves symlinks), then
-    // re-append the not-yet-existing tail.
+    // Canonicalize before the containment check: the caller may spell the
+    // workspace with a symlinked prefix (macOS /var vs /private/var), and the
+    // lexical spelling is not what the canonical root is compared against.
+    // Containment is still enforced on the fully resolved path below.
     let resolved = resolve_with_existing_ancestor(normalized)?;
 
     if !path_is_within(&root, &resolved) {

@@ -279,6 +279,31 @@ fn read_tx(tx: &Transaction<'_>, session_id: &str) -> Result<Option<TodoSnapshot
     }))
 }
 
+/// Turn end: nothing may still be "in progress" once its turn is terminal.
+///
+/// Pending items stay — a later turn may pick them up — but an in-progress
+/// item cannot survive a completed, aborted, or failed turn, or the checklist
+/// claims work is running when nothing is.
+pub fn cancel_in_progress(db: &Database, session_id: &str) -> Result<Option<TodoSnapshot>> {
+    let tx = db.conn().unchecked_transaction()?;
+    let changed = tx.execute(
+        "UPDATE session_todo SET status = ?3, updated_at = ?4
+          WHERE session_id = ?1 AND status = ?2",
+        params![session_id, STATUS_IN_PROGRESS, STATUS_CANCELLED, now_ms()],
+    )?;
+    if changed == 0 {
+        return Ok(None);
+    }
+    tx.execute(
+        "UPDATE sessions SET todo_revision = todo_revision + 1, todo_updated_at = ?2
+          WHERE id = ?1 AND deleted_at IS NULL",
+        params![session_id, now_ms()],
+    )?;
+    let snapshot = read_tx(&tx, session_id)?;
+    tx.commit()?;
+    Ok(snapshot)
+}
+
 /// Replace a session's checklist from one `TodoWrite` call.
 ///
 /// The session's live state, its durable `agent` mode, and the owning running
@@ -763,5 +788,37 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM session_todo", [], |row| row.get(0))
             .unwrap();
         assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn turn_end_cancels_in_progress_but_keeps_pending() {
+        let db = db();
+        let session_id = session(&db);
+        let now = now_ms();
+        for (status, position) in [("pending", 0i64), ("in_progress", 1), ("completed", 2)] {
+            db.conn()
+                .execute(
+                    "INSERT INTO session_todo
+                       (session_id, position, content, status, priority, updated_at)
+                     VALUES (?1, ?2, ?3, ?4, 'medium', ?5)",
+                    params![
+                        session_id,
+                        position,
+                        format!("item-{position}"),
+                        status,
+                        now
+                    ],
+                )
+                .unwrap();
+        }
+        let snapshot = cancel_in_progress(&db, &session_id)
+            .unwrap()
+            .expect("an in-progress item changed");
+        assert_eq!(snapshot.todos[0].status, STATUS_PENDING);
+        assert_eq!(snapshot.todos[1].status, STATUS_CANCELLED);
+        assert_eq!(snapshot.todos[2].status, STATUS_COMPLETED);
+        assert_eq!(snapshot.revision, 1);
+        // Nothing left in progress: the call is idempotent and bumps nothing.
+        assert!(cancel_in_progress(&db, &session_id).unwrap().is_none());
     }
 }

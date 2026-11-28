@@ -3060,6 +3060,28 @@ async fn handle_request(
             todos::get_from(&st, session_id)
         }
 
+        // Turn-end normalization: an item cannot stay in progress once its
+        // turn is terminal. Pending items survive for later turns.
+        "todos.cancelInProgress" => {
+            let session_id = params
+                .get("sessionId")
+                .and_then(Value::as_str)
+                .ok_or_else(|| rpc_err(1002, "sessionId required", "INVALID_ARGUMENT"))?;
+            let snapshot = {
+                let st = state.lock().await;
+                todos::cancel_in_progress_from(&st, session_id)?
+            };
+            match snapshot {
+                Some(snapshot) => {
+                    let payload = serde_json::to_value(&snapshot)
+                        .map_err(|error| rpc_err(1000, error.to_string(), "INTERNAL"))?;
+                    emit_notification(&tx, "todos.changed", payload).await;
+                    Ok(json!({ "changed": true, "revision": snapshot.revision }))
+                }
+                None => Ok(json!({ "changed": false })),
+            }
+        }
+
         "session.configure" => {
             let id = params
                 .get("id")

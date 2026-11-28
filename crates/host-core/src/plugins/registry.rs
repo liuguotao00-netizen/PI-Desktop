@@ -100,9 +100,13 @@ impl PluginManager {
                 }
                 let manifest = match Self::read_manifest(&path) {
                     Ok(manifest) => manifest,
-                    // A malformed bundled plugin is a build defect. Skip it
-                    // rather than refusing to start the whole host.
-                    Err(_) => continue,
+                    // A malformed bundled plugin is a build defect. Keep a
+                    // visible error row instead of dropping the plugin, so the
+                    // panel cannot silently lose a first-party surface.
+                    Err(error) => {
+                        shipped.push(Self::invalid_builtin(&path, &error.to_string()));
+                        continue;
+                    }
                 };
                 let previous = self.runtime.iter().find(|p| p.id == manifest.id);
                 let now = Utc::now().to_rfc3339();
@@ -174,6 +178,62 @@ impl PluginManager {
             plugin.bundled = bundled_ids.contains(&plugin.id);
         }
         self.save()
+    }
+
+    /// Validate every manifest in a bundled plugin directory using the same
+    /// reader the registry uses at launch. Build scripts call this so a
+    /// permission/contribution mismatch fails before the app ships it.
+    pub fn validate_bundled_dir(dir: &Path) -> Result<Vec<(String, String)>> {
+        let entries = fs::read_dir(dir)?;
+        let mut failures = Vec::new();
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if !path.is_dir() || !path.join("manifest.json").exists() {
+                continue;
+            }
+            if let Err(error) = Self::read_manifest(&path) {
+                let id = path
+                    .file_name()
+                    .map(|name| name.to_string_lossy().to_string())
+                    .unwrap_or_else(|| "unknown-plugin".into());
+                failures.push((id, error.to_string()));
+            }
+        }
+        Ok(failures)
+    }
+
+    /// A disabled row that keeps a broken bundled plugin visible.
+    fn invalid_builtin(path: &Path, message: &str) -> PluginSummary {
+        let id = path
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string())
+            .unwrap_or_else(|| "unknown-plugin".into());
+        PluginSummary {
+            name: id.clone(),
+            id,
+            version: "0.0.0".into(),
+            enabled: false,
+            scope: ActivationScope::default(),
+            source: "builtin".into(),
+            bundled: true,
+            status: "error".into(),
+            error_message: Some(message.to_string()),
+            permissions: Vec::new(),
+            path: Some(path.to_string_lossy().to_string()),
+            capabilities: Vec::new(),
+            description: None,
+            author: None,
+            installed_at: None,
+            updated_at: Some(Utc::now().to_rfc3339()),
+            marketplace: None,
+            auto_update: None,
+            update_available: None,
+            yanked: None,
+            ui: None,
+            fs: None,
+            settings: Vec::new(),
+            i18n: None,
+        }
     }
 
     /// Forget bundled rows this build no longer ships.

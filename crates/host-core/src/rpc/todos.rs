@@ -32,6 +32,17 @@ pub fn get_from(state: &AppState, session_id: &str) -> Result<Value, JsonRpcErro
     serde_json::to_value(snapshot).map_err(|error| rpc_err(1000, error.to_string(), "INTERNAL"))
 }
 
+/// `todos.cancelInProgress`: turn-end normalization. Returns the committed
+/// snapshot when something changed, so the caller can emit `todos.changed`.
+pub fn cancel_in_progress_from(
+    state: &AppState,
+    session_id: &str,
+) -> Result<Option<todos::TodoSnapshot>, JsonRpcError> {
+    validate_session_id(session_id)?;
+    todos::cancel_in_progress(&state.db, session_id)
+        .map_err(|error| rpc_err(1000, error.to_string(), "INTERNAL"))
+}
+
 fn validate_session_id(session_id: &str) -> Result<(), JsonRpcError> {
     if session_id.trim().is_empty() {
         return Err(rpc_err(1002, "sessionId required", "INVALID_ARGUMENT"));

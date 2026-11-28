@@ -1244,6 +1244,43 @@ fn bundled_plugins_refresh_from_disk_but_keep_user_state() {
 }
 
 #[test]
+fn invalid_bundled_plugin_stays_visible_as_an_error() {
+    let ship = tempdir().unwrap();
+    write_plugin(
+        &ship.path().join("pi.broken"),
+        json!({
+            "schemaVersion": 1,
+            "id": "pi.broken",
+            "name": "Broken",
+            "version": "1.0.0",
+            "main": "main.js",
+            "contributes": { "services": [{ "id": "runner" }] },
+            "permissions": [],
+        }),
+        &[],
+    );
+    let data = tempdir().unwrap();
+    let mut mgr = PluginManager::new(data.path(), MarketChannel::Official, None);
+    mgr.sync_builtin(Some(ship.path())).unwrap();
+
+    let broken = mgr
+        .get("pi.broken")
+        .expect("a broken bundled plugin is still listed");
+    assert_eq!(broken.status, "error");
+    assert!(!broken.enabled, "a broken plugin never runs");
+    assert!(broken.bundled);
+    assert!(
+        broken
+            .error_message
+            .as_deref()
+            .unwrap_or_default()
+            .contains("background.service"),
+        "{:?}",
+        broken.error_message
+    );
+}
+
+#[test]
 fn bundled_plugin_can_default_to_disabled_without_overwriting_user_state() {
     let ship = tempdir().unwrap();
     let root = ship.path().join("pi.opt-in");

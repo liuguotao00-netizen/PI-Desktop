@@ -52,6 +52,22 @@ static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    if let Ok(dir) = std::env::var("PI_VALIDATE_PLUGINS_DIR") {
+        let path = std::path::PathBuf::from(dir.trim());
+        let failures = plugins::PluginManager::validate_bundled_dir(&path)?;
+        if failures.is_empty() {
+            println!("bundled plugin manifests OK: {}", path.display());
+            return Ok(());
+        }
+        for (id, error) in &failures {
+            eprintln!("{id}: {error}");
+        }
+        anyhow::bail!(
+            "{} bundled plugin manifest(s) failed validation",
+            failures.len()
+        );
+    }
+
     if data_relocation::run_cli()? {
         return Ok(());
     }
