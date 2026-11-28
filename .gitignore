@@ -59,3 +59,8 @@ electron.vite.config.*.mjs
 
 .playwright-cli
 worktrees
+# Local acceptance artifacts and backups
+.artifacts/
+.backup-taobao/
+apps/.bone-project-wiki/
+apps/*诊断报告*.html
