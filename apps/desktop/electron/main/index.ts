@@ -977,6 +977,8 @@ const localApps: LocalAppCatalog = {
 function registerIpc() {
   return registerIpcHandlers({
     modeServices,
+    onSettingsWritten: (settings: { browser?: Record<string, unknown> }) =>
+      pluginServices.setBrowserSettings(settings.browser as never),
     restartForStorage: () => {
       shutdownState.quitConfirmed = true;
       app.relaunch({ args: [...process.argv.slice(1).filter((arg) => arg !== "--pi-managed-storage"), "--pi-managed-storage"] });

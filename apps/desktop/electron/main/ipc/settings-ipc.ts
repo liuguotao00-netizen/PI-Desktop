@@ -29,6 +29,7 @@ export type SettingsIpcDependencies = {
   applyUpdatePreference: (preference: UpdatePreference) => void;
   resolveEffectiveCommandShell: () => Promise<unknown>;
   liveCallService?: Pick<LiveCallService, "beginSettingsWrite" | "settingsWritten">;
+  onSettingsWritten?: (settings: AppSettings) => void;
 };
 
 /** Register app settings and command-shell channels. */
@@ -49,6 +50,7 @@ export function registerSettingsIpc({
   applyUpdatePreference,
   resolveEffectiveCommandShell,
   liveCallService,
+  onSettingsWritten,
 }: SettingsIpcDependencies): void {
   let host: HostProcess | null = null;
   let sidecar: AgentSidecar | null = null;
@@ -63,7 +65,9 @@ export function registerSettingsIpc({
   handle(IPC.invoke.settingsGet, async () => {
     if (!host) throw new Error("host unavailable");
     const settings = await host.call("settings.get");
-    return normalizeSettings(settings);
+    const normalized = normalizeSettings(settings);
+    onSettingsWritten?.(normalized as AppSettings);
+    return normalized;
   });
 
   handle(IPC.invoke.networkProxyTest, async (settings: unknown) => {
@@ -81,6 +85,7 @@ export function registerSettingsIpc({
     let result: AppSettings;
     try {
       result = await host.call<AppSettings>("settings.set", validatedSettings);
+      onSettingsWritten?.(result);
       await liveCallService?.settingsWritten(result);
     } finally {
       releaseSettingsWrite?.();

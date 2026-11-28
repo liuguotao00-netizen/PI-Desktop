@@ -60,6 +60,7 @@ export type BrowserPageRegistryDeps = {
   currentWindow: () => BrowserWindow | null;
   error: (message: string) => Error & { code: string };
   onPageClosed?: (page: BrowserPage) => void;
+  onPageState?: (page: BrowserPage) => void;
   onSessionClose?: (sessionId: string) => void;
   onAgentControlAction?: (page: BrowserPage, action: "takeover" | "handBack" | "stop") => void;
 };
@@ -105,6 +106,7 @@ export class BrowserPageRegistry {
           page.state = state;
           if (state.url && !page.navigating) this.locations.set(key, state.url);
           this.publishPage(page);
+          this.deps.onPageState?.(page);
         },
         (url) => {
           if (this.pages.get(key) === page) this.deps.onOpenUrl?.(url, sessionId || undefined);

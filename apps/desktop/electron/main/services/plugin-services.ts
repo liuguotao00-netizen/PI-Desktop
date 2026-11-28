@@ -736,6 +736,10 @@ export function createPluginServices({
   });
   pluginPanels.addSenderResolver((senderId) => pluginViews.pluginIdForSender(senderId));
   const browserBackingHost = new BrowserBackingHost();
+  const browserSettingsCache: { current: AppSettings["browser"] | null } = { current: null };
+  void getHost()?.call<AppSettings>("settings.get").then((settings) => {
+    browserSettingsCache.current = settings?.browser ?? null;
+  }).catch(() => undefined);
   let browserRouter: BrowserRouter;
   const browserHost = new BrowserHost({
     createPane: (onState, onOpenUrl, sessionId) =>
@@ -756,9 +760,10 @@ export function createPluginServices({
       })().catch((error) => logger.app("plugin", "warn", "browser.link.open.failed", { data: String(error) }));
     },
     isPluginLoaded: (pluginId) => Boolean(plugins.getLoaded(pluginId)),
-    getBrowserSettings: async () => {
-      const settings = await getHost()?.call<AppSettings>("settings.get").catch(() => null);
-      return settings?.browser ?? null;
+    getBrowserSettings: () => browserSettingsCache.current ?? null,
+    onPageState: (page) => {
+      const wc = page.pane.getWebContents();
+      if (wc && !wc.isDestroyed()) browserHost.trackDownloadsForPage(page, wc);
     },
     onSessionClose: (sessionId) => {
       cuaSessions.clear(sessionId);
@@ -1044,6 +1049,9 @@ export function createPluginServices({
     logger,
   });
   return {
+    setBrowserSettings: (browser: AppSettings["browser"] | null | undefined) => {
+      browserSettingsCache.current = browser ?? null;
+    },
     plugins,
     userMcp,
     mcpOAuth,

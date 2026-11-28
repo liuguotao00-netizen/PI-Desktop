@@ -326,6 +326,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     applyUpdatePreference: (preference) => updater.setPreference(preference),
     resolveEffectiveCommandShell,
     liveCallService,
+    onSettingsWritten: dependencies.onSettingsWritten,
   });
   registerConfigSyncIpc({
     registrar,

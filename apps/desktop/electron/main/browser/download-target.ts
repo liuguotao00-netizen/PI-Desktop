@@ -7,7 +7,7 @@ export type DownloadSettings = {
 };
 
 export type DownloadPlan =
-  | { mode: "cancel" }
+  | { mode: "default" }
   | { mode: "prompt"; defaultPath: string }
   | { mode: "save"; path: string };
 
@@ -29,7 +29,7 @@ export function resolveDownloadPlan(input: {
   }
   if (configured) return { mode: "save", path: join(configured, `${Date.now()}-${filename}`) };
   if (scratch) return { mode: "save", path: join(scratch, `${Date.now()}-${filename}`) };
-  return { mode: "cancel" };
+  return { mode: "default" };
 }
 
 export function expandHome(path: string): string {

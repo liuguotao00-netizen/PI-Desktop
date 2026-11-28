@@ -28,8 +28,8 @@ test("ask-where-to-save keeps no save path and carries a default", () => {
   assert.deepEqual(plan, { mode: "prompt", defaultPath: "/Users/me/Downloads/a.pdf" });
 });
 
-test("without scratch or settings the download is cancelled", () => {
-  assert.deepEqual(resolveDownloadPlan({ filename: "a.pdf" }), { mode: "cancel" });
+test("without scratch or settings the platform default applies", () => {
+  assert.deepEqual(resolveDownloadPlan({ filename: "a.pdf" }), { mode: "default" });
 });
 
 test("home is expanded", () => {

@@ -1,5 +1,5 @@
 import type { BrowserWindow, WebContents } from "electron";
-import type { BrowserState } from "@pi-desktop/shared";
+import type { BrowserSettings, BrowserState } from "@pi-desktop/shared";
 import type { BrowserPane } from "./browser-view";
 import { BrowserCdp } from "./browser-cdp";
 import { controlSnapshot, handBack, onControlChange, stopTurn, takeOver } from "./browser-agent-control.ts";
@@ -124,9 +124,9 @@ export type BrowserHostDeps = {
   onRevealView?: (sessionId: string, tabId?: string, location?: BrowserNavigateInput) => void;
   onSessionClose?: (sessionId: string) => void;
   /** Live browser preferences (downloads, link target) owned by app settings. */
-  getBrowserSettings?: () => Promise<
-    { downloadDirectory?: string | null; downloadPrompt?: boolean; linkTarget?: string } | null
-  >;
+  getBrowserSettings?: () => BrowserSettings | null;
+  /** Called when a page starts publishing state, to attach session-level hooks. */
+  onPageState?: (page: BrowserPage) => void;
 };
 
 export /**
@@ -210,6 +210,7 @@ export class BrowserHost {
       onPageClosed: (page) => {
         if (this.presenter?.active === page) this.presenter.active = null;
       },
+      onPageState: (page) => this.deps.onPageState?.(page),
       onSessionClose: deps.onSessionClose,
       onAgentControlAction: (page, action) => {
         const id = page.sessionId || undefined;
@@ -907,27 +908,26 @@ export class BrowserHost {
     return { ok: true };
   }
 
+  trackDownloadsForPage(page: BrowserPage, wc: WebContents): void {
+    this.trackDownloads(page, wc);
+  }
+
   private trackDownloads(page: BrowserPage, wc: WebContents): void {
     if (page.detachDownloads && page.downloadContentsId === wc.id) return;
     page.detachDownloads?.();
     const ses = wc.session;
     if (!ses?.on) return;
-    const handler = async (_event: Electron.Event, item: Electron.DownloadItem, contents: WebContents) => {
+    const handler = (_event: Electron.Event, item: Electron.DownloadItem, contents: WebContents) => {
       if (contents.id !== wc.id) return;
       const scratch = this.deps.getScratchDir?.(page.sessionId);
       const filename = basename(item.getFilename()).replace(/[^A-Za-z0-9._-]+/g, "_").slice(0, 120) || "download";
-      const settings = await this.deps.getBrowserSettings?.().catch(() => null) ?? null;
+      const settings = this.deps.getBrowserSettings?.() ?? null;
       const plan = resolveDownloadPlan({ filename, scratch, settings });
-      if (plan.mode === "cancel") {
-        item.cancel();
-        return;
-      }
       let path = plan.mode === "save" ? plan.path : "";
-      if (plan.mode === "prompt") {
-        // No save path: Chromium shows its save dialog at this default.
+      if (plan.mode === "default") {
+        // Keep Electron's default download behavior; tracking still records it.
+      } else if (plan.mode === "prompt") {
         item.setSaveDialogOptions({ defaultPath: plan.defaultPath });
-        try { item.pause(); } catch { /* already started */ }
-        setTimeout(() => { try { item.resume(); } catch { /* finished */ } }, 0);
       } else {
         mkdirSync(dirname(plan.path), { recursive: true });
         item.setSavePath(plan.path);
