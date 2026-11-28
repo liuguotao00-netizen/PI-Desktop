@@ -41,6 +41,9 @@ jobs:
       - name: Build workspace packages
         run: pnpm build:js
 
+      - name: Build bundled plugins
+        run: pnpm build:plugins
+
       - name: Typecheck Desktop
         # Workspace dependency builds already run tsc; Vite does not check the app.
         run: pnpm --filter @pi-desktop/desktop typecheck
@@ -58,6 +61,16 @@ jobs:
 
       - name: Unit tests
         run: pnpm -r --if-present test
+
+      - name: Bundled plugin tests
+        run: pnpm test:plugins
+
+      - name: Bundled plugin browser E2E
+        # Real Chromium against local fixtures; skips when Chrome is absent.
+        run: pnpm test:e2e:plugin
+
+      - name: Check bundled plugin staging is current
+        run: git diff --exit-code -- apps/desktop/resources/plugins/pi.taobao-tools
 
   rust:
     name: Rust host-core format / lint / test
@@ -161,6 +174,9 @@ jobs:
 
       - name: Build workspace packages
         run: pnpm build:js
+
+      - name: Build bundled plugins
+        run: pnpm build:plugins
 
       - name: Build Desktop bundle
         run: pnpm --filter @pi-desktop/desktop build

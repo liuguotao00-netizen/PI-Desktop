@@ -71,7 +71,7 @@ if [[ "$APPLE_TEAM_ID" != "DUV63RKYTW" ]]; then
 fi
 
 echo "==> Building host-core (release)"
-cargo build -p host-core --release
+cargo build -p host-core -p host-launcher --release
 
 echo "==> Building workspace packages"
 pnpm -r --filter '!@pi-desktop/desktop' build

@@ -1,0 +1,23 @@
+name: CUA backends
+
+on:
+  pull_request:
+  push:
+    branches: [feat/cua-runtime]
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update && sudo apt-get install -y libdbus-1-dev pkg-config
+      - run: cargo check -p host-core --locked
+      - run: "cargo test -p host-core computer:: --locked"
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check -p host-core --locked

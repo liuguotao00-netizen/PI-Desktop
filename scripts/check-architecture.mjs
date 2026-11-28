@@ -26,6 +26,14 @@ const limits = {
     path: "apps/desktop/src/stores/app-store.ts",
     max: 1_000,
   },
+  pluginRuntime: {
+    path: "apps/desktop/electron/main/plugin-runtime.ts",
+    max: 6_850,
+  },
+  pluginHostProcess: {
+    path: "apps/desktop/electron/main/plugin-host-process.mjs",
+    max: 900,
+  },
   newTypeScript: {
     extension: ".ts/.tsx",
     max: 800,
@@ -157,7 +165,7 @@ const counts = new Map([
   [">2000", metrics.filter((entry) => entry.loc > 2_000).length],
 ]);
 
-for (const { path, max } of [limits.mainIndex, limits.appStore]) {
+for (const { path, max } of [limits.mainIndex, limits.appStore, limits.pluginRuntime, limits.pluginHostProcess]) {
   const entry = byPath.get(path);
   if (!entry) {
     failures.push(path + " is missing");
@@ -229,6 +237,22 @@ console.log(
     byPath.get(limits.appStore.path)?.loc +
     " / " +
     limits.appStore.max,
+);
+console.log(
+  "  " +
+    limits.pluginRuntime.path +
+    ": " +
+    byPath.get(limits.pluginRuntime.path)?.loc +
+    " / " +
+    limits.pluginRuntime.max,
+);
+console.log(
+  "  " +
+    limits.pluginHostProcess.path +
+    ": " +
+    byPath.get(limits.pluginHostProcess.path)?.loc +
+    " / " +
+    limits.pluginHostProcess.max,
 );
 console.log("  New TS/TSX limit: " + limits.newTypeScript.max + " LOC");
 console.log("  Rust limit: " + limits.rust.max + " LOC");
