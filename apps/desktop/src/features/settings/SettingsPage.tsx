@@ -191,6 +191,7 @@ export function SettingsPage() {
       modes: <IconWorkflow size={14} />,
       projects: <IconArchive size={14} />,
       system: <IconMonitor size={14} />,
+      browser: <IconGlobe size={14} />,
       sync: <IconCloudDown size={14} />,
       remoteHosts: <IconGlobe size={14} />,
       about: <IconInfo size={14} />,

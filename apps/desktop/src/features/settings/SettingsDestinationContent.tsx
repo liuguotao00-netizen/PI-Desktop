@@ -17,6 +17,8 @@ import { AgentBehaviorSettings } from "./pages/AgentBehaviorSettings";
 import { AppearanceSettings } from "./pages/AppearanceSettings";
 import { ConversationSettings } from "./pages/ConversationSettings";
 import { SystemSettings } from "./pages/SystemSettings";
+import { BrowserBackendSection } from "../../components/settings/BrowserBackendSection";
+import { BrowserChromeSettingsSection } from "../../components/settings/BrowserChromeSettingsSection";
 import { ModesSettingsPage } from "../modes/ModesSettingsPage";
 import { useSettingsPersistence } from "./useSettingsPersistence";
 
@@ -28,6 +30,7 @@ const SETTINGS_BACKED_TABS: ReadonlySet<SettingsTab> = new Set<SettingsTab>([
   "chat",
   "behavior",
   "system",
+  "browser",
   "shortcuts",
   "agent",
 ]);
@@ -121,6 +124,13 @@ export function SettingsDestinationContent({
       {tab === "mcp" && <AgentMcpPage />}
 
       {tab === "subagents" && <AgentSubagentsPage />}
+
+      {tab === "browser" && (
+        <div className="settings-stack">
+          <BrowserBackendSection />
+          <BrowserChromeSettingsSection />
+        </div>
+      )}
 
       {tab === "modes" && <ModesSettingsPage />}
 

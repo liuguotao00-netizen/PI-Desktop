@@ -25,6 +25,7 @@ export type SettingsTabId =
   | "modes"
   | "projects"
   | "system"
+  | "browser"
   | "sync"
   | "remoteHosts"
   | "about";
@@ -348,6 +349,27 @@ export const SETTINGS_NAV: SettingsNavEntry[] = [
     ],
   },
   {
+    id: "browser",
+    labelKey: "settings.browserBackend",
+    titleKey: "settings.browserBackend",
+    group: "system",
+    keywordKeys: [
+      "settings.browserBackend",
+      "settings.browserBackendCurrent",
+      "settings.browserBackendEndpoint",
+      "settings.browserBackendKind",
+      "settings.browserBackendDiscover",
+      "settings.browserChrome",
+      "settings.browserChromeDesc",
+      "settings.browserDownloads",
+      "settings.browserDownloadDirectory",
+      "settings.browserDownloadPrompt",
+      "settings.browserLinkTarget",
+      "settings.browserExternalShortcut",
+      "settings.browserBackgroundNetworking",
+    ],
+  },
+  {
     id: "system",
     labelKey: "settings.nav.system",
     titleKey: "settings.system",
@@ -367,6 +389,11 @@ export const SETTINGS_NAV: SettingsNavEntry[] = [
       "settings.storage.cache",
       "settings.storage.clearCache",
       "settings.storage.backup",
+      "settings.browserBackend",
+      "settings.browserBackendCurrent",
+      "settings.browserBackendEndpoint",
+      "settings.browserBackendKind",
+      "settings.browserBackendDiscover",
       "settings.power",
       "settings.keepAwakeWhileRunning",
       "settings.keepAwakeWhileRunningDesc",

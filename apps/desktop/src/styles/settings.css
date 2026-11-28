@@ -4336,3 +4336,10 @@
     padding: 24px 20px 32px;
   }
 }
+
+.browser-backend-error {
+  margin: 8px 0 0;
+  color: var(--ds-error);
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+}

@@ -487,6 +487,39 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
     networkPolicy: normalizeNetworkPolicy(
       (settings as { networkPolicy?: unknown }).networkPolicy,
     ),
+    browser: normalizeBrowserSettings(settings.browser),
+  };
+}
+
+function normalizeBrowserSettings(value: unknown): AppSettings["browser"] {
+  const raw = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const backend = (raw.backend && typeof raw.backend === "object" ? raw.backend : {}) as Record<string, unknown>;
+  const kind = ["embedded", "cdp", "extension", "mcp", "mcpapps"].includes(String(backend.kind))
+    ? (backend.kind as "embedded" | "cdp" | "extension" | "mcp" | "mcpapps")
+    : "cdp";
+  return {
+    backend: {
+      kind,
+      endpoint: typeof backend.endpoint === "string" ? backend.endpoint : "http://127.0.0.1:9222",
+      launch: backend.launch === true,
+      profile: typeof backend.profile === "string" ? backend.profile : "",
+      headless: backend.headless === true,
+    },
+    downloadDirectory: typeof raw.downloadDirectory === "string" && raw.downloadDirectory.trim()
+      ? raw.downloadDirectory
+      : null,
+    downloadPrompt: raw.downloadPrompt === true,
+    showFullUrl: raw.showFullUrl === true,
+    bookmarksBarVisibility: ["always", "new-tab", "never"].includes(String(raw.bookmarksBarVisibility))
+      ? (raw.bookmarksBarVisibility as "always" | "new-tab" | "never")
+      : "new-tab",
+    extensionsToolbarVisible: raw.extensionsToolbarVisible !== false,
+    deviceToolbarVisible: raw.deviceToolbarVisible === true,
+    linkTarget: raw.linkTarget === "external-browser" ? "external-browser" : "in-app-browser",
+    externalLinkShortcut: ["unassigned", "primary", "alt", "primary-shift"].includes(String(raw.externalLinkShortcut))
+      ? (raw.externalLinkShortcut as "unassigned" | "primary" | "alt" | "primary-shift")
+      : "primary",
+    backgroundNetworkingDisabled: raw.backgroundNetworkingDisabled === true,
   };
 }
 
@@ -1755,6 +1788,41 @@ export const api = {
     invoke(IPC.invoke.browserOpenExternal, url ? { url } : {}),
   browserGetState: () =>
     invoke<BrowserState | null>(IPC.invoke.browserGetState),
+  cuaState: (sessionId: string) => invoke<{
+    sessionId: string;
+    selection: { targetId?: string; tabId?: string };
+    claimedTabId?: string;
+    claimedTabTitle?: string;
+    claimedTabUrl?: string;
+    browser: { backendId: string; kind: string; tabId: string | null; capabilities: string[]; transportStatus: string | null; extensionBridgeEndpoint?: string };
+    computer: {
+      capabilities: Record<string, unknown> | null;
+      grant: Record<string, unknown> | null;
+      targets: Record<string, unknown>[];
+    };
+  }>(IPC.invoke.cuaState, { sessionId }),
+  cuaBind: (input: { sessionId: string; targetId?: string; tabId?: string }) =>
+    invoke<{ targetId?: string; tabId?: string }>(IPC.invoke.cuaBind, input),
+  cuaClear: (sessionId: string) => invoke<{ ok: boolean }>(IPC.invoke.cuaClear, { sessionId }),
+  browserBackendState: (sessionId: string) =>
+    invoke<{ backendId: string; kind: string; tabId: string | null; capabilities: string[]; transportStatus: string | null }>(IPC.invoke.browserBackendState, { sessionId }),
+  browserBackendConnect: (input: {
+    sessionId: string;
+    kind: string;
+    endpoint: string;
+    tabId?: string;
+    url?: string;
+    launch?: boolean;
+    chromePath?: string;
+    userDataDir?: string;
+    headless?: boolean;
+    chromeArgs?: string[];
+  }) =>
+    invoke<unknown>(IPC.invoke.browserBackendConnect, input),
+  browserBackendDiscover: () =>
+    invoke<Array<{ kind: "cdp"; endpoint: string; browser: string; protocolVersion: string; source: string }>>(IPC.invoke.browserBackendDiscover),
+  browserBackendDisconnect: (sessionId: string) =>
+    invoke<{ ok: true; kind: "embedded" }>(IPC.invoke.browserBackendDisconnect, { sessionId }),
   browserGetPages: (sessionId: string) =>
     invoke<BrowserState[]>(IPC.invoke.browserGetPages, { sessionId }),
   fsList: (path?: string, sessionId?: string) =>
@@ -1912,6 +1980,12 @@ export const api = {
     if (!window.piDesktop?.on) return () => undefined;
     return window.piDesktop.on(IPC.event.browserState, (payload) =>
       listener(payload as BrowserState),
+    );
+  },
+  onBrowserBackendStatus: (listener: (event: { sessionId: string; status: string }) => void) => {
+    if (!window.piDesktop?.on) return () => undefined;
+    return window.piDesktop.on(IPC.event.browserBackendStatus, (payload) =>
+      listener(payload as { sessionId: string; status: string }),
     );
   },
   onBrowserPreview: (
