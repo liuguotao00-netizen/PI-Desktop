@@ -1,4 +1,4 @@
-import type { WebContents } from "electron";
+import { nativeImage, type WebContents } from "electron";
 
 /** Chrome DevTools Protocol revision attached to the work-panel guest. */
 export const BROWSER_CDP_PROTOCOL = "1.3";
@@ -132,7 +132,16 @@ function consoleText(args: unknown): string {
 export class BrowserCdp {
   private attachedId: number | null = null;
   private uids = new Map<string, number>();
+  private readonly domains = new Set<string>();
   private messages: BrowserConsoleMessage[] = [];
+  private inFlightNetwork = new Set<string>();
+  private lastNetworkActivity = Date.now();
+  private chooser: { backendNodeId: number; mode: string } | null = null;
+  private chooserWaiters: Array<{
+    resolve: (value: { backendNodeId: number; mode: string }) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }> = [];
   private onDebuggerMessage?: (
     event: unknown,
     method: string,
@@ -154,10 +163,34 @@ export class BrowserCdp {
     }
     this.attachedId = wc.id;
     this.onDebuggerMessage = (_event, method, params) => {
+      const payload = params && typeof params === "object" ? (params as Record<string, unknown>) : {};
+      if (method === "Network.requestWillBeSent") {
+        const id = String(payload.requestId ?? "");
+        if (id) this.inFlightNetwork.add(id);
+        this.lastNetworkActivity = Date.now();
+        return;
+      }
+      if (method === "Network.loadingFinished" || method === "Network.loadingFailed") {
+        this.inFlightNetwork.delete(String(payload.requestId ?? ""));
+        this.lastNetworkActivity = Date.now();
+        return;
+      }
+      if (method === "Page.fileChooserOpened") {
+        const backendNodeId = Number(payload.backendNodeId);
+        if (Number.isFinite(backendNodeId)) {
+          this.chooser = { backendNodeId, mode: String(payload.mode ?? "selectSingle") };
+          const waiters = this.chooserWaiters.splice(0);
+          for (const waiter of waiters) {
+            clearTimeout(waiter.timer);
+            waiter.resolve(this.chooser);
+          }
+        }
+        return;
+      }
       if (method !== "Runtime.consoleAPICalled" && method !== "Console.messageAdded") {
         return;
       }
-      const record = params && typeof params === "object" ? (params as Record<string, unknown>) : {};
+      const record = payload;
       const type =
         typeof record.type === "string"
           ? record.type
@@ -172,15 +205,14 @@ export class BrowserCdp {
       if (this.messages.length > MAX_CONSOLE_MESSAGES) this.messages.shift();
     };
     wc.debugger.on("message", this.onDebuggerMessage);
-    await wc.debugger.sendCommand("Runtime.enable");
-    await wc.debugger.sendCommand("Console.enable");
-    await wc.debugger.sendCommand("Page.enable");
-    await wc.debugger.sendCommand("DOM.enable");
-    await wc.debugger.sendCommand("Accessibility.enable");
-    // Chromium ignores input on detached guests unless it emulates focus.
-    // This does not focus or attach a native window, so background tools can
-    // interact with their own page without disturbing the visible session.
-    await wc.debugger.sendCommand("Emulation.setFocusEmulationEnabled", { enabled: true });
+    // Domains are enabled lazily per operation. Attaching alone is far less
+    // visible than turning on Runtime/Console/Accessibility for every page.
+  }
+
+  private async ensureDomain(wc: WebContents, domain: string): Promise<void> {
+    if (this.domains.has(domain)) return;
+    await wc.debugger.sendCommand(`${domain}.enable`);
+    this.domains.add(domain);
   }
 
   detach(wc?: WebContents): void {
@@ -196,25 +228,71 @@ export class BrowserCdp {
       }
     }
     this.onDebuggerMessage = undefined;
+    this.chooser = null;
+    for (const waiter of this.chooserWaiters.splice(0)) {
+      clearTimeout(waiter.timer);
+      waiter.reject(Object.assign(new Error("file chooser was interrupted"), { code: "ABORTED" }));
+    }
     this.attachedId = null;
+    this.inFlightNetwork.clear();
+    this.domains.clear();
     this.uids.clear();
   }
 
+  /**
+   * Raw CDP for the agent-facing tool: Cursor's split. Everything except
+   * `Input.*` is allowed; input goes through `sendInput` so focus-sensitive
+   * events cannot be dispatched by an arbitrary tool call.
+   */
   async send(wc: WebContents, method: string, params?: unknown): Promise<unknown> {
-    if (!isAllowedCdpMethod(method)) {
-      throw Object.assign(new Error(`CDP method not allowed: ${method}`), {
-        code: "PERMISSION_DENIED",
-      });
+    const name = String(method || "").trim();
+    if (!name) throw Object.assign(new Error("CDP method required"), { code: "INVALID_ARGUMENT" });
+    if (/^Input\./i.test(name)) {
+      throw Object.assign(
+        new Error(`CDP ${name} is denied; use the browser input tools`),
+        { code: "PERMISSION_DENIED" },
+      );
+    }
+    // Credential-grade surfaces stay closed even though Cursor leaves them
+    // reachable: a plugin already has net.fetch, but reading the cookie jar or
+    // intercepting requests is a different grant.
+    if (/^(Cookie|Storage|Target|Fetch)\./i.test(name)) {
+      throw Object.assign(new Error(`CDP ${name} is denied`), { code: "PERMISSION_DENIED" });
     }
     await this.attach(wc);
     return wc.debugger.sendCommand(
-      method,
+      name,
+      (params && typeof params === "object" ? params : {}) as Record<string, unknown>,
+    );
+  }
+
+  async waitForNetworkIdle(wc: WebContents, timeoutMs = 15_000, idleMs = 500): Promise<void> {
+    await this.attach(wc);
+    await this.ensureDomain(wc, "Network");
+    const deadline = Date.now() + Math.max(100, timeoutMs);
+    while (Date.now() < deadline) {
+      if (this.inFlightNetwork.size === 0 && Date.now() - this.lastNetworkActivity >= idleMs) return;
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+    throw Object.assign(new Error("network did not become idle"), { code: "TIMEOUT" });
+  }
+
+  /** Trusted input channel used by click/type/drag/hover tools. */
+  async sendInput(wc: WebContents, method: string, params?: unknown): Promise<unknown> {
+    const name = String(method || "").trim();
+    if (!/^Input\./.test(name)) {
+      throw Object.assign(new Error(`not an Input method: ${name}`), { code: "INVALID_ARGUMENT" });
+    }
+    await this.attach(wc);
+    return wc.debugger.sendCommand(
+      name,
       (params && typeof params === "object" ? params : {}) as Record<string, unknown>,
     );
   }
 
   async snapshot(wc: WebContents): Promise<SnapshotResult> {
     await this.attach(wc);
+    await this.ensureDomain(wc, "Accessibility");
     const raw = (await wc.debugger.sendCommand("Accessibility.getFullAXTree")) as {
       nodes?: AxNode[];
     };
@@ -229,11 +307,19 @@ export class BrowserCdp {
 
   async screenshot(
     wc: WebContents,
-    input: { fullPage?: boolean } = {},
-  ): Promise<{ mimeType: string; data: string }> {
+    input: { fullPage?: boolean; format?: "jpeg" | "png"; clip?: { x: number; y: number; width: number; height: number } } = {},
+  ): Promise<{ mimeType: string; data: string; width: number; height: number; resized: boolean }> {
     await this.attach(wc);
     let clip: { x: number; y: number; width: number; height: number; scale: number } | undefined;
-    if (input.fullPage) {
+    if (input.clip) {
+      clip = {
+        x: Math.max(0, Math.round(input.clip.x)),
+        y: Math.max(0, Math.round(input.clip.y)),
+        width: Math.max(1, Math.round(input.clip.width)),
+        height: Math.max(1, Math.round(input.clip.height)),
+        scale: 1,
+      };
+    } else if (input.fullPage) {
       const metrics = (await wc.debugger.sendCommand("Page.getLayoutMetrics")) as {
         contentSize?: { width?: number; height?: number };
         cssContentSize?: { width?: number; height?: number };
@@ -248,20 +334,24 @@ export class BrowserCdp {
       );
       clip = { x: 0, y: 0, width, height, scale };
     }
+    const format = input.format === "png" ? "png" : "jpeg";
     const result = (await wc.debugger.sendCommand("Page.captureScreenshot", {
-      format: "jpeg",
-      quality: 70,
+      format,
+      ...(format === "jpeg" ? { quality: 70 } : {}),
       ...(clip ? { clip, captureBeyondViewport: true } : {}),
     })) as { data?: string };
     if (typeof result?.data !== "string" || !result.data) {
       throw new Error("screenshot produced no data");
     }
-    return { mimeType: "image/jpeg", data: result.data };
+    return encodeScreenshot(result.data);
   }
 
   async click(wc: WebContents, uid: string): Promise<void> {
     const backendNodeId = this.requireUid(uid);
     await this.attach(wc);
+    await this.ensureDomain(wc, "Runtime");
+    await this.ensureDomain(wc, "DOM");
+    await this.ensureDomain(wc, "Emulation");
     await wc.debugger.sendCommand("Emulation.setFocusEmulationEnabled", { enabled: false });
     await wc.debugger.sendCommand("Emulation.setFocusEmulationEnabled", { enabled: true });
     const resolved = (await wc.debugger.sendCommand("DOM.resolveNode", { backendNodeId })) as {
@@ -315,9 +405,29 @@ export class BrowserCdp {
     });
   }
 
+  async setFiles(wc: WebContents, selector: string, files: string[]): Promise<void> {
+    const css = String(selector || "").trim();
+    if (!css) throw Object.assign(new Error("file input selector required"), { code: "INVALID_ARGUMENT" });
+    if (!files.length) throw Object.assign(new Error("at least one file is required"), { code: "INVALID_ARGUMENT" });
+    await this.attach(wc);
+    await this.ensureDomain(wc, "Runtime");
+    await this.ensureDomain(wc, "DOM");
+    const resolved = (await wc.debugger.sendCommand("Runtime.evaluate", {
+      expression: `document.querySelector(${JSON.stringify(css)})`,
+      returnByValue: false,
+    })) as { result?: { objectId?: string }; exceptionDetails?: { text?: string } };
+    const objectId = resolved.result?.objectId;
+    if (!objectId) {
+      throw Object.assign(new Error(resolved.exceptionDetails?.text || `file input not found: ${css}`), { code: "NOT_FOUND" });
+    }
+    await wc.debugger.sendCommand("DOM.setFileInputFiles", { objectId, files });
+  }
+
   async fill(wc: WebContents, uid: string, text: string): Promise<void> {
     const backendNodeId = this.requireUid(uid);
     await this.attach(wc);
+    await this.ensureDomain(wc, "Runtime");
+    await this.ensureDomain(wc, "DOM");
     const resolved = (await wc.debugger.sendCommand("DOM.resolveNode", { backendNodeId })) as {
       object?: { objectId?: string };
     };
@@ -325,25 +435,29 @@ export class BrowserCdp {
     if (!objectId) {
       throw Object.assign(new Error(`could not resolve ${uid}`), { code: "NOT_FOUND" });
     }
-    await wc.debugger.sendCommand("Runtime.callFunctionOn", {
+    const ready = (await wc.debugger.sendCommand("Runtime.callFunctionOn", {
       objectId,
-      functionDeclaration: `function (value) {
+      functionDeclaration: `function () {
+        if (this.disabled) return false;
+        const style = getComputedStyle(this);
+        if (style.visibility === "hidden" || style.display === "none") return false;
+        this.scrollIntoView({ block: "center" });
         this.focus({ preventScroll: true });
-        if ("value" in this) {
-          this.value = value;
-          this.dispatchEvent(new Event("input", { bubbles: true }));
-          this.dispatchEvent(new Event("change", { bubbles: true }));
-          return;
-        }
-        this.textContent = value;
-        this.dispatchEvent(new Event("input", { bubbles: true }));
+        if (typeof this.select === "function") this.select();
+        else if (this.isContentEditable) document.getSelection()?.selectAllChildren(this);
+        return true;
       }`,
-      arguments: [{ value: text }],
-    });
+      returnByValue: true,
+    })) as { result?: { value?: unknown } };
+    if (ready.result?.value !== true) {
+      throw Object.assign(new Error(`unknown, disabled or invisible uid "${uid}"`), { code: "NOT_FOUND" });
+    }
+    await this.sendInput(wc, "Input.insertText", { text });
   }
 
   async evaluate(wc: WebContents, expression: string): Promise<unknown> {
     await this.attach(wc);
+    await this.ensureDomain(wc, "Runtime");
     const result = (await wc.debugger.sendCommand("Runtime.evaluate", {
       expression,
       returnByValue: true,
@@ -375,6 +489,145 @@ export class BrowserCdp {
     return this.messages.slice(-cap);
   }
 
+  async crossOriginFrame(
+    wc: WebContents,
+    input: {
+      action: "list" | "text" | "html" | "click" | "fill" | "count";
+      frameId?: string;
+      url?: string;
+      targetSelector?: string;
+      value?: string;
+      limit?: number;
+    },
+  ): Promise<unknown> {
+    await this.attach(wc);
+    await this.ensureDomain(wc, "Page");
+    const raw = (await wc.debugger.sendCommand("Page.getFrameTree")) as {
+      frameTree?: { frame?: { id?: string; url?: string; name?: string }; childFrames?: Array<{ frame?: { id?: string; url?: string; name?: string }; childFrames?: unknown[] }> };
+    };
+    type Frame = { id: string; url: string; name: string };
+    const frames: Frame[] = [];
+    const walk = (node: { frame?: { id?: string; url?: string; name?: string }; childFrames?: Array<{ frame?: { id?: string; url?: string; name?: string }; childFrames?: unknown[] }> }) => {
+      if (node.frame?.id) frames.push({ id: node.frame.id, url: node.frame.url || "", name: node.frame.name || "" });
+      for (const child of node.childFrames ?? []) walk(child as typeof node);
+    };
+    if (raw.frameTree) walk(raw.frameTree);
+    if (input.action === "list") return { ok: true, frames };
+    const selected = frames.find((frame) => (input.frameId ? frame.id === input.frameId : input.url ? frame.url.includes(input.url) : false)) ?? frames.find((frame) => frame.id !== frames[0]?.id) ?? frames[0];
+    if (!selected) return { ok: false, error: "no frame available", frames };
+    const world = (await wc.debugger.sendCommand("Page.createIsolatedWorld", {
+      frameId: selected.id,
+      worldName: "pi-browser-frame",
+    })) as { executionContextId?: number };
+    if (typeof world.executionContextId !== "number") return { ok: false, error: "could not create frame context", frames };
+    const contextId = world.executionContextId;
+    const run = async (expression: string) => {
+      const result = (await wc.debugger.sendCommand("Runtime.evaluate", {
+        expression,
+        contextId,
+        returnByValue: true,
+        awaitPromise: true,
+      })) as { result?: { value?: unknown }; exceptionDetails?: { text?: string } };
+      if (result.exceptionDetails) throw new Error(result.exceptionDetails.text || "frame evaluation failed");
+      return result.result?.value;
+    };
+    if (input.action === "text") {
+      return { ok: true, frame: selected, text: String(await run("document.body ? document.body.innerText : ''") ?? "").slice(0, Math.max(200, Math.min(30000, input.limit || 8000))) };
+    }
+    if (input.action === "html") {
+      return { ok: true, frame: selected, html: String(await run("document.documentElement ? document.documentElement.outerHTML : ''") ?? "").slice(0, Math.max(200, Math.min(30000, input.limit || 8000))) };
+    }
+    const selector = String(input.targetSelector || "");
+    if (!selector) return { ok: false, error: "targetSelector required", frames };
+    if (input.action === "fill") {
+      const value = await run(`(() => {
+        const el = document.querySelector(${JSON.stringify(selector)});
+        if (!el) return null;
+        el.focus({ preventScroll: true });
+        if ('value' in el) { el.value = ${JSON.stringify(String(input.value ?? ""))}; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); }
+        else { el.textContent = ${JSON.stringify(String(input.value ?? ""))}; el.dispatchEvent(new Event('input', { bubbles: true })); }
+        return String('value' in el ? el.value : el.textContent);
+      })()`);
+      if (value === null) return { ok: false, error: "frame target not found", frames };
+      return { ok: true, frame: selected, value };
+    }
+    const point = (await run(`(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      if (!el) return null;
+      el.scrollIntoView({ block: 'center', inline: 'center' });
+      const rect = el.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`)) as { x?: number; y?: number } | null;
+    if (!point || typeof point.x !== "number" || typeof point.y !== "number") return { ok: false, error: "frame target not found", frames };
+    const owner = (await wc.debugger.sendCommand("DOM.getFrameOwner", { frameId: selected.id })) as { backendNodeId?: number };
+    let origin = { x: 0, y: 0 };
+    if (typeof owner.backendNodeId === "number") {
+      try {
+        const box = (await wc.debugger.sendCommand("DOM.getBoxModel", { backendNodeId: owner.backendNodeId })) as { model?: { border?: number[] } };
+        const border = box.model?.border;
+        if (border && border.length >= 2) origin = { x: border[0], y: border[1] };
+      } catch {
+        // Keep viewport coordinates.
+      }
+    }
+    wc.sendInputEvent({ type: "mouseMove", x: Math.round(origin.x + point.x), y: Math.round(origin.y + point.y) });
+    wc.sendInputEvent({ type: "mouseDown", x: Math.round(origin.x + point.x), y: Math.round(origin.y + point.y), button: "left", clickCount: 1 });
+    wc.sendInputEvent({ type: "mouseUp", x: Math.round(origin.x + point.x), y: Math.round(origin.y + point.y), button: "left", clickCount: 1 });
+    return { ok: true, frame: selected, x: Math.round(origin.x + point.x), y: Math.round(origin.y + point.y) };
+  }
+
+  /** Arm the CDP file chooser interception and wait for the next chooser. */
+  async waitForFileChooser(wc: WebContents, timeoutMs = 15_000): Promise<{ backendNodeId: number; mode: string }> {
+    await this.attach(wc);
+    await this.ensureDomain(wc, "Page");
+    await wc.debugger.sendCommand("Page.setInterceptFileChooserDialog", { enabled: true });
+    if (this.chooser) {
+      const current = this.chooser;
+      this.chooser = null;
+      return current;
+    }
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        this.chooserWaiters = this.chooserWaiters.filter((item) => item.timer !== timer);
+        void wc.debugger
+          .sendCommand("Page.setInterceptFileChooserDialog", { enabled: false })
+          .catch(() => undefined);
+        reject(Object.assign(new Error("file chooser did not open in time"), { code: "TIMEOUT" }));
+      }, Math.max(1, timeoutMs));
+      this.chooserWaiters.push({ resolve, reject, timer });
+    });
+  }
+
+  async cancelFileChooser(wc: WebContents): Promise<void> {
+    await this.attach(wc);
+    await this.ensureDomain(wc, "DOM");
+    if (this.chooser) {
+      await wc.debugger.sendCommand("DOM.setFileInputFiles", {
+        files: [],
+        backendNodeId: this.chooser.backendNodeId,
+      });
+    }
+    this.chooser = null;
+    await wc.debugger.sendCommand("Page.setInterceptFileChooserDialog", { enabled: false });
+    for (const waiter of this.chooserWaiters.splice(0)) {
+      clearTimeout(waiter.timer);
+      waiter.reject(Object.assign(new Error("file chooser cancelled"), { code: "ABORTED" }));
+    }
+  }
+
+  async setFileChooserFiles(wc: WebContents, files: string[]): Promise<void> {
+    await this.attach(wc);
+    const chooser = this.chooser;
+    if (!chooser) throw Object.assign(new Error("no file chooser is open"), { code: "NOT_FOUND" });
+    await this.ensureDomain(wc, "DOM");
+    await wc.debugger.sendCommand("DOM.setFileInputFiles", {
+      files,
+      backendNodeId: chooser.backendNodeId,
+    });
+    this.chooser = null;
+    await wc.debugger.sendCommand("Page.setInterceptFileChooserDialog", { enabled: false });
+  }
+
   private requireUid(uid: string): number {
     const id = this.uids.get(uid.trim());
     if (typeof id !== "number") {
@@ -385,4 +638,34 @@ export class BrowserCdp {
     }
     return id;
   }
+}
+
+/** Keep screenshots inside the context budget Cursor uses (≈20 KB base64). */
+function encodeScreenshot(data: string, format: "jpeg" | "png" = "jpeg"): {
+  mimeType: string;
+  data: string;
+  width: number;
+  height: number;
+  resized: boolean;
+} {
+  const maxChars = format === "png" ? 200_000 : 20_000;
+  const mimeType = format === "png" ? "image/png" : "image/jpeg";
+  if (data.length <= maxChars) {
+    const size = nativeImage.createFromBuffer(Buffer.from(data, "base64")).getSize();
+    return { mimeType, data, width: size.width, height: size.height, resized: false };
+  }
+  let image = nativeImage.createFromBuffer(Buffer.from(data, "base64"));
+  let out = data;
+  let resized = false;
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const size = image.getSize();
+    const width = Math.max(1, Math.round(size.width * 0.8));
+    const height = Math.max(1, Math.round(size.height * 0.8));
+    image = image.resize({ width, height, quality: "good" });
+    out = (format === "png" ? image.toPNG() : image.toJPEG(65)).toString("base64");
+    resized = true;
+    if (out.length <= maxChars) break;
+  }
+  const size = image.getSize();
+  return { mimeType, data: out, width: size.width, height: size.height, resized };
 }

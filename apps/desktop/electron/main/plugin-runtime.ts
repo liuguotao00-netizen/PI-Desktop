@@ -16,6 +16,43 @@ import { MAX_PLUGIN_BINARY_RESPONSE_BYTES, pluginNetFetch, parseFetchRedirect, t
 import type { LoadedSkillDocument } from "./skill-document";
 import { assertLocalPluginRoot, pluginFsReadOptions, readRemotePluginFiles, type PluginRemoteFilesRead } from "./plugin-remote-files";
 import { getModuleDirectory } from "./module-path";
+import { assertAgentMayOperate, beginOperation, endOperation, lockForAgent, unlockForAgent } from "./browser-agent-control.ts";
+import type { CuaSessions } from "./cua/session.ts";
+import type { CuaRuntime } from "./cua/runtime.ts";
+
+/** Browser host-api members that actually drive the page. */
+/** Tools that drive the desktop or launch a browser from the plugin process. */
+const COMPUTER_CONTROL_TOOLS = new Set([
+  "list_apps",
+  "list_windows",
+  "launch_app",
+  "get_app_state",
+  "perform_secondary_action",
+  "stop_computer_use",
+  "paste_text",
+  "set_value",
+  "drag",
+]);
+const BROWSER_LAUNCH_TOOLS = new Set(["Chrome", "chrome"]);
+
+const AGENT_BROWSER_OPERATIONS = new Set([
+  "navigate",
+  "action",
+  "click",
+  "fill",
+  "locator",
+  "domAction",
+  "waitForDownload",
+  "evaluate",
+  "evaluateNative",
+  "uploadFiles",
+  "downloadUrl",
+  "input",
+  "console",
+  "cdp",
+  "screenshot",
+  "snapshot",
+]);
 import {
   SESSION_WRITE_GRANTS,
   describeSessionWriteProblem,
@@ -132,6 +169,14 @@ import {
 import { DevPluginWatcher, type DevPluginWatcherDeps } from "./plugin-watcher";
 import { parseAllowedExternalUrl } from "./safe-open-external";
 import type { PluginAppearance } from "../shared/plugin-panel-chrome";
+import type { BrowserService } from "./browser/service.ts";
+import type { BrowserSessions } from "./browser/sessions.ts";
+import { pluginSandboxPolicy } from "./plugin-sandbox-policy.mjs";
+import { createCuaHostApi } from "./plugin-host-api/cua.ts";
+import { createBrowserHostApi } from "./plugin-host-api/browser.ts";
+import { createClipboardHostApi } from "./plugin-host-api/clipboard.ts";
+import { createBackgroundHostApi } from "./plugin-host-api/background.ts";
+import { runAgentComplete } from "./plugin-host-api/agent-complete.ts";
 import type { McpControlController, McpControlInvokeInput } from "./mcp-control";
 import {
   PluginSocketError,
@@ -300,6 +345,7 @@ export type PluginProcessSpawner = (options: {
   pluginId: string;
   entry: string;
   pluginPath: string;
+  permissions?: readonly string[];
 }) => PluginProcessHandle | Promise<PluginProcessHandle>;
 
 /** One file access the plugin asked for and the manifest does not cover. */
@@ -336,6 +382,7 @@ export type PluginDesktopConsentRequest = {
 };
 
 export type { PluginDesktopConsentAnswer };
+
 
 export type PluginHostServices = {
   getWorkspacePath: () => string | null;
@@ -499,31 +546,15 @@ export type PluginHostServices = {
     ok: boolean;
     message?: string;
   }) => Promise<void> | void;
+
+
   /** Work-panel guest + CDP, gated by `browser.cdp` in the runtime. */
-  browser?: {
-    reveal: (sessionId?: string) => Promise<void>;
-    navigate: (
-      input: { url?: string; path?: string },
-      sessionId?: string,
-      tabId?: string,
-    ) => Promise<unknown>;
-    action: (action: "back" | "forward" | "reload" | "stop", sessionId?: string, tabId?: string) => void;
-    setBounds: (pluginId: string, hole: unknown) => unknown;
-    setVisible: (pluginId: string, visible: boolean) => void;
-    getState: (sessionId?: string, tabId?: string) => unknown;
-    openExternal: (sessionId?: string, tabId?: string) => void;
-    snapshot: (sessionId?: string, tabId?: string) => Promise<unknown>;
-    screenshot: (
-      input?: { fullPage?: boolean },
-      sessionId?: string,
-      tabId?: string,
-    ) => Promise<unknown>;
-    click: (uid: string, sessionId?: string, tabId?: string) => Promise<void>;
-    fill: (uid: string, text: string, sessionId?: string, tabId?: string) => Promise<void>;
-    evaluate: (expression: string, sessionId?: string, tabId?: string) => Promise<unknown>;
-    console: (limit?: number, sessionId?: string, tabId?: string) => unknown;
-    cdp: (method: string, params?: unknown, sessionId?: string, tabId?: string) => Promise<unknown>;
-  };
+  browser?: BrowserService;
+  /** Shared Codex-shaped browser sessions: tabs, claims, capabilities. */
+  browserSessions?: BrowserSessions;
+  /** Per-session unified CUA binding, gated by `computer.control`. */
+  cua?: Pick<CuaRuntime, "state" | "bind" | "clear" | "app" | "browser" | "createTab" | "act" | "claimTab" | "releaseTab" | "capture">;
+
   onPluginUnload?: (pluginId: string) => void;
   listModels?: () => Promise<PluginModelInfo[]>;
   getSessionContext?: (sessionId: string, stripToolName?: string) => Promise<PluginLlmContext>;
@@ -680,8 +711,59 @@ const HOST_API_ALLOWLIST = new Set([
   "browser.screenshot",
   "browser.click",
   "browser.fill",
+  "browser.uploadFiles",
+  "browser.waitForFileChooser",
+  "browser.waitForDownload",
+  "browser.locator",
+  "browser.domAction",
+  "browser.catalog",
+  "browser.getJsDialog",
+  "browser.chromeSettings",
+  "browser.setFileChooserFiles",
+  "browser.downloadUrl",
+  "browser.clickAndWaitForDownload",
+  "browser.crossOriginFrame",
+  "browser.connectBackend",
+  "browser.disconnectBackend",
+  "browser.backendState",
+  "browser.backendHealth",
+  "cua.state",
+  "cua.bind",
+  "cua.clear",
+  "cua.app",
+  "cua.browser",
+  "cua.createTab",
+  "cua.capture",
+  "cua.claimTab",
+  "cua.releaseTab",
+  "cua.act",
+  "cua.browsers",
+  "cua.session",
+  "cua.sessionInvoke",
   "browser.evaluate",
+  "browser.evaluateNative",
+  "browser.evaluateIsolated",
+  "browser.inputEvent",
+  "browser.insertText",
+  "browser.handleDialog",
+  "browser.consoleLogs",
+  "browser.networkRequests",
+  "browser.networkIdle",
+  "browser.downloads",
+  "browser.cancelDownload",
+  "browser.cancelFileChooser",
   "browser.console",
+  "browser.input",
+  "browser.tabs",
+  "browser.screenshotState",
+  "browser.lock",
+  "browser.unlock",
+  "browser.capabilities",
+  "browser.capability",
+  "browser.markTab",
+  "browser.sessionState",
+  "browser.claimTab",
+  "browser.releaseTab",
   "net.websocket.connect",
   "net.websocket.send",
   "net.websocket.close",
@@ -1442,12 +1524,15 @@ function resolveWindowCornerRadius(value: unknown): number | undefined {
 }
 
 /** Default spawner: an Electron utilityProcess per plugin. */
-const spawnUtilityProcess: PluginProcessSpawner = async ({ pluginId, entry }) => {
+const spawnUtilityProcess: PluginProcessSpawner = async ({ pluginId, entry, permissions = [] }) => {
   const { utilityProcess } = await import("electron");
+  const policy = pluginSandboxPolicy(permissions);
+  const execArgv = policy.nodeExecArgv;
   const child = utilityProcess.fork(entry, [], {
     serviceName: `pi-plugin-${pluginId.replace(/[^a-zA-Z0-9._-]/g, "_")}`,
     stdio: "pipe",
     env: pluginChildEnv(pluginId),
+    ...(execArgv.length ? { execArgv } : {}),
   });
   return {
     postMessage: (message) => child.postMessage(message),
@@ -2284,7 +2369,7 @@ export class PluginRuntime {
       this.services.hostEntry ??
       join(getModuleDirectory(import.meta.url), "plugin-host-process.js");
     const spawn = this.services.spawnProcess ?? spawnUtilityProcess;
-    const child = await spawn({ pluginId: manifest.id, entry, pluginPath });
+    const child = await spawn({ pluginId: manifest.id, entry, pluginPath, permissions: [...granted] });
 
     const loaded: LoadedPlugin = {
       manifest,
@@ -2737,12 +2822,52 @@ export class PluginRuntime {
         return this.invokeBrowser(loaded, "click", payload);
       case "browser.fill":
         return this.invokeBrowser(loaded, "fill", payload);
+      case "browser.uploadFiles":
+        return this.invokeBrowser(loaded, "uploadFiles", payload);
+      case "browser.waitForFileChooser":
+        return this.invokeBrowser(loaded, "waitForFileChooser", payload);
+      case "browser.waitForDownload":
+        return this.invokeBrowser(loaded, "waitForDownload", payload);
+      case "browser.locator":
+        return this.invokeBrowser(loaded, "locator", payload);
+      case "browser.domAction":
+        return this.invokeBrowser(loaded, "domAction", payload);
+      case "browser.catalog":
+        return this.invokeBrowser(loaded, "catalog", payload);
+      case "browser.getJsDialog":
+        return this.invokeBrowser(loaded, "getJsDialog", payload);
+      case "browser.chromeSettings":
+        return this.invokeBrowser(loaded, "chromeSettings", payload);
+      case "browser.setFileChooserFiles":
+        return this.invokeBrowser(loaded, "setFileChooserFiles", payload);
+      case "browser.connectBackend":
+        return this.invokeBrowser(loaded, "connectBackend", payload);
+      case "browser.disconnectBackend":
+        return this.invokeBrowser(loaded, "disconnectBackend", payload);
+      case "browser.backendState":
+        return this.invokeBrowser(loaded, "backendState", payload);
+      case "browser.backendHealth":
+        return this.invokeBrowser(loaded, "backendHealth", payload);
       case "browser.evaluate":
         return this.invokeBrowser(loaded, "evaluate", payload);
+      case "browser.evaluateNative":
+        return this.invokeBrowser(loaded, "evaluateNative", payload);
       case "browser.console":
         return this.invokeBrowser(loaded, "console", payload);
       case "browser.cdp":
         return this.invokeBrowser(loaded, "cdp", payload);
+      case "browser.capabilities":
+        return this.invokeBrowser(loaded, "capabilities", payload);
+      case "browser.capability":
+        return this.invokeBrowser(loaded, "capability", payload);
+      case "browser.markTab":
+        return this.invokeBrowser(loaded, "markTab", payload);
+      case "browser.sessionState":
+        return this.invokeBrowser(loaded, "sessionState", payload);
+      case "browser.claimTab":
+        return this.invokeBrowser(loaded, "claimTab", payload);
+      case "browser.releaseTab":
+        return this.invokeBrowser(loaded, "releaseTab", payload);
       default:
         // The panel is the plugin's own UI: any channel the host does not
         // implement itself is forwarded to the plugin's onPanelInvoke so
@@ -3089,6 +3214,18 @@ export class PluginRuntime {
         };
         const name = String(descriptor.name ?? "");
         if (!name) throw apiError("INVALID_ARGUMENT", "tool.name is required");
+        if (COMPUTER_CONTROL_TOOLS.has(name) && !loaded.permissions.has("computer.control")) {
+          throw apiError(
+            "PERMISSION_DENIED",
+            `plugin tool ${name} requires the computer.control permission`,
+          );
+        }
+        if (BROWSER_LAUNCH_TOOLS.has(name) && !loaded.permissions.has("browser.launch")) {
+          throw apiError(
+            "PERMISSION_DENIED",
+            `plugin tool ${name} requires the browser.launch permission`,
+          );
+        }
         const fullName = pluginToolName(pluginId, name);
         const planSafeActions = normalizePlanSafeActions(
           descriptor.planSafeActions,
@@ -3115,15 +3252,19 @@ export class PluginRuntime {
                   `plugin tool ${name} is not available in ${ctx.mode} mode`,
                 );
               }
-              const action =
-                toolArgs && typeof toolArgs === "object" && !Array.isArray(toolArgs)
-                  ? (toolArgs as { action?: unknown }).action
-                  : undefined;
-              if (typeof action !== "string" || !allowed.includes(action)) {
-                throw apiError(
-                  "PERMISSION_DENIED",
-                  `plugin tool ${name} action ${JSON.stringify(action)} is not allowed in ${ctx.mode} mode`,
-                );
+              // A tool with no action enum opts in as a whole with "*"; the
+              // declaration stays on the tool so the host can still audit it.
+              if (!allowed.includes("*")) {
+                const action =
+                  toolArgs && typeof toolArgs === "object" && !Array.isArray(toolArgs)
+                    ? (toolArgs as { action?: unknown }).action
+                    : undefined;
+                if (typeof action !== "string" || !allowed.includes(action)) {
+                  throw apiError(
+                    "PERMISSION_DENIED",
+                    `plugin tool ${name} action ${JSON.stringify(action)} is not allowed in ${ctx.mode} mode`,
+                  );
+                }
               }
             }
             const target = this.loaded.get(pluginId);
@@ -3473,9 +3614,38 @@ export class PluginRuntime {
           throw apiError("UNSUPPORTED", `host api not available: ${api}`);
         }
         const [group, member] = api.split(".");
-        const target = (this.hostApi(loaded) as any)[group]?.[member];
+        // Browser calls from a plugin may name the session they are driving;
+        // that identity must reach pi.browser and the control state machine.
+        const browserInput =
+          group === "browser" && args[0] && typeof args[0] === "object"
+            ? (args[0] as { sessionId?: unknown; tabId?: unknown })
+            : undefined;
+        const browserContext =
+          browserInput && typeof browserInput.sessionId === "string"
+            ? {
+                sessionId: browserInput.sessionId,
+                tabId: typeof browserInput.tabId === "string" ? browserInput.tabId : undefined,
+              }
+            : undefined;
+        const target = (this.hostApi(loaded, browserContext) as any)[group]?.[member];
         if (typeof target !== "function") {
           throw apiError("UNSUPPORTED", `host api not available: ${api}`);
+        }
+        // Only real driving operations take over the control state. View
+        // plumbing (setBounds/setVisible/getState/reveal) must not make the
+        // browser look "agent controlled".
+        if (
+          group === "browser" &&
+          AGENT_BROWSER_OPERATIONS.has(member)
+        ) {
+          const sessionId = browserContext?.sessionId;
+          assertAgentMayOperate(sessionId);
+          beginOperation(sessionId, member);
+          try {
+            return await target(...args);
+          } finally {
+            endOperation(sessionId, member);
+          }
         }
         return target(...args);
       }
@@ -4918,87 +5088,20 @@ export class PluginRuntime {
     loaded: LoadedPlugin,
     input: PluginCompleteInput,
   ): Promise<PluginCompleteResult> {
-    this.assertPermission(loaded, "agent.complete");
-    const modelKey = String(input.modelKey ?? "").trim();
-    if (!modelKey || !modelKey.includes("/")) {
-      throw apiError("INVALID_ARGUMENT", "modelKey must be providerId/modelId");
-    }
-    const system = typeof input.system === "string" ? input.system : "";
-    if (system.length > MAX_COMPLETE_SYSTEM_CHARS) {
-      throw apiError("INVALID_ARGUMENT", "system prompt exceeds 32 KiB");
-    }
-    const messages = Array.isArray(input.messages) ? input.messages : [];
-    const messageChars = messages.reduce(
-      (sum, message) => sum + String(message?.content ?? "").length,
-      0,
-    );
-    if (messageChars > MAX_COMPLETE_MESSAGE_CHARS) {
-      throw apiError("INVALID_ARGUMENT", "messages exceed 200k characters");
-    }
-    if (this.completeRateExceeded(loaded.manifest.id)) {
-      this.services.audit?.({
-        pluginId: loaded.manifest.id,
-        api: "agent.complete",
-        ok: false,
-        errorCode: "RATE_LIMITED",
-        ts: Date.now(),
-      });
-      throw apiError("RATE_LIMITED", "plugin completion rate exceeded");
-    }
-    const includeSessionContext = input.includeSessionContext === true;
-    if (includeSessionContext) {
-      this.assertPermission(loaded, "session.read");
-    }
-    const inFlight = this.inFlightTool(loaded.manifest.id);
-    if (includeSessionContext && !inFlight?.sessionId) {
-      throw apiError("INVALID_ARGUMENT", "session context is only available during tool execution");
-    }
-    if (!this.services.complete) {
-      throw apiError("UNSUPPORTED", "host api not available: agent.complete");
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), PLUGIN_COMPLETE_TIMEOUT_MS);
-    let result: PluginCompleteResult;
-    try {
-      result = await this.services.complete({
-        modelKey,
-        thinkingLevel: input.thinkingLevel,
-        system: system || undefined,
-        messages,
-        includeSessionContext,
-        sessionId: inFlight?.sessionId,
-        stripToolName: inFlight?.toolName
-          ? pluginToolName(loaded.manifest.id, inFlight.toolName)
-          : undefined,
-        signal: controller.signal,
-      });
-    } catch (error) {
-      if (controller.signal.aborted) {
-        this.services.audit?.({
-          pluginId: loaded.manifest.id,
-          api: "agent.complete",
-          ok: false,
-          errorCode: "TIMEOUT",
-          ts: Date.now(),
-        });
-        throw apiError("TIMEOUT", "plugin completion timed out");
-      }
-      throw error;
-    } finally {
-      clearTimeout(timer);
-    }
-    this.services.audit?.({
+    return runAgentComplete({
       pluginId: loaded.manifest.id,
-      api: "agent.complete",
-      ok: true,
-      modelKey: result.modelKey,
-      systemChars: system.length,
-      messageChars,
-      outputChars: result.text.length,
-      usage: result.usage,
-      ts: Date.now(),
+      input,
+      assertPermission: () => this.assertPermission(loaded, "agent.complete"),
+      assertSessionRead: () => this.assertPermission(loaded, "session.read"),
+      rateExceeded: this.completeRateExceeded(loaded.manifest.id),
+      inFlight: this.inFlightTool(loaded.manifest.id) ?? null,
+      complete: this.services.complete,
+      audit: this.services.audit,
+      timeoutMs: PLUGIN_COMPLETE_TIMEOUT_MS,
+      maxSystemChars: MAX_COMPLETE_SYSTEM_CHARS,
+      maxMessageChars: MAX_COMPLETE_MESSAGE_CHARS,
+      pluginToolName: (toolName) => pluginToolName(loaded.manifest.id, toolName),
     });
-    return result;
   }
 
   /**
@@ -5028,9 +5131,31 @@ export class PluginRuntime {
     payload?: Record<string, unknown>,
   ): Promise<unknown> {
     this.assertPermission(loaded, "browser.cdp");
-    const context = loaded.manifest.id === "pi.browser" && typeof payload?.sessionId === "string" && typeof payload?.tabId === "string"
-      ? { sessionId: payload.sessionId, tabId: payload.tabId } : undefined;
+    // Any plugin holding browser.cdp may name the session it is driving; tabId
+    // stays optional so a tool that only knows its session still binds to that
+    // session's page instead of falling back to a process-wide default.
+    const context =
+      typeof payload?.sessionId === "string"
+        ? {
+            sessionId: payload.sessionId,
+            tabId: typeof payload?.tabId === "string" ? payload.tabId : undefined,
+          }
+        : undefined;
     const api = this.hostApi(loaded, context).browser;
+    // Browser-level takeover: while the user holds control, no plugin (the
+    // built-in Browser tool included) may drive the page.
+    assertAgentMayOperate(
+      typeof payload?.sessionId === "string" ? payload.sessionId : context?.sessionId,
+    );
+    const controlSession =
+      typeof payload?.sessionId === "string" ? payload.sessionId : context?.sessionId;
+    // View plumbing (bounds, visibility, state) is not agent activity; taking
+    // the control state for it makes the bar flicker and hides real work.
+    const drivesPage = AGENT_BROWSER_OPERATIONS.has(method);
+    if (drivesPage) {
+      beginOperation(controlSession, method);
+    }
+    try {
     switch (method) {
       case "navigate":
         return api.navigate({
@@ -5069,16 +5194,111 @@ export class PluginRuntime {
       case "fill":
         await api.fill(String(payload?.uid ?? ""), String(payload?.text ?? ""));
         return { ok: true };
+      case "uploadFiles":
+        return api.uploadFiles({
+          selector: String(payload?.selector ?? "input[type=file]"),
+          files: Array.isArray(payload?.files) ? payload.files.map(String) : [],
+        });
+      case "waitForFileChooser":
+        return api.waitForFileChooser({ timeoutMs: Number(payload?.timeoutMs) || undefined });
+      case "waitForDownload":
+        return api.waitForDownload({ timeoutMs: Number(payload?.timeoutMs) || undefined });
+      case "locator":
+        return api.locator((payload ?? {}) as Record<string, unknown>);
+      case "domAction":
+        return api.domAction((payload ?? {}) as Record<string, unknown>);
+      case "catalog":
+        return api.catalog();
+      case "getJsDialog":
+        return api.getJsDialog((payload ?? {}) as Record<string, unknown>);
+      case "chromeSettings":
+        return api.chromeSettings();
+      case "setFileChooserFiles":
+        return api.setFileChooserFiles({
+          files: Array.isArray(payload?.files) ? payload.files.map(String) : [],
+        });
+      case "downloadUrl":
+        return api.downloadUrl({
+          url: String(payload?.url ?? ""),
+          ...(typeof payload?.filename === "string" ? { filename: payload.filename } : {}),
+        });
+      case "clickAndWaitForDownload":
+        return api.clickAndWaitForDownload({
+          ref: String(payload?.ref ?? ""),
+          ...(typeof payload?.timeoutMs === "number" ? { timeoutMs: payload.timeoutMs } : {}),
+        });
+      case "crossOriginFrame":
+        return api.crossOriginFrame((payload ?? {}) as Record<string, unknown>);
+      case "connectBackend":
+        if (!api.connectBackend) throw apiError("UNSUPPORTED", "browser backend api missing");
+        return api.connectBackend(
+          {
+            kind: typeof payload?.kind === "string" ? payload.kind : undefined,
+            endpoint: typeof payload?.endpoint === "string" ? payload.endpoint : undefined,
+            tabId: typeof payload?.tabId === "string" ? payload.tabId : undefined,
+            url: typeof payload?.url === "string" ? payload.url : undefined,
+            ...(payload?.launch === true ? { launch: true } : {}),
+            ...(typeof payload?.chromePath === "string" ? { chromePath: payload.chromePath } : {}),
+            ...(typeof payload?.userDataDir === "string" ? { userDataDir: payload.userDataDir } : {}),
+            ...(payload?.headless === true ? { headless: true } : {}),
+            ...(Array.isArray(payload?.chromeArgs) ? { chromeArgs: payload.chromeArgs.map(String) } : {}),
+          },
+        );
+      case "disconnectBackend":
+        if (!api.disconnectBackend) throw apiError("UNSUPPORTED", "browser backend api missing");
+        return api.disconnectBackend();
+      case "backendState":
+        return api.backendState ? api.backendState() : null;
+      case "backendHealth":
+        return api.backendHealth ? api.backendHealth() : null;
       case "evaluate":
         return api.evaluate(String(payload?.expression ?? ""));
+      case "evaluateNative":
+        return api.evaluateNative({ expression: String(payload?.expression ?? "") });
+      case "evaluateIsolated":
+        return api.evaluateIsolated({ expression: String(payload?.expression ?? "") });
+      case "inputEvent":
+        return api.inputEvent(payload?.event ?? payload);
+      case "insertText":
+        return api.insertText(String(payload?.text ?? ""));
+      case "consoleLogs":
+        return api.consoleLogs({ limit: Number(payload?.limit) || 100 });
+      case "networkRequests":
+        return api.networkRequests({ limit: Number(payload?.limit) || 100 });
+      case "handleDialog":
+        return api.handleDialog({
+          accept: payload?.accept !== false,
+          ...(typeof payload?.promptText === "string" ? { promptText: payload.promptText } : {}),
+        });
       case "console":
         return api.console(
           typeof payload?.limit === "number" ? payload.limit : undefined,
         );
       case "cdp":
         return api.cdp(String(payload?.method ?? ""), payload?.params);
+      case "input":
+        return api.input(String(payload?.method ?? ""), payload?.params);
+      case "screenshotState":
+        return api.screenshotState();
+      case "tabs":
+        return api.tabs((payload ?? {}) as { action: string; tabId?: string; url?: string; headless?: boolean });
+      case "capabilities":
+        return api.capabilities((payload ?? {}) as { tabId?: string });
+      case "capability":
+        return api.capability((payload ?? {}) as { id?: string; action?: string; value?: unknown; tabId?: string });
+      case "markTab":
+        return api.markTab((payload ?? {}) as { tabId?: string; mark?: string });
+      case "sessionState":
+        return api.sessionState();
+      case "claimTab":
+        return api.claimTab((payload ?? {}) as { tabId?: string });
+      case "releaseTab":
+        return api.releaseTab();
       default:
         throw apiError("UNSUPPORTED", `host api not available: browser.${method}`);
+    }
+    } finally {
+      if (drivesPage) endOperation(controlSession, method);
     }
   }
 
@@ -5690,7 +5910,7 @@ export class PluginRuntime {
     throw apiError("UNSUPPORTED", `host api not available: ${api}`);
   }
 
-  private hostApi(loaded: LoadedPlugin, browserContext?: { sessionId: string; tabId: string }) {
+  private hostApi(loaded: LoadedPlugin, browserContext?: { sessionId: string; tabId?: string }) {
     const pluginId = loaded.manifest.id;
     const pluginPath = loaded.path;
 
@@ -6593,88 +6813,25 @@ export class PluginRuntime {
           return { path: loaded.userRoot, name: basename(loaded.userRoot) };
         },
       },
-      clipboard: {
-        readText: async () => {
-          this.assertPermission(loaded, "clipboard.read");
-          const text = await this.services.readClipboard();
-          this.services.audit?.({
-            pluginId,
-            api: "clipboard.readText",
-            ok: true,
-            ts: Date.now(),
-          });
-          return text;
-        },
-        writeText: async (text: string) => {
-          this.assertPermission(loaded, "clipboard.write");
-          await this.services.writeClipboard(text);
-          this.services.audit?.({
-            pluginId,
-            api: "clipboard.writeText",
-            ok: true,
-            ts: Date.now(),
-          });
-        },
-        getHistory: async () => {
-          this.assertPermission(loaded, "clipboard.read");
-          try {
-            const history = await this.services.readClipboardHistory();
-            this.services.audit?.({
-              pluginId,
-              api: "clipboard.getHistory",
-              ok: true,
-              entryCount: history.length,
-              ts: Date.now(),
-            });
-            return history;
-          } catch (error) {
-            this.services.audit?.({
-              pluginId,
-              api: "clipboard.getHistory",
-              ok: false,
-              errorCode: (error as PluginApiError).code ?? "INTERNAL",
-              ts: Date.now(),
-            });
-            throw error;
-          }
-        },
-      },
-      shell: {
-        openExternal: async (url: string) => {
-          this.assertPermission(loaded, "shell.openExternal");
-          const allowed = parseAllowedExternalUrl(url);
-          if (!allowed) {
-            throw apiError("INVALID_ARGUMENT", "only http(s)/mailto URLs allowed");
-          }
-          await this.services.openExternal(allowed);
-          this.services.audit?.({
-            pluginId,
-            api: "shell.openExternal",
-            ok: true,
-            ts: Date.now(),
-            url,
-          });
-        },
-      },
-      /**
-       * Background audio is declared, gated, and not implemented: the host has
-       * no device backend yet, so every call runs the permission gate and then
-       * answers with a coded `UNSUPPORTED`. That is the contract a plugin can
-       * branch on — without it a call would fail as a bare `TypeError` with no
-       * `code` at all, and nothing would reach the audit log.
-       */
-      audio: {
-        getInputDevices: async () => this.refuseAudio(loaded, "audio.getInputDevices"),
-        openInput: async () => this.refuseAudio(loaded, "audio.openInput"),
-        closeInput: async () => this.refuseAudio(loaded, "audio.closeInput"),
-        getCaptureState: async () => this.refuseAudio(loaded, "audio.getCaptureState"),
-        onInputFrame: async () => this.refuseAudio(loaded, "audio.onInputFrame"),
-        offInputFrame: async () => this.refuseAudio(loaded, "audio.offInputFrame"),
-        openOutput: async () => this.refuseAudio(loaded, "audio.openOutput"),
-        writeOutput: async () => this.refuseAudio(loaded, "audio.writeOutput"),
-        stopOutput: async () => this.refuseAudio(loaded, "audio.stopOutput"),
-        closeOutput: async () => this.refuseAudio(loaded, "audio.closeOutput"),
-      },
+      clipboard: createClipboardHostApi({
+        pluginId,
+        assertRead: () => this.assertPermission(loaded, "clipboard.read"),
+        assertWrite: () => this.assertPermission(loaded, "clipboard.write"),
+        readText: () => this.services.readClipboard(),
+        writeText: (text) => this.services.writeClipboard(text),
+        readHistory: () => this.services.readClipboardHistory(),
+        audit: this.services.audit,
+      }),
+      ...createBackgroundHostApi({
+        pluginId,
+        assertPermission: (permission) => this.assertPermission(loaded, permission as never),
+        openExternal: (url) => this.services.openExternal(url),
+        audit: this.services.audit,
+        refuseAudio: (api) => this.refuseAudio(loaded, api),
+        busPublish: (topic, payload) => this.busPublish(loaded, topic, payload),
+        busSubscribe: (pattern) => this.busSubscribe(loaded, pattern),
+        busUnsubscribe: (subscriptionId) => this.busUnsubscribe(loaded, subscriptionId),
+      }),
       net: {
         getCapabilities: async () => ({ fetchRedirectModes: ["follow", "error", "manual"], binaryResponseBody: true, maxResponseBodyBytes: MAX_PLUGIN_BINARY_RESPONSE_BYTES }),
         fetch: async (input: {
@@ -6712,168 +6869,28 @@ export class PluginRuntime {
         unsubscribe: async (subscriptionId: string) =>
           this.busUnsubscribe(loaded, subscriptionId),
       },
-      browser: {
-        reveal: async () => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          await this.services.browser.reveal(this.browserSessionId(pluginId));
-          this.services.audit?.({
-            pluginId,
-            api: "browser.reveal",
-            ok: true,
-            ts: Date.now(),
-          });
+      browser: createBrowserHostApi({
+        browser: this.services.browser,
+        sessions: this.services.browserSessions,
+        assertCdp: () => this.assertPermission(loaded, "browser.cdp"),
+        sessionId: () => this.browserSessionId(pluginId),
+        contextSessionId: browserContext?.sessionId,
+        contextTabId: browserContext?.tabId,
+        audit: this.services.audit,
+        lockForAgent,
+        unlockForAgent,
+        pluginId,
+      }),
+      cua: createCuaHostApi({
+        cua: this.services.cua,
+        sessions: this.services.browserSessions,
+        assertPermission: () => this.assertPermission(loaded, "computer.control"),
+        requireSession: (operation) => {
+          const sessionId = browserContext?.sessionId ?? this.browserSessionId(pluginId);
+          if (!sessionId) throw apiError("INVALID_ARGUMENT", `cua ${operation} requires a session`);
+          return sessionId;
         },
-        navigate: async (input: { url?: string; path?: string } = {}) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const result = await this.services.browser.navigate(
-            input,
-            browserContext?.sessionId ?? this.browserSessionId(pluginId),
-            browserContext?.tabId,
-          );
-          this.services.audit?.({
-            pluginId,
-            api: "browser.navigate",
-            ok: true,
-            ts: Date.now(),
-          });
-          return result;
-        },
-        action: (input: "back" | "forward" | "reload" | "stop" | { action?: string }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const action = typeof input === "string" ? input : String(input?.action ?? "");
-          if (
-            action === "back" ||
-            action === "forward" ||
-            action === "reload" ||
-            action === "stop"
-          ) {
-            this.services.browser.action(action, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-          }
-        },
-        setBounds: (hole: unknown) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          return this.services.browser.setBounds(pluginId, hole);
-        },
-        setVisible: (input: boolean | { visible?: boolean }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const visible = typeof input === "boolean" ? input : input?.visible === true;
-          this.services.browser.setVisible(pluginId, visible);
-        },
-        getState: () => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          return this.services.browser.getState(this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        openExternal: () => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          this.services.browser.openExternal(this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-          this.services.audit?.({
-            pluginId,
-            api: "browser.openExternal",
-            ok: true,
-            ts: Date.now(),
-          });
-        },
-        snapshot: async () => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          return this.services.browser.snapshot(this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        screenshot: async (input?: { fullPage?: boolean }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          return this.services.browser.screenshot(
-            input,
-            this.browserSessionId(pluginId) ?? browserContext?.sessionId,
-            browserContext?.tabId,
-          );
-        },
-        click: async (input: string | { uid?: string }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const uid = typeof input === "string" ? input : String(input?.uid ?? "");
-          await this.services.browser.click(uid, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        fill: async (
-          input: string | { uid?: string; text?: string },
-          textArg?: string,
-        ) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const uid = typeof input === "string" ? input : String(input?.uid ?? "");
-          const text = typeof input === "string" ? String(textArg ?? "") : String(input?.text ?? "");
-          await this.services.browser.fill(uid, text, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        evaluate: async (input: string | { expression?: string }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const expression = typeof input === "string" ? input : String(input?.expression ?? "");
-          this.services.audit?.({
-            pluginId,
-            api: "browser.evaluate",
-            ok: true,
-            ts: Date.now(),
-          });
-          return this.services.browser.evaluate(expression, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        console: (input?: number | { limit?: number }) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const limit = typeof input === "number" ? input : input?.limit;
-          return this.services.browser.console(limit, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-        cdp: async (
-          input: string | { method?: string; params?: unknown },
-          paramsArg?: unknown,
-        ) => {
-          this.assertPermission(loaded, "browser.cdp");
-          if (!this.services.browser) {
-            throw apiError("UNAVAILABLE", "browser host missing");
-          }
-          const method = typeof input === "string" ? input : String(input?.method ?? "");
-          const params = typeof input === "string" ? paramsArg : input?.params;
-          this.services.audit?.({
-            pluginId,
-            api: "browser.cdp",
-            ok: true,
-            ts: Date.now(),
-            method,
-          });
-          return this.services.browser.cdp(method, params, this.browserSessionId(pluginId) ?? browserContext?.sessionId, browserContext?.tabId);
-        },
-      },
+      }),
     };
   }
 }

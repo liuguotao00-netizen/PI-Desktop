@@ -31,6 +31,48 @@ import { LiveVoiceStatusHost } from "../voice/live/LiveVoiceStatusHost";
 import { AppOverlayHost } from "../startup/AppOverlayHost";
 import { CollapsedTitlebarActions, RoutePending } from "./chrome";
 import { useAppShellRuntime } from "./useAppShellRuntime";
+import { useTranslation } from "react-i18next";
+
+function CuaClaimBanner({ sessionId }: { sessionId?: string }) {
+  const { t } = useTranslation();
+  const [claimedTab, setClaimedTab] = useState<{ id: string; title?: string; url?: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      if (!sessionId) { setClaimedTab(null); return; }
+      try {
+        const state = await api.cuaState(sessionId);
+        if (!cancelled) {
+          setClaimedTab(state.claimedTabId
+            ? { id: state.claimedTabId, title: state.claimedTabTitle, url: state.claimedTabUrl }
+            : null);
+        }
+      } catch {
+        if (!cancelled) setClaimedTab(null);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 3000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [sessionId]);
+  if (!claimedTab) return null;
+  return (
+    <div className="cua-claim-banner no-drag" role="status">
+      <span>{t("settings.browserBackendClaimedTab")}</span>
+      <span className="cua-claim-target">{claimedTab.title || claimedTab.url || claimedTab.id}</span>
+      <button
+        type="button"
+        onClick={async () => {
+          if (!sessionId) return;
+          await api.cuaClear(sessionId);
+          setClaimedTab(null);
+        }}
+      >
+        {t("settings.browserBackendReleaseTab")}
+      </button>
+    </div>
+  );
+}
 
 const ScheduledPage = lazy(() =>
   import("../../pages/ScheduledPage").then((module) => ({
@@ -218,6 +260,7 @@ export function AppShell() {
                 </div>
               )}
               <UpdateBanner />
+              <CuaClaimBanner sessionId={activeSessionId} />
 
               {backendDown && (
                 <div

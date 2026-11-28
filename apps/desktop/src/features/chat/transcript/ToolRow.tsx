@@ -29,6 +29,7 @@ import {
   getToolSummary,
   getToolSummaryValue,
 } from "../../../lib/tool-display";
+import { getToolPhrase } from "../../../lib/tool-phrases";
 import {
   buildToolPresentation,
   hasToolDetails,
@@ -211,11 +212,18 @@ function HostToolRow({
     onUserInteraction?.();
     collapseDisclosure();
   }, [collapseDisclosure, onUserInteraction]);
-  const actionLabel = t(
-    status === "running" ? TOOL_RUNNING_KEYS[action] : TOOL_ACTION_KEYS[action],
-  );
+  const phrase = getToolPhrase(message.toolName, message.toolArgs);
+  const actionLabel = phrase
+    ? t(status === "running" ? phrase.runningKey : phrase.labelKey)
+    : t(
+        status === "running" ? TOOL_RUNNING_KEYS[action] : TOOL_ACTION_KEYS[action],
+      );
   const rawName = getToolDisplayName(message.toolName) || t("chat.tool");
-  const argSummary = getToolSummary(message.toolName, message.toolArgs);
+  const argSummary = phrase
+    ? phrase.summaryKey
+      ? t(phrase.summaryKey, phrase.summaryParams)
+      : ""
+    : getToolSummary(message.toolName, message.toolArgs);
   const previewTarget = PREVIEWABLE_ACTIONS.has(action)
     ? getToolPreviewTarget(message.toolArgs, root)
     : null;
@@ -401,7 +409,7 @@ function HostToolRow({
       } status-${run === "failed" ? "error" : status || "success"}${outcome ? ` outcome-${outcome.replaceAll("_", "-")}` : ""}${creating ? " outcome-creating" : ""}`}
       role={variant === "topology" ? "listitem" : "region"}
       data-message-id={message.id}
-      aria-label={`${t("chat.toolCall")}: ${rawName}${agentName ? `, ${agentName}` : ""}${modelLabel ? `, ${modelLabel}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`}
+      aria-label={`${t("chat.toolCall")}: ${phrase ? t(phrase.labelKey) : rawName}${agentName ? `, ${agentName}` : ""}${modelLabel ? `, ${modelLabel}` : ""}${statusLabel ? `, ${statusLabel}` : ""}`}
     >
       {variant === "topology" ? (
         <div className="subagent-topology-node-actions">
@@ -476,7 +484,7 @@ function HostToolRow({
             aria-expanded={open}
             aria-controls={hasDetails ? detailsId : undefined}
             disabled={!hasDetails}
-            title={summary || rawName}
+            title={summary || (phrase ? actionLabel : rawName)}
             onClick={() => hasDetails && toggleRow()}
           >
             <span

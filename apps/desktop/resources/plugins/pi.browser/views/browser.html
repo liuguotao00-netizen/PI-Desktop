@@ -111,6 +111,37 @@
         color: var(--fg);
       }
       .empty p { margin: 0; max-width: 240px; }
+      .downloads { position: relative; }
+      .downloads-panel {
+        flex: 0 0 auto;
+        max-height: 220px;
+        overflow: auto;
+        padding: 4px 10px 8px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .downloads-panel[hidden] { display: none; }
+    .bookmarks { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-bottom: 1px solid var(--border); background: var(--surface); overflow-x: auto; }
+    .bookmarks[hidden] { display: none; }
+    .bookmark { display: inline-flex; align-items: center; gap: 4px; max-width: 180px; padding: 2px 6px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font: inherit; font-size: 11px; cursor: pointer; }
+    .bookmark:hover { background: color-mix(in oklab, var(--fg) 8%, transparent); color: var(--fg); }
+    .bookmark span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .panel { position: absolute; right: 8px; top: 34px; z-index: 20; width: min(360px, 80vw); max-height: 50vh; overflow: auto; padding: 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: 0 12px 28px rgb(0 0 0 / 0.18); }
+    .panel[hidden] { display: none; }
+    .panel-row { display: flex; flex-direction: column; gap: 1px; width: 100%; padding: 5px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+    .panel-row:hover { background: color-mix(in oklab, var(--fg) 7%, transparent); }
+    .panel-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .panel-url { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 10px; }
+    .panel-empty { padding: 8px; color: var(--muted); font-size: 11px; }
+    .panel-group { padding: 6px 6px 2px; color: var(--muted); font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .panel-actions { display: flex; gap: 6px; }
+    .panel-actions button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 10px; cursor: pointer; text-decoration: underline; }
+    .panel-actions button:hover { color: var(--fg); }
+      .download-row { display: flex; align-items: center; gap: 8px; padding: 6px; border-radius: 6px; }
+      .download-row:hover { background: color-mix(in oklab, var(--fg) 6%, transparent); }
+      .download-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .download-meta { color: var(--muted); font-size: 10px; }
+      .download-cancel { color: var(--muted); text-decoration: underline; }
     </style>
   </head>
   <body>
@@ -128,10 +159,40 @@
         <form class="url" id="form">
           <input id="url" spellcheck="false" autocapitalize="off" autocorrect="off" />
         </form>
+        <div class="downloads">
+          <button type="button" class="icon-btn" id="downloads" title="Downloads" aria-label="Downloads">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+          </button>
+        </div>
+        <button type="button" class="icon-btn" id="cancel-upload" title="Cancel file chooser" aria-label="Cancel file chooser">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="tabs" title="Tabs" aria-label="Tabs">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h10"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="bookmark" disabled title="Bookmark" aria-label="Bookmark">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="history" title="History" aria-label="History">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/><path d="M12 7v5l3 2"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="extensions" title="Extensions" aria-label="Extensions">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v4a2 2 0 0 0 4 0V3h2v6h-4a2 2 0 0 0 0 4h4v8h-8v-4a2 2 0 0 0-4 0v4H3v-8h4a2 2 0 0 0 0-4H3V3z"/></svg>
+        </button>
+        <button type="button" class="icon-btn" id="device" title="Device toolbar" aria-label="Device toolbar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg>
+        </button>
         <button type="button" class="icon-btn" id="external" disabled title="Open externally" aria-label="Open externally">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"/><path d="M19 5l-9 9"/><path d="M5 9v10h10"/></svg>
         </button>
       </div>
+      <div class="bookmarks" id="bookmarks" hidden></div>
+      <div class="panel" id="history-panel" hidden></div>
+      <div class="panel" id="extensions-panel" hidden></div>
+      <div class="panel" id="device-panel" hidden></div>
+      <div class="panel" id="tabs-panel" hidden></div>
+      <div class="panel" id="bookmarks-panel" hidden></div>
+      <div class="downloads-panel" id="downloads-panel" hidden></div>
       <div class="guest" id="guest">
         <div class="empty" id="empty">
           <h1 id="empty-title">No page open</h1>
@@ -145,6 +206,17 @@
       const forward = document.getElementById("forward");
       const reload = document.getElementById("reload");
       const external = document.getElementById("external");
+      const bookmarkButton = document.getElementById("bookmark");
+      const historyButton = document.getElementById("history");
+      const extensionsButton = document.getElementById("extensions");
+      const bookmarksBar = document.getElementById("bookmarks");
+      const historyPanel = document.getElementById("history-panel");
+      const extensionsPanel = document.getElementById("extensions-panel");
+      const deviceButton = document.getElementById("device");
+      const devicePanel = document.getElementById("device-panel");
+      const tabsButton = document.getElementById("tabs");
+      const tabsPanel = document.getElementById("tabs-panel");
+      const bookmarksPanel = document.getElementById("bookmarks-panel");
       const form = document.getElementById("form");
       const input = document.getElementById("url");
       const guest = document.getElementById("guest");
@@ -172,6 +244,22 @@
           localFileBody: "Only existing local files can be opened.",
           emptyTitle: "No page open",
           emptyBody: "Enter an address, or preview an HTML file from the conversation.",
+          bookmark: "Bookmark this page",
+          history: "History",
+          extensions: "Extensions",
+          emptyHistory: "No history yet.",
+          bridge: "Browser bridge",
+          device: "Device toolbar",
+          deviceMobile: "Mobile 390×844",
+          deviceTablet: "Tablet 768×1024",
+          deviceDesktop: "Reset viewport",
+          tabs: "Tabs",
+          tabsEmpty: "No tabs yet.",
+          bookmarksManage: "Manage bookmarks",
+          remove: "Remove",
+          copyMention: "Copy mention",
+          closeTab: "Close",
+          window: "Window",
         },
         zh: {
           back: "后退",
@@ -189,6 +277,22 @@
           localFileBody: "只能打开已存在的本地文件。",
           emptyTitle: "尚未打开页面",
           emptyBody: "输入地址，或从对话预览 HTML 文件。",
+          bookmark: "收藏此页",
+          history: "历史记录",
+          extensions: "扩展",
+          emptyHistory: "暂无历史记录。",
+          bridge: "浏览器桥接",
+          device: "设备工具栏",
+          deviceMobile: "手机 390×844",
+          deviceTablet: "平板 768×1024",
+          deviceDesktop: "恢复视口",
+          tabs: "标签页",
+          tabsEmpty: "暂无标签页。",
+          bookmarksManage: "管理书签",
+          remove: "移除",
+          copyMention: "复制提及",
+          closeTab: "关闭",
+          window: "窗口",
         },
       };
 
@@ -205,6 +309,26 @@
         external.title = t("external");
         external.setAttribute("aria-label", t("external"));
         input.placeholder = t("placeholder");
+        if (bookmarkButton) {
+          bookmarkButton.title = t("bookmark");
+          bookmarkButton.setAttribute("aria-label", t("bookmark"));
+        }
+        if (historyButton) {
+          historyButton.title = t("history");
+          historyButton.setAttribute("aria-label", t("history"));
+        }
+        if (extensionsButton) {
+          extensionsButton.title = t("extensions");
+          extensionsButton.setAttribute("aria-label", t("extensions"));
+        }
+        if (deviceButton) {
+          deviceButton.title = t("device");
+          deviceButton.setAttribute("aria-label", t("device"));
+        }
+        if (tabsButton) {
+          tabsButton.title = t("tabs");
+          tabsButton.setAttribute("aria-label", t("tabs"));
+        }
         emptyTitle.textContent = t("emptyTitle");
         emptyBody.textContent = t("emptyBody");
       };
@@ -219,6 +343,121 @@
         locale = next.startsWith("zh") ? "zh" : "en";
         document.documentElement.lang = locale === "zh" ? "zh-CN" : "en";
         applyCopy();
+      };
+
+      let chromePrefs = {};
+      const shortenUrl = (value) => {
+        try {
+          const parsed = new URL(String(value || ""));
+          return /^https?:$/.test(parsed.protocol) ? `${parsed.protocol}//${parsed.host}` : String(value || "");
+        } catch { return String(value || ""); }
+      };
+      const applyChromePrefs = () => {
+        if (extensionsButton) extensionsButton.hidden = chromePrefs.extensionsToolbarVisible === false;
+        if (deviceButton) deviceButton.hidden = chromePrefs.deviceToolbarVisible !== true;
+        renderBookmarks();
+      void bridge.invoke("browser.chromeSettings").then((prefs) => {
+        chromePrefs = prefs && typeof prefs === "object" ? prefs : {};
+        applyChromePrefs();
+      }).catch(() => {});
+      };
+      const BOOKMARKS_KEY = "pi.browser.bookmarks";
+      const readBookmarks = () => {
+        try { return JSON.parse(localStorage.getItem(BOOKMARKS_KEY) || "[]") || []; } catch { return []; }
+      };
+      const writeBookmarks = (items) => {
+        try { localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(items.slice(0, 40))); } catch { /* storage may be blocked */ }
+      };
+      const renderBookmarkPanel = () => {
+        bookmarksPanel.replaceChildren();
+        const items = readBookmarks();
+        if (!items.length) {
+          const empty = document.createElement("div");
+          empty.className = "panel-empty";
+          empty.textContent = t("emptyHistory");
+          bookmarksPanel.append(empty);
+          return;
+        }
+        for (const bookmark of items) {
+          const row = document.createElement("div");
+          row.className = "panel-row";
+          const title = document.createElement("span");
+          title.className = "panel-title";
+          title.textContent = bookmark.title || bookmark.url;
+          const url = document.createElement("span");
+          url.className = "panel-url";
+          url.textContent = bookmark.url;
+          const actions = document.createElement("span");
+          actions.className = "panel-actions";
+          const remove = document.createElement("button");
+          remove.type = "button";
+          remove.textContent = t("remove");
+          remove.addEventListener("click", (event) => {
+            event.stopPropagation();
+            writeBookmarks(readBookmarks().filter((item) => item.url !== bookmark.url));
+            renderBookmarks();
+            renderBookmarkPanel();
+          });
+          actions.append(remove);
+          row.append(title, url, actions);
+          bookmarksPanel.append(row);
+        }
+      };
+
+      const renderBookmarks = () => {
+        if (!bookmarksBar) return;
+        const items = readBookmarks();
+        const policy = chromePrefs.bookmarksBarVisibility || "new-tab";
+        bookmarksBar.hidden = policy === "never" || (policy !== "always" && items.length === 0);
+        bookmarksBar.replaceChildren();
+        for (const item of items) {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "bookmark";
+          button.title = item.url;
+          const label = document.createElement("span");
+          label.textContent = item.title || item.url;
+          button.append(label);
+          button.addEventListener("click", () => navigate(item.url));
+          bookmarksBar.append(button);
+        }
+        if (items.length) {
+          const manage = document.createElement("button");
+          manage.type = "button";
+          manage.className = "bookmark";
+          manage.title = t("bookmarksManage");
+          manage.textContent = "⋯";
+          manage.addEventListener("click", (event) => {
+            event.stopPropagation();
+            historyPanel.hidden = true;
+            extensionsPanel.hidden = true;
+            devicePanel.hidden = true;
+            tabsPanel.hidden = true;
+            const show = bookmarksPanel.hidden;
+            bookmarksPanel.hidden = !show;
+            if (show) renderBookmarkPanel();
+          });
+          bookmarksBar.append(manage);
+        }
+      };
+
+      const currentUrl = () => input.value.trim();
+      const updateBookmarkStar = (state) => {
+        if (!bookmarkButton || !bookmarkButton.style) return;
+        const url = String(state?.url || "");
+        bookmarkButton.disabled = !url;
+        const saved = readBookmarks().some((item) => item.url === url);
+        bookmarkButton.style.opacity = saved ? "1" : "0.55";
+      };
+
+      const navigate = (value) => {
+        const request = ++navigationRequest;
+        paint({ url: value, isLoading: true });
+        void bridge.invoke("browser.navigate", { url: value, ...navigationContext }).then((state) => {
+          if (request === navigationRequest && state) paint(state);
+        }).catch(() => {
+          if (request === navigationRequest) paint({ url: value, loadError: "navigation failed" });
+        });
       };
 
       const paint = (state) => {
@@ -242,7 +481,12 @@
         external.disabled = !state?.url;
         reload.title = state?.isLoading ? t("stop") : t("reload");
         reload.setAttribute("aria-label", reload.title);
-        if (contextChanged || !inputFocused) input.value = state?.url ?? "";
+        if (contextChanged || !inputFocused) {
+          const full = state?.url ?? "";
+          input.value = chromePrefs.showFullUrl === true || inputFocused ? full : shortenUrl(full);
+          if (input.dataset) input.dataset.fullUrl = full;
+        }
+        updateBookmarkStar(state);
         reportHole();
       };
 
@@ -261,14 +505,7 @@
       form.addEventListener("submit", (event) => {
         event.preventDefault();
         const value = input.value.trim();
-        if (!value) return;
-        const request = ++navigationRequest;
-        paint({ url: value, isLoading: true });
-        void bridge.invoke("browser.navigate", { url: value, ...navigationContext }).then((state) => {
-          if (request === navigationRequest && state) paint(state);
-        }).catch(() => {
-          if (request === navigationRequest) paint({ url: value, loadError: "navigation failed" });
-        });
+        if (value) navigate(value);
       });
       back.addEventListener("click", () => void bridge.invoke("browser.action", { action: "back", ...navigationContext }));
       forward.addEventListener("click", () => void bridge.invoke("browser.action", { action: "forward", ...navigationContext }));
@@ -276,8 +513,180 @@
         void bridge.invoke("browser.action", { action: reload.title === t("stop") ? "stop" : "reload", ...navigationContext });
       });
       external.addEventListener("click", () => void bridge.invoke("browser.openExternal", navigationContext));
+      bookmarkButton?.addEventListener("click", () => {
+        const url = currentUrl();
+        if (!url) return;
+        const saved = readBookmarks();
+        const index = saved.findIndex((item) => item.url === url);
+        if (index >= 0) saved.splice(index, 1);
+        else saved.unshift({ url, title: input.getAttribute("data-title") || url });
+        writeBookmarks(saved);
+        renderBookmarks();
+      void bridge.invoke("browser.chromeSettings").then((prefs) => {
+        chromePrefs = prefs && typeof prefs === "object" ? prefs : {};
+        applyChromePrefs();
+      }).catch(() => {});
+        updateBookmarkStar({ url });
+      });
+      historyButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        extensionsPanel.hidden = true;
+        historyPanel.hidden = !historyPanel.hidden;
+        if (historyPanel.hidden) return;
+        historyPanel.replaceChildren();
+        void bridge.invoke("browser.history", navigationContext).then((result) => {
+          const entries = Array.isArray(result) ? result : result?.entries ?? [];
+          if (!entries.length) {
+            const empty = document.createElement("div");
+            empty.className = "panel-empty";
+            empty.textContent = t("emptyHistory");
+            historyPanel.append(empty);
+            return;
+          }
+          for (const entry of entries.slice(0, 100)) {
+            const row = document.createElement("button");
+            row.type = "button";
+            row.className = "panel-row";
+            const title = document.createElement("span");
+            title.className = "panel-title";
+            title.textContent = entry.title || entry.url;
+            const url = document.createElement("span");
+            url.className = "panel-url";
+            url.textContent = entry.url;
+            row.append(title, url);
+            row.addEventListener("click", () => {
+              historyPanel.hidden = true;
+              navigate(entry.url);
+            });
+            historyPanel.append(row);
+          }
+        }).catch(() => { historyPanel.hidden = true; });
+      });
+      extensionsButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        historyPanel.hidden = true;
+        extensionsPanel.hidden = !extensionsPanel.hidden;
+        if (extensionsPanel.hidden) return;
+        extensionsPanel.replaceChildren();
+        void bridge.invoke("browser.backendState", navigationContext).then((state) => {
+          const head = document.createElement("div");
+          head.className = "panel-empty";
+          head.textContent = `${t("bridge")}: ${state?.kind ?? "embedded"}${state?.transportStatus ? ` · ${state.transportStatus}` : ""}`;
+          extensionsPanel.append(head);
+          const hint = document.createElement("div");
+          hint.className = "panel-empty";
+          hint.textContent = state?.kind === "extension"
+            ? `token ${state?.extensionBridgeEndpoint ? "ready" : "missing"}`
+            : "Settings → Browser backend";
+          extensionsPanel.append(hint);
+        }).catch(() => { extensionsPanel.hidden = true; });
+      });
+      tabsButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        historyPanel.hidden = true;
+        extensionsPanel.hidden = true;
+        devicePanel.hidden = true;
+        bookmarksPanel.hidden = true;
+        tabsPanel.hidden = !tabsPanel.hidden;
+        if (tabsPanel.hidden) return;
+        tabsPanel.replaceChildren();
+        void bridge.invoke("browser.tabs", { action: "list", ...navigationContext }).then((result) => {
+          const tabs = Array.isArray(result?.tabs) ? result.tabs : [];
+          const headless = Array.isArray(result?.headlessTabs) ? result.headlessTabs : [];
+          const all = [...tabs, ...headless.map((tab) => ({ ...tab, headless: true }))];
+          if (!all.length) {
+            const empty = document.createElement("div");
+            empty.className = "panel-empty";
+            empty.textContent = t("tabsEmpty");
+            tabsPanel.append(empty);
+            return;
+          }
+          const groups = new Map();
+          for (const tab of all) {
+            const key = tab.windowId !== undefined ? `${t("window")} ${tab.windowId}` : t("window");
+            if (!groups.has(key)) groups.set(key, []);
+            groups.get(key).push(tab);
+          }
+          for (const [label, groupTabs] of groups) {
+            const header = document.createElement("div");
+            header.className = "panel-group";
+            header.textContent = label;
+            tabsPanel.append(header);
+            for (const tab of groupTabs) {
+              const row = document.createElement("div");
+              row.className = "panel-row";
+              const title = document.createElement("span");
+              title.className = "panel-title";
+              title.textContent = tab.title || tab.url || tab.tabId;
+              const url = document.createElement("span");
+              url.className = "panel-url";
+              url.textContent = tab.url || (tab.headless ? "background" : "");
+              const actions = document.createElement("span");
+              actions.className = "panel-actions";
+              const mention = document.createElement("button");
+              mention.type = "button";
+              mention.textContent = t("copyMention");
+              mention.addEventListener("click", async (clickEvent) => {
+                clickEvent.stopPropagation();
+                await navigator.clipboard?.writeText(`[[tab:${tab.tabId}]]`).catch(() => {});
+                tabsPanel.hidden = true;
+              });
+              const close = document.createElement("button");
+              close.type = "button";
+              close.textContent = t("closeTab");
+              close.addEventListener("click", (clickEvent) => {
+                clickEvent.stopPropagation();
+                void bridge.invoke("browser.tabs", { action: "close", tabId: tab.tabId, ...navigationContext }).then(() => tabsButton.click());
+              });
+              actions.append(mention, close);
+              row.append(title, url, actions);
+              row.addEventListener("click", () => {
+                void bridge.invoke("browser.tabs", { action: "select", tabId: tab.tabId, ...navigationContext });
+                tabsPanel.hidden = true;
+              });
+              tabsPanel.append(row);
+            }
+          }
+        }).catch(() => { tabsPanel.hidden = true; });
+      });
+      deviceButton?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        historyPanel.hidden = true;
+        extensionsPanel.hidden = true;
+        devicePanel.hidden = !devicePanel.hidden;
+        if (devicePanel.hidden) return;
+        devicePanel.replaceChildren();
+        const presets = [
+          { label: t("deviceMobile"), width: 390, height: 844, mobile: true },
+          { label: t("deviceTablet"), width: 768, height: 1024, mobile: true },
+          { label: t("deviceDesktop"), width: 0, height: 0, mobile: false },
+        ];
+        for (const preset of presets) {
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "panel-row";
+          row.textContent = preset.label;
+          row.addEventListener("click", () => {
+            devicePanel.hidden = true;
+            const method = preset.width ? "Emulation.setDeviceMetricsOverride" : "Emulation.clearDeviceMetricsOverride";
+            const params = preset.width
+              ? { width: preset.width, height: preset.height, deviceScaleFactor: 1, mobile: preset.mobile }
+              : {};
+            void bridge.invoke("browser.cdp", { method, params, ...navigationContext });
+          });
+          devicePanel.append(row);
+        }
+      });
+      document.addEventListener("click", (event) => {
+        if (historyPanel && !historyPanel.contains(event.target)) historyPanel.hidden = true;
+        if (extensionsPanel && !extensionsPanel.contains(event.target)) extensionsPanel.hidden = true;
+        if (devicePanel && !devicePanel.contains(event.target)) devicePanel.hidden = true;
+        if (tabsPanel && !tabsPanel.contains(event.target) && event.target !== tabsButton) tabsPanel.hidden = true;
+        if (bookmarksPanel && !bookmarksPanel.contains(event.target)) bookmarksPanel.hidden = true;
+      });
       input.addEventListener("focus", () => {
         inputFocused = true;
+        if (input.dataset?.fullUrl) input.value = input.dataset.fullUrl;
         input.select();
       });
       input.addEventListener("blur", () => {
@@ -288,6 +697,59 @@
       observer.observe(guest);
       window.addEventListener("resize", reportHole);
 
+      const downloadsButton = document.getElementById("downloads");
+      const downloadsPanel = document.getElementById("downloads-panel");
+      const cancelUpload = document.getElementById("cancel-upload");
+      const renderDownloads = (payload) => {
+        downloadsPanel.replaceChildren();
+        const entries = Array.isArray(payload?.entries) ? payload.entries : [];
+        if (!entries.length) {
+          const empty = document.createElement("div");
+          empty.className = "download-meta";
+          empty.textContent = "No downloads";
+          downloadsPanel.append(empty);
+          return;
+        }
+        for (const entry of entries) {
+          const row = document.createElement("div");
+          row.className = "download-row";
+          const name = document.createElement("span");
+          name.className = "download-name";
+          name.textContent = entry.filename || entry.url;
+          name.title = entry.path || entry.url;
+          const meta = document.createElement("span");
+          meta.className = "download-meta";
+          meta.textContent = entry.state === "started" && entry.totalBytes > 0
+            ? Math.round((entry.receivedBytes / entry.totalBytes) * 100) + "%"
+            : entry.state;
+          row.append(name, meta);
+          if (entry.state === "started") {
+            const cancel = document.createElement("button");
+            cancel.type = "button";
+            cancel.className = "download-cancel";
+            cancel.textContent = "Cancel";
+            cancel.addEventListener("click", async () => {
+              await bridge.invoke("browser.cancelDownload", { id: entry.id });
+              await refreshDownloads();
+            });
+            row.append(cancel);
+          }
+          downloadsPanel.append(row);
+        }
+      };
+      const refreshDownloads = async () => {
+        renderDownloads(await bridge.invoke("browser.downloads").catch(() => ({ entries: [] })));
+      };
+      downloadsButton.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        downloadsPanel.hidden = !downloadsPanel.hidden;
+        if (!downloadsPanel.hidden) await refreshDownloads();
+      });
+      downloadsPanel.addEventListener("click", (event) => event.stopPropagation());
+      document.addEventListener("click", () => { downloadsPanel.hidden = true; });
+      cancelUpload.addEventListener("click", async () => {
+        await bridge.invoke("browser.cancelFileChooser").catch(() => undefined);
+      });
       bridge.on("browser:state", paint);
       bridge.on("appearance:changed", setBaseTheme);
       bridge.invoke("app.getAppearance").then(setBaseTheme).catch(() => setBaseTheme(null));

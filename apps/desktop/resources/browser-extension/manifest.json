@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "PI-Desktop Browser Bridge",
+  "version": "1.1.0",
+  "description": "Connects the user's Chrome/Edge tabs to PI-Desktop's browser backend.",
+  "permissions": [
+    "tabs",
+    "debugger",
+    "storage",
+    "activeTab",
+    "scripting",
+    "downloads",
+    "alarms",
+    "nativeMessaging"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}

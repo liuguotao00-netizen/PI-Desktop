@@ -131,7 +131,7 @@ export function pluginSessionContextFromSession(
 export function pluginCompleteContext(input: PluginCompleteInput & {
   sessionContext?: PluginLlmContext;
 }): Context {
-  const parts: Array<{ role: "user"; content: string; timestamp: number }> = [];
+  const parts: Context["messages"] = [];
   if (input.includeSessionContext && input.sessionContext) {
     const serialized = serializePluginLlmContext(input.sessionContext.messages);
     if (serialized.trim()) {
@@ -158,6 +158,19 @@ export function pluginCompleteContext(input: PluginCompleteInput & {
     parts.push({
       role: "user",
       content: PLUGIN_COMPLETE_DEFAULT_TAIL,
+      timestamp: Date.now(),
+    });
+  }
+  const images = (input.images ?? [])
+    .filter((image) => image && typeof image.data === "string" && typeof image.mimeType === "string")
+    .slice(0, 4);
+  if (images.length > 0) {
+    parts.push({
+      role: "user",
+      content: [
+        { type: "text", text: "The attached screenshot is the current page state." },
+        ...images.map((image) => ({ type: "image" as const, data: image.data, mimeType: image.mimeType })),
+      ],
       timestamp: Date.now(),
     });
   }

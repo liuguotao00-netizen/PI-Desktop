@@ -21,3 +21,8 @@ if (!hasSingleInstanceLock) app.quit();
 
 // Preserve the existing Chromium accessibility crash workaround before ready.
 app.commandLine.appendSwitch("disable-renderer-accessibility");
+// Drop Blink's automation mark before Chromium boots, the same switch qiwork
+// uses for its guest/agent pages. Taobao risk control reads it (navigator.
+// webdriver and related internal flags) and blocks scripted-looking clients;
+// the UA/client-hint identity alone does not cover this layer.
+app.commandLine.appendSwitch("disable-blink-features", "AutomationControlled");

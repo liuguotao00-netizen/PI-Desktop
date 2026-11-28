@@ -28,6 +28,7 @@ import { registerScheduledIpc } from "./scheduled-ipc";
 import { registerSessionIpc } from "./session-ipc";
 import { registerSettingsIpc } from "./settings-ipc";
 import { registerStorageIpc } from "../storage/ipc";
+import { registerBrowserAgentIpc } from "../browser-agent-ipc.ts";
 import { registerConfigSyncIpc } from "./config-sync-ipc";
 import { registerBackgroundTasksIpc } from "./background-tasks-ipc";
 import { registerSkillsIpc } from "./skills-ipc";
@@ -177,6 +178,8 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     scheduledRunsBySession,
     isDevelopmentBuild,
     browserHost,
+    browserRouter,
+    cuaSessions,
     clipboardHistory,
     recordPastedClipboardFiles,
     currentWorkspacePath,
@@ -279,6 +282,7 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     updater,
   });
   registerStorageIpc({ registrar, getMainWindow, restart: dependencies.restartForStorage });
+  registerBrowserAgentIpc({ registrar });
   registerNotificationIpc({
     registrar,
     getHost,
@@ -403,6 +407,8 @@ export function registerIpcHandlers(dependencies: RegisterIpcDependencies) {
     isDevelopmentBuild,
     plugins,
     browserHost,
+    browserRouter,
+    cuaSessions,
     clipboardHistory,
     recordPastedClipboardFiles,
     currentWorkspacePath,

@@ -1011,3 +1011,11 @@
 
 .review-history.is-nowrap .review-change-diff .diff-line { min-width: max-content; }
 .review-history.is-nowrap .diff-line-text { white-space: pre; overflow-wrap: normal; }
+
+.work-panel-tab-agent {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-round);
+  background: var(--ds-accent);
+}

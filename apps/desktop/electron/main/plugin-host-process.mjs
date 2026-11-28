@@ -21,9 +21,14 @@
  *                                                    keepalive proving the parent is alive
  */
 import { createRequire } from "node:module";
+
+const NodeModule = createRequire(import.meta.url)("node:module");
 import { pathToFileURL } from "node:url";
-import { join } from "node:path";
+import { delimiter, isAbsolute, join, resolve } from "node:path";
+import { existsSync } from "node:fs";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { pluginSandboxPolicy } from "./plugin-sandbox-policy.mjs";
+import { createPluginApi } from "./plugin-host-api/api-surface.mjs";
 
 const parentPort = process.parentPort;
 
@@ -248,334 +253,22 @@ const busHandlers = new Map();
 const eventListeners = new Map();
 
 function buildApi() {
-  return {
-    app: {
-      getVersion: () => call("app.getVersion"),
-      getLocale: () => call("app.getLocale"),
-      getAppearance: () => call("app.getAppearance"),
-      getCapabilities: () => call("app.getCapabilities"),
-      setTheme: (themeId) => call("app.setTheme", [themeId]),
-    },
-    themes: {
-      upsert: (input) => call("themes.upsert", [input]),
-      remove: (themeId) => call("themes.remove", [themeId]),
-      list: () => call("themes.list"),
-      setVariables: (themeId, values) => call("themes.setVariables", [themeId, values]),
-    },
-    plugin: {
-      getId: () => pluginId,
-      getManifest: () => manifest,
-      getSettings: () => call("plugin.getSettings"),
-      setSettings: (partial) => call("plugin.setSettings", [partial]),
-      getDataPath: () => call("plugin.getDataPath"),
-    },
-    commands: {
-      register: async (command) => {
-        if (!command || typeof command.id !== "string" || !command.id) {
-          throw new Error("command.id is required");
-        }
-        if (typeof command.run !== "function") {
-          throw new Error("command.run must be a function");
-        }
-        commands.set(command.id, command.run);
-        try {
-          await call("commands.register", [
-            {
-              id: command.id,
-              title: command.title,
-              keywords: command.keywords,
-              category: command.category,
-            },
-          ]);
-        } catch (error) {
-          commands.delete(command.id);
-          throw error;
-        }
-      },
-      unregister: async (id) => {
-        commands.delete(id);
-        await call("commands.unregister", [id]);
-      },
-    },
-    speech: {
-      registerAdapter: async (adapter) => {
-        if (!adapter || typeof adapter.protocol !== "string" || !adapter.protocol.trim()) {
-          throw new Error("speech protocol is required");
-        }
-        if (typeof adapter.handle !== "function") {
-          throw new Error("speech handle must be a function");
-        }
-        const protocol = adapter.protocol.trim();
-        const roles = Array.isArray(adapter.roles) ? adapter.roles : [];
-        speechHandles.set(protocol, adapter.handle);
-        try {
-          await call("speech.registerAdapter", [
-            {
-              protocol,
-              label: adapter.label,
-              roles,
-            },
-          ]);
-        } catch (error) {
-          speechHandles.delete(protocol);
-          throw error;
-        }
-      },
-      unregisterAdapter: async (protocol) => {
-        speechHandles.delete(String(protocol ?? ""));
-        await call("speech.unregisterAdapter", [protocol]);
-      },
-    },
-    ui: {
-      openPanel: (options) => call("ui.openPanel", [options]),
-      closePanel: () => call("ui.closePanel"),
-      showToast: (message, level) => call("ui.showToast", [message, level]),
-      // The work panel is the shell's own surface: the plugin names one of its
-      // declared views and the subject, and the main process refuses a session
-      // that stopped being the one the user is looking at.
-      revealView: (input) => call("ui.revealView", [input ?? {}]),
-      notify: (input) => call("ui.notify", [input]),
-      getNotificationPermission: () => call("ui.getNotificationPermission"),
-      requestNotificationPermission: () => call("ui.requestNotificationPermission"),
-      showNativeNotification: (input) => call("ui.showNativeNotification", [input]),
-    },
-    // One line into the session's composer placeholder (ADR 0333). The shell
-    // answers whether it went on screen, so a plugin never has to guess before
-    // spending another completion.
-    composer: {
-      suggest: (input) => call("composer.suggest", [input ?? {}]),
-      getSuggestionTarget: (input) => call("composer.getSuggestionTarget", [input]),
-      suggestCandidates: (input) => call("composer.suggestCandidates", [input]),
-      clearSuggestion: (input) => call("composer.clearSuggestion", [input ?? {}]),
-    },
-    project: {
-      create: (input) => call("project.create", [input ?? {}]),
-    },
-    providers: {
-      oauth: {
-        prompt: (loginId, input) => call("providers.oauth.prompt", [loginId, input]),
-        notify: (loginId, event) => call("providers.oauth.notify", [loginId, event]),
-      },
-    },
-    workspace: {
-      get: () => call("workspace.get"),
-    },
-    projects: {
-      list: () => call("projects.list"),
-    },
-    desktop: {
-      listOperations: () => call("desktop.listOperations"),
-      invoke: (input) => call("desktop.invoke", [input ?? {}]),
-    },
-    fs: {
-      readText: (path) => call("fs.readText", [path]),
-      stat: (path, grantId) => call("fs.stat", [path, grantId]),
-      readRange: (path, byteOffset, length, grantId) =>
-        call("fs.readRange", [path, byteOffset, length, grantId]).then((result) => ({
-          ...result,
-          bytes: normalizeBytes(result?.bytes),
-        })),
-      readPreview: (path, options) => call("fs.readPreview", options === undefined ? [path] : [path, options]),
-      openDefault: (path) => call("fs.openDefault", [path]),
-      openInBrowser: (path) => call("fs.openInBrowser", [path]),
-      reveal: (path) => call("fs.reveal", [path]),
-      writeText: (path, content) => call("fs.writeText", [path, content]),
-      glob: (pattern) => call("fs.glob", [pattern]),
-      list: (path, options) => call("fs.list", options === undefined ? [path] : [path, options]),
-      remove: (path) => call("fs.remove", [path]),
-      requestDirectory: () => call("fs.requestDirectory"),
-    },
-    agent: {
-      registerTool: async (tool) => {
-        if (!tool || typeof tool.name !== "string" || !tool.name) {
-          throw new Error("tool.name is required");
-        }
-        if (typeof tool.execute !== "function") {
-          throw new Error("tool.execute must be a function");
-        }
-        tools.set(tool.name, tool.execute);
-        try {
-          await call("agent.registerTool", [
-            {
-              name: tool.name,
-              description: tool.description,
-              risk: tool.risk,
-              schema: tool.schema,
-            },
-          ]);
-        } catch (error) {
-          tools.delete(tool.name);
-          throw error;
-        }
-      },
-      unregisterTool: async (name) => {
-        tools.delete(name);
-        await call("agent.unregisterTool", [name]);
-      },
-      complete: (input) => call("agent.complete", [input ?? {}]),
-    },
-    models: {
-      list: () => call("models.list"),
-    },
-    session: {
-      // The selected session, as the shell shows it. A snapshot is a value: a
-      // plugin compares `sessionId` rather than assuming the session still holds.
-      getActive: () => call("session.getActive"),
-      getLlmContext: () => call("session.getLlmContext"),
-      getAutoTitleContext: (input) => call("session.getAutoTitleContext", [input ?? {}]),
-      setAutoTitle: (input) => call("session.setAutoTitle", [input ?? {}]),
-      list: (input) => call("session.list", [input ?? {}]),
-      get: (input) => call("session.get", [input ?? {}]),
-      listMessages: (input) => call("session.listMessages", [input ?? {}]),
-      import: (input) => call("session.import", [input ?? {}]),
-      importBatch: (input) => call("session.importBatch", [input ?? {}]),
-      rename: (input) => call("session.rename", [input ?? {}]),
-      delete: (input) => call("session.delete", [input ?? {}]),
-      // Message-level writes (`session.update.all` / `session.delete.all`, ADR
-      // 0339). The plugin supplies no scope: the main-process gateway derives it
-      // from the granted permissions.
-      appendMessage: (input) => call("session.appendMessage", [input ?? {}]),
-      replaceMessages: (input) => call("session.replaceMessages", [input ?? {}]),
-      deleteMessage: (input) => call("session.deleteMessage", [input ?? {}]),
-      truncateFrom: (input) => call("session.truncateFrom", [input ?? {}]),
-    },
-    // Read-only usage facts (`usage.read`). The main-process dispatch owns
-    // the permission check and parameter bounds; the host returns per-turn
-    // counters and identifiers only, so no message body crosses this bridge.
-    usage: {
-      listTurns: (input) => call("usage.listTurns", [input ?? {}]),
-    },
-    /**
-     * Resident background workers (spec 07 §3). Registration is local: the
-     * manifest already declared the service, and the broker starts it only when
-     * `background.service` was granted — so a plugin that registers without the
-     * permission simply never runs.
-     */
-    services: {
-      register: (service) => {
-        if (!service || typeof service.id !== "string" || !service.id) {
-          throw new Error("service.id is required");
-        }
-        if (typeof service.start !== "function") {
-          throw new Error("service.start must be a function");
-        }
-        services.set(service.id, {
-          start: service.start,
-          stop: typeof service.stop === "function" ? service.stop : undefined,
-          running: false,
-        });
-      },
-      unregister: async (id) => {
-        const entry = services.get(String(id ?? ""));
-        services.delete(String(id ?? ""));
-        if (entry?.running && entry.stop) await entry.stop();
-      },
-    },
-    /**
-     * Inter-plugin message bus (spec 07 §3). Topics must be declared in
-     * `contributes.bus`; the broker owns the routing table, so this side only
-     * keeps the handler for each subscription it was given.
-     */
-    bus: {
-      publish: (topic, payload) => call("bus.publish", [topic, payload]),
-      subscribe: async (topic, handler) => {
-        if (typeof handler !== "function") {
-          throw new Error("bus.subscribe handler must be a function");
-        }
-        const result = await call("bus.subscribe", [topic]);
-        const id = String(result?.subscriptionId ?? "");
-        busHandlers.set(id, handler);
-        return async () => {
-          busHandlers.delete(id);
-          await call("bus.unsubscribe", [id]);
-        };
-      },
-    },
-    clipboard: {
-      readText: () => call("clipboard.readText"),
-      writeText: (text) => call("clipboard.writeText", [text]),
-      getHistory: () => call("clipboard.getHistory").then(normalizeClipboardHistory),
-    },
-    shell: {
-      openExternal: (url) => call("shell.openExternal", [url]),
-    },
-    browser: {
-      reveal: () => call("browser.reveal"),
-      navigate: (input) => call("browser.navigate", [input ?? {}]),
-      action: (input) => call("browser.action", [input]),
-      setBounds: (hole) => call("browser.setBounds", [hole]),
-      setVisible: (visible) => call("browser.setVisible", [visible]),
-      getState: () => call("browser.getState"),
-      openExternal: () => call("browser.openExternal"),
-      snapshot: () => call("browser.snapshot"),
-      screenshot: (input) => call("browser.screenshot", [input ?? {}]),
-      click: (input) => call("browser.click", [input]),
-      fill: (input) => call("browser.fill", [input]),
-      evaluate: (input) => call("browser.evaluate", [input]),
-      console: (input) => call("browser.console", [input ?? {}]),
-      cdp: (input) => call("browser.cdp", [input]),
-    },
-    net: {
-      getCapabilities: () => call("net.getCapabilities"),
-      fetch: (input) => call("net.fetch", [input]),
-      // Real-time connections (`net.websocket`). Frames arrive back as
-      // `net:websocket:message` host events, so a plugin subscribes with
-      // `pi.events.on` exactly as it does for any other host event.
-      websocket: {
-        connect: (input) => call("net.websocket.connect", [input ?? {}]),
-        send: (input) => call("net.websocket.send", [input ?? {}]),
-        close: (input) => call("net.websocket.close", [input ?? {}]),
-      },
-    },
-    /**
-     * Background audio (`audio.capture.background`, `audio.playback.background`).
-     * The host has no device backend yet, so the async calls travel to the
-     * broker and come back as a coded `UNSUPPORTED` refusal — a plugin can
-     * branch on `error.code` instead of catching a TypeError. The two
-     * registration helpers are synchronous by contract and cannot reject, so
-     * they throw the same refusal immediately rather than registering a handler
-     * that could never fire.
-     */
-    audio: {
-      getInputDevices: () => call("audio.getInputDevices"),
-      openInput: (options) => call("audio.openInput", [options ?? {}]),
-      closeInput: (streamId) => call("audio.closeInput", [streamId]),
-      getCaptureState: () => call("audio.getCaptureState"),
-      onInputFrame: () => {
-        throw audioUnavailable("audio.onInputFrame");
-      },
-      offInputFrame: () => {
-        throw audioUnavailable("audio.offInputFrame");
-      },
-      openOutput: (options) => call("audio.openOutput", [options ?? {}]),
-      writeOutput: (input) => call("audio.writeOutput", [input ?? {}]),
-      stopOutput: (streamId) => call("audio.stopOutput", [streamId]),
-      closeOutput: (streamId) => call("audio.closeOutput", [streamId]),
-    },
-    // System-wide accelerators. The arrow handlers live in the host: this
-    // object only carries requests across the boundary.
-    keyboard: {
-      registerGlobalShortcut: (input) => call("keyboard.registerGlobalShortcut", [input]),
-      unregisterGlobalShortcut: (id) => call("keyboard.unregisterGlobalShortcut", [id]),
-      listGlobalShortcuts: () => call("keyboard.listGlobalShortcuts"),
-    },
-    // Fed by the parent's `event` frames; bus deliveries also arrive as
-    // `bus.message` here, so a plugin can watch the raw stream if it wants to.
-    events: {
-      on: (event, handler) => {
-        if (typeof handler !== "function") return;
-        const listeners = eventListeners.get(event) ?? new Set();
-        listeners.add(handler);
-        eventListeners.set(event, listeners);
-      },
-      off: (event, handler) => {
-        eventListeners.get(event)?.delete(handler);
-      },
-    },
-  };
+  return createPluginApi({
+    call,
+    commands,
+    tools,
+    speechHandles,
+    services,
+    busHandlers,
+    eventListeners,
+    pluginId,
+    manifest,
+    normalizeBytes,
+    normalizeClipboardHistory,
+    audioUnavailable,
+  });
 }
 
-/** Dispatch one parent push frame; a throwing handler must not kill the plugin. */
 function handleHostEvent(message) {
   const event = String(message.event ?? "");
   if (event === "bus.message") {
@@ -612,10 +305,207 @@ async function loadPluginModule(entry) {
   }
 }
 
+const PROCESS_PERMISSIONS = new Set(["system.process", "computer.control", "browser.launch"]);
+let processAccess = false;
+let computerControl = false;
+let shellAccess = false;
+let allowedProcesses = new Set();
+let sandboxProcesses = false;
+let processGuardInstalled = false;
+
+const SHELLS = new Set(["sh", "bash", "zsh", "fish", "dash", "cmd", "cmd.exe", "powershell", "powershell.exe", "pwsh", "pwsh.exe"]);
+const DEFAULT_ALLOWED_PROCESSES = new Set(["git", "open", "xdg-open"]);
+const DESKTOP_BINARIES = new Set([
+  "cua-driver", "cua-driver.exe", "osascript", "cliclick", "xdotool", "ydotool", "wtype",
+  "grim", "scrot", "import", "screencapture", "gnome-screenshot", "spectacle", "kdotool",
+]);
+const childProcessProxies = new WeakMap();
+
+function commandName(value) {
+  const raw = typeof value === "string" ? value : String(value ?? "");
+  const token = raw.trim().split(/\s+/)[0] ?? "";
+  return token.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
+}
+
+function shellChains(command) {
+  let quote = null;
+  let escaped = false;
+  for (const char of String(command)) {
+    if (escaped) { escaped = false; continue; }
+    if (char === "\\") { escaped = true; continue; }
+    if (quote) { if (char === quote) quote = null; continue; }
+    if (char === "'" || char === '"') { quote = char; continue; }
+    if (char === ";" || char === "&" || char === "|" || char === "`" || char === "\n" || char === "\r") return true;
+    if (char === "$" && String(command).includes("$(")) return true;
+  }
+  return false;
+}
+
+function assertCommandAllowed(command, viaShell) {
+  const name = commandName(command);
+  if (viaShell && shellChains(command)) {
+    const error = new Error("shell command chaining is refused");
+    error.code = "PLUGIN_PERMISSION_DENIED";
+    throw error;
+  }
+  if (DESKTOP_BINARIES.has(name)) {
+    const error = new Error(
+      `plugin process cannot launch desktop automation binary ${name}; use pi.cua instead`,
+    );
+    error.code = "PLUGIN_PERMISSION_DENIED";
+    throw error;
+  }
+  if (processAccess && !allowedProcesses.has(name)) {
+    const error = new Error(
+      `plugin process ${name} is not in its processAllowlist`,
+    );
+    error.code = "PLUGIN_PERMISSION_DENIED";
+    throw error;
+  }
+  if ((viaShell || SHELLS.has(name)) && !shellAccess) {
+    const error = new Error("plugin requires the system.shell permission to use a shell");
+    error.code = "PLUGIN_PERMISSION_DENIED";
+    throw error;
+  }
+}
+
+function resolveExecutable(file) {
+  const raw = String(file ?? "");
+  if (isAbsolute(raw) || raw.includes("/")) {
+    const candidate = isAbsolute(raw) ? raw : resolve(raw);
+    return existsSync(candidate) ? candidate : null;
+  }
+  for (const directory of String(process.env.PATH ?? "").split(delimiter)) {
+    if (!directory) continue;
+    const candidate = join(directory, raw);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
+function sandboxProfile(executable, viaShell) {
+  const lines = [
+    "(version 1)",
+    "(allow default)",
+    "(deny process-exec*)",
+    `(allow process-exec (literal ${JSON.stringify(executable)}))`,
+  ];
+  if (viaShell) lines.push('(allow process-exec (literal "/bin/sh"))');
+  const base = executable.split("/").pop() ?? "";
+  if (base === "git") {
+    lines.push('(allow process-exec (subpath "/usr/libexec/git-core"))');
+    lines.push('(allow process-exec (subpath "/Library/Developer/CommandLineTools/usr/libexec/git-core"))');
+    lines.push('(allow process-exec (literal "/usr/bin/ssh"))');
+  }
+  return lines.join("\n");
+}
+
+function sandboxArgs(executable, args, viaShell) {
+  return [
+    "/usr/bin/sandbox-exec",
+    ["-p", sandboxProfile(executable, viaShell), executable, ...args],
+  ];
+}
+
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`;
+}
+
+function guardedChildProcess(real) {
+  if (childProcessProxies.has(real)) return childProcessProxies.get(real);
+  const proxy = { ...real };
+  const wrapFile = (fn) => function guardedFile(file, ...args) {
+    const options = args.find((value) => value && typeof value === "object" && !Array.isArray(value));
+    const viaShell = options?.shell === true;
+    assertCommandAllowed(file, viaShell);
+    if (sandboxProcesses) {
+      const executable = resolveExecutable(file);
+      if (!executable) {
+        const error = new Error(`plugin process could not resolve ${String(file)}`);
+        error.code = "PLUGIN_PERMISSION_DENIED";
+        throw error;
+      }
+      const argv = args.find((value) => Array.isArray(value)) ?? [];
+      const launch = sandboxArgs(executable, argv.map(String), viaShell);
+      return real[fn](launch[0], launch[1], ...args.filter((value) => !Array.isArray(value)));
+    }
+    return real[fn](file, ...args);
+  };
+  const wrapShell = (fn) => function guardedShell(command, ...args) {
+    assertCommandAllowed(command, true);
+    if (sandboxProcesses) {
+      const executable = resolveExecutable(commandName(command));
+      if (!executable) {
+        const error = new Error(`plugin process could not resolve ${commandName(command)}`);
+        error.code = "PLUGIN_PERMISSION_DENIED";
+        throw error;
+      }
+      const profile = sandboxProfile(executable, true);
+      const shellCommand = [
+        shellQuote("/usr/bin/sandbox-exec"),
+        "-p",
+        shellQuote(profile),
+        "/bin/sh",
+        "-c",
+        shellQuote(command),
+      ].join(" ");
+      return real[fn](shellCommand, ...args);
+    }
+    return real[fn](command, ...args);
+  };
+  proxy.spawn = wrapFile("spawn");
+  proxy.spawnSync = wrapFile("spawnSync");
+  proxy.execFile = wrapFile("execFile");
+  proxy.execFileSync = wrapFile("execFileSync");
+  proxy.exec = wrapShell("exec");
+  proxy.execSync = wrapShell("execSync");
+  childProcessProxies.set(real, proxy);
+  return proxy;
+}
+
+function installProcessGuard() {
+  if (processGuardInstalled) return;
+  processGuardInstalled = true;
+  const originalLoad = NodeModule._load;
+  NodeModule._load = function loadWithProcessGuard(request, parent, isMain) {
+    if (request === "child_process" || request === "node:child_process") {
+      if (!processAccess) {
+        const error = new Error(
+          "plugin requires the system.process, computer.control or browser.launch permission to spawn processes",
+        );
+        error.code = "PLUGIN_PERMISSION_DENIED";
+        throw error;
+      }
+      if (computerControl) {
+        const error = new Error(
+          "plugins with computer.control must drive the desktop through pi.cua; direct process spawning is refused",
+        );
+        error.code = "PLUGIN_PERMISSION_DENIED";
+        throw error;
+      }
+      return guardedChildProcess(originalLoad.call(this, request, parent, isMain));
+    }
+    return originalLoad.call(this, request, parent, isMain);
+  };
+}
+
 async function handleInit(message) {
   pluginId = String(message.pluginId ?? "");
   pluginPath = String(message.pluginPath ?? "");
   manifest = message.manifest ?? manifest;
+  const permissions = manifest.permissions ?? [];
+  processAccess = permissions.some((permission) => PROCESS_PERMISSIONS.has(permission));
+  computerControl = permissions.includes("computer.control");
+  const policy = pluginSandboxPolicy(permissions);
+  shellAccess = policy.shellAccess;
+  sandboxProcesses = policy.sandboxChildProcesses;
+  const declaredProcesses = Array.isArray(manifest.processAllowlist) ? manifest.processAllowlist : [];
+  const implicitProcesses = policy.allowImplicitProcesses ? [...DEFAULT_ALLOWED_PROCESSES] : [];
+  allowedProcesses = new Set(
+    (declaredProcesses.length ? declaredProcesses : implicitProcesses)
+      .map((value) => String(value).toLowerCase()),
+  );
+  installProcessGuard();
   const entry = join(pluginPath, String(message.main ?? manifest.main ?? ""));
 
   globalThis.pi = buildApi();

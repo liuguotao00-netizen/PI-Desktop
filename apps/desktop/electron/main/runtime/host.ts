@@ -422,6 +422,13 @@ export function createHostRuntime({
     logger.app("runtime", "info", "host-core handshake ok", {
       data: { generation: h.generation },
     });
+    if (process.env.PI_CUA_SELF_TEST === "1") {
+      void import("../dev/cua-self-test.ts").then(({ runCuaSelfTest }) =>
+        runCuaSelfTest(h, (message, data) =>
+          logger.app("runtime", "info", message, data),
+        ),
+      );
+    }
     void importLegacyScheduled();
     // Drain before the renderer can session.get. Assistant/tool rows live in
     // this outbox until host-core appends them; a cold start that raced the

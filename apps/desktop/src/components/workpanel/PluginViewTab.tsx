@@ -127,6 +127,51 @@ export function PluginViewTab({
     );
   }
 
+  // The takeover/hand-back/stop bar lives in the browser's own overlay view.
+  // This tab only relays the turn stop that takeover/stop asked for, and
+  // clears an idle hold when the tab goes away.
+  const controlSessionRef = useRef<string | undefined>(sessionId);
+  useEffect(() => {
+    if (pluginId !== "pi.browser") return () => {};
+    const bridge = (
+      window as unknown as {
+        piDesktop?: {
+          on(channel: string, cb: (payload: unknown) => void): () => void;
+          invoke(channel: string, ...args: unknown[]): Promise<unknown>;
+        };
+      }
+    ).piDesktop;
+    if (!bridge) return () => {};
+    return bridge.on("pi-desktop/browser/agentControl", (payload) => {
+      const value = payload as { state?: string; sessionId?: string; turnStop?: string } | null;
+      if (!value || typeof value.state !== "string") return;
+      if (value.sessionId) controlSessionRef.current = value.sessionId;
+      if (!value.turnStop) return;
+      if (sessionId && value.sessionId && value.sessionId !== sessionId) return;
+      const channel =
+        value.turnStop === "stop" ? "pi-desktop/agent/stop" : "pi-desktop/agent/abort";
+      void bridge.invoke(channel, { sessionId: value.sessionId ?? sessionId }).catch(() => {});
+    });
+  }, [pluginId, sessionId]);
+
+  // Closing this tab must not leave a stale takeover behind: reset only
+  // clears an idle hold, never a live operation.
+  useEffect(() => {
+    return () => {
+      const bridge = (
+        window as unknown as {
+          piDesktop?: { invoke(channel: string, ...args: unknown[]): Promise<unknown> };
+        }
+      ).piDesktop;
+      void bridge
+        ?.invoke("pi-desktop/browser/agentControl/set", {
+          action: "reset",
+          sessionId: controlSessionRef.current,
+        })
+        .catch(() => {});
+    };
+  }, []);
+
   return (
     <div className="work-plugin-view">
       <div ref={surfaceRef} className="work-plugin-view-surface" />

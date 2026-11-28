@@ -874,3 +874,34 @@
   gap: 8px;
   margin-top: 20px;
 }
+
+.cua-claim-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 12px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--radius-md);
+  background: var(--ds-bg-elevated-opaque);
+  color: var(--ds-text-primary);
+  font-size: var(--text-sm-plus);
+}
+.cua-claim-banner .cua-claim-target {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ds-text-secondary);
+}
+.cua-claim-banner button {
+  margin-left: auto;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--ds-text-primary);
+}
+.cua-claim-banner button:hover {
+  background: var(--ds-bg-hover);
+}

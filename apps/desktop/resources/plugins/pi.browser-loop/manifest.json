@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "id": "pi.browser-loop",
+  "name": "Browser Agent Loop",
+  "version": "1.0.0",
+  "description": "Model-driven observe/act loop over the session browser.",
+  "author": "PI-Desktop",
+  "main": "main.js",
+  "permissions": [
+    "agent.tool.register",
+    "agent.complete",
+    "models.list",
+    "browser.cdp"
+  ],
+  "contributes": {
+    "agentTools": [
+      {
+        "name": "browser_run",
+        "description": "Run an autonomous browser loop toward a goal with a small plan: observe, one model action, execute, recover, repeat until done or the step/time limit.",
+        "risk": "medium",
+        "schema": {
+          "type": "object",
+          "properties": {
+            "goal": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string"
+            },
+            "maxSteps": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 32
+            },
+            "maxMs": {
+              "type": "integer",
+              "minimum": 5000,
+              "maximum": 300000
+            },
+            "modelKey": {
+              "type": "string"
+            },
+            "vision": {
+              "type": "boolean"
+            },
+            "resume": {
+              "type": "object",
+              "description": "Resume a paused loop from a previous result.resume",
+              "properties": {
+                "history": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "plan": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "goal"
+          ],
+          "additionalProperties": false
+        }
+      }
+    ]
+  }
+}

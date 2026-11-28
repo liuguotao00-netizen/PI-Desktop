@@ -77,6 +77,7 @@ import {
   createProviderCatalogRuntime,
 } from "./runtime/provider-catalog";
 import { createSessionLaunchRuntime } from "./runtime/session-launch";
+import { noteTurnEnded, noteTurnStarted } from "./browser-agent-control.ts";
 import { createSessionCoordination } from "./runtime/session-coordination";
 import { createScheduledRuntime } from "./runtime/scheduled";
 import { createDesktopServices } from "./services/desktop-services";
@@ -363,6 +364,7 @@ const {
   pluginPanels,
   pluginViews,
   browserHost,
+  browserRouter,
   announceTurnEnded,
   observePersistedUserMessage,
   speech,
@@ -655,6 +657,8 @@ const sessionCoordination = createSessionCoordination({
    * inferred from the previous turn's end.
    */
   onTurnStarted: (sessionId: string, turnId: string) => {
+    noteTurnStarted(sessionId);
+    pluginServices.browserSessions.noteTurnStarted(sessionId, turnId);
     pluginServices.pluginSession.noteTurnStarted(sessionId, turnId);
     // A new turn owns the composer now, so a suggestion about the previous one
     // stops being shown and stops being showable (ADR 0333).
@@ -755,7 +759,23 @@ const planRuntime = createPlanRuntime({
   onTurnSettled: async (sessionId, turnId) => {
     try { await sessionCollaboration.settle(sessionId, turnId); } finally { backgroundContinuations.wake(); }
   },
-  onTurnEnded: (sessionId, turnId, end) => modeServices.runs.settleTurn(sessionId, turnId, end),
+  onTurnEnded: (sessionId, turnId, end) => {
+    // The browser bar belongs to the turn, not to one tool call.
+    noteTurnEnded(sessionId);
+    // Temporary browser tabs belong to the turn too: close them unless the
+    // agent marked them deliverable/handoff.
+    void pluginServices.browserSessions.endTurn(sessionId, turnId).catch((error) => {
+      logger.app("plugin", "warn", "browser.turn.cleanup.failed", {
+        data: { sessionId, error: error instanceof Error ? error.message : String(error) },
+      });
+    });
+    // A terminal turn cannot leave an item "in progress". Best effort: the
+    // checklist is presentation state, never a reason to fail the settle.
+    void getHost()
+      ?.call("todos.cancelInProgress", { sessionId })
+      .catch(() => {});
+    return modeServices.runs.settleTurn(sessionId, turnId, end);
+  },
 });
 const {
   finishTurn,
@@ -1043,6 +1063,7 @@ function registerIpc() {
     isQuitting: () => mainState.quitting,
     isDevelopmentBuild,
     browserHost,
+    browserRouter,
     clipboardHistory,
     recordPastedClipboardFiles,
     currentWorkspacePath,

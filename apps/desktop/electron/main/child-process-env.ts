@@ -56,9 +56,16 @@ export function minimalChildEnv(): Record<string, string> {
 
 /** The environment of a plugin's own utility process: minimal, plus its identity. */
 export function pluginChildEnv(pluginId: string): Record<string, string> {
-  return {
+  const env: Record<string, string> = {
     ...minimalChildEnv(),
     PI_PLUGIN_ID: pluginId,
     NODE_ENV: process.env.NODE_ENV ?? "production",
   };
+  // A plugin that persists its own run state (the Taobao automation does)
+  // must use the same profile as the host. Without this it falls back to the
+  // packaged default and mixes development runs into the installed app's
+  // data. The path is not a secret: a plugin can already derive `~` from HOME.
+  const dataDir = process.env.PI_DESKTOP_DATA_DIR;
+  if (dataDir) env.PI_DESKTOP_DATA_DIR = dataDir;
+  return env;
 }

@@ -20,6 +20,19 @@ export type {
   StderrHandler,
 } from "@pi-desktop/host-runtime";
 
+export function resolveHostLauncher(): string | null {
+  if (process.platform !== "darwin") return null;
+  const candidates = [
+    join(process.resourcesPath || "", "bin/pi-desktop-host-launcher"),
+    join(getModuleDirectory(import.meta.url), "../../../../target/debug/pi-desktop-host-launcher"),
+    join(getModuleDirectory(import.meta.url), "../../../../target/release/pi-desktop-host-launcher"),
+  ];
+  for (const candidate of candidates) {
+    if (candidate && existsSync(candidate)) return candidate;
+  }
+  return null;
+}
+
 export function resolveHostBinary(): string {
   if (process.env.PI_DESKTOP_HOST_BIN && existsSync(process.env.PI_DESKTOP_HOST_BIN)) {
     return process.env.PI_DESKTOP_HOST_BIN;
@@ -115,8 +128,16 @@ function fallbackStderrLogger(text: string): void {
 export class HostProcess extends RuntimeHostProcess {
   constructor(dataDir: string, onStderr?: StderrHandler) {
     const builtinPlugins = resolveBuiltinPluginsDir();
+    const hostBinary = resolveHostBinary();
+    // macOS attributes Accessibility to the TCC responsible process, which is
+    // normally the GUI app that spawned host-core. In dev the app's grant is
+    // separate from the host-core binary the user authorized, so spawn through
+    // a shim that disclaims responsibility before exec and lets host-core's own
+    // grant apply.
+    const launcher = resolveHostLauncher();
     super({
-      binaryPath: resolveHostBinary(),
+      binaryPath: launcher ?? hostBinary,
+      ...(launcher ? { args: [hostBinary] } : {}),
       dataDir,
       // Only Electron knows whether this build runs from `resources/` or a
       // source checkout, so it resolves the bundled-plugin directory and

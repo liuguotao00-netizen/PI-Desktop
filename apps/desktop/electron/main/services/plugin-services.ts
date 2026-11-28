@@ -1,5 +1,6 @@
-import { dialog, globalShortcut, shell, type BrowserWindow } from "electron";
+import { BrowserWindow, app, dialog, globalShortcut, shell } from "electron";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { getActiveRemoteHostsBoot } from "../bootstrap/remote-hosts";
 import { createPluginWorkspaceReader } from "../remote/plugin-workspace-files";
 import {
@@ -56,8 +57,21 @@ import { PluginPanelHost } from "../plugin-panel-host";
 import { PluginViewHost } from "../plugin-view-host";
 import { SESSION_SCOPED_EVENTS, sessionEventScopeFilter } from "../plugin-session-scope";
 import { BrowserPane } from "../browser-view";
+import { ExtensionBridgeServer } from "../browser/extension-server.ts";
+import { BrowserSessions } from "../browser/sessions.ts";
+import { TabLifecycle } from "../browser/lifecycle.ts";
+import { takeOver } from "../browser-agent-control.ts";
+import { nativeHostScriptExists, registerBrowserNativeHost } from "../browser/native-host.ts";
+import { readFileSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import { clearBrowserProfile } from "../browser/profile.ts";
 import { BrowserBackingHost } from "../browser-backing-host";
 import { BrowserHost, BROWSER_PLUGIN_ID } from "../browser-host";
+import { BrowserRouter } from "../browser-backends";
+import { CuaSessions } from "../cua/session";
+import { CuaRuntime } from "../cua/runtime";
+import { captureGrantedWindow } from "../computer-use/capture";
+import { createBrowserService } from "../browser/service";
 import { OAUTH_AUTH_KIND, type VendorOAuth } from "../oauth";
 import type { ClipboardHistory } from "../clipboard-history";
 import type { TurnEndedPayload } from "../runtime/session-coordination";
@@ -722,12 +736,19 @@ export function createPluginServices({
   });
   pluginPanels.addSenderResolver((senderId) => pluginViews.pluginIdForSender(senderId));
   const browserBackingHost = new BrowserBackingHost();
+  let browserRouter: BrowserRouter;
   const browserHost = new BrowserHost({
-    createPane: (onState, onOpenUrl) => new BrowserPane(onState, onOpenUrl, browserBackingHost),
+    createPane: (onState, onOpenUrl, sessionId) =>
+      new BrowserPane(onState, onOpenUrl, browserBackingHost, sessionId),
     onOpenUrl: (url, sessionId) => {
       void (async () => {
         const settings = await getHost()?.call<AppSettings>("settings.get");
-        if (!sessionId || settings?.linkOpenTarget === "external" || !/^https?:/i.test(url)) {
+        if (
+          !sessionId ||
+          settings?.linkOpenTarget === "external" ||
+          settings?.browser?.linkTarget === "external-browser" ||
+          !/^https?:/i.test(url)
+        ) {
           await shell.openExternal(url);
         } else {
           sendToRenderer(IPC.event.browserPreview, { sessionId, url });
@@ -735,6 +756,20 @@ export function createPluginServices({
       })().catch((error) => logger.app("plugin", "warn", "browser.link.open.failed", { data: String(error) }));
     },
     isPluginLoaded: (pluginId) => Boolean(plugins.getLoaded(pluginId)),
+    getBrowserSettings: async () => {
+      const settings = await getHost()?.call<AppSettings>("settings.get").catch(() => null);
+      return settings?.browser ?? null;
+    },
+    onSessionClose: (sessionId) => {
+      cuaSessions.clear(sessionId);
+      browserSessions.clear(sessionId);
+      browserRouter.release(sessionId);
+      void clearBrowserProfile(sessionId).catch((error) => {
+        logger.app("plugin", "warn", "browser profile cleanup failed", {
+          data: { error: error instanceof Error ? error.message : String(error) },
+        });
+      });
+    },
     getFileRoots: async (sessionId) => {
       if (!sessionId) return projectFolderPaths(getWorkspacePath());
       const host = getHost();
@@ -762,6 +797,164 @@ export function createPluginServices({
     onPresentationState: emitBrowserPresentationState,
     onRevealView: (sessionId, tabId, location) =>
       sendToRenderer(IPC.event.browserPreview, { sessionId, tabId, ...(location ?? { revealOnly: true }) }),
+  });
+  const bridgeTokenFile = join(dataDir, "extension-bridge-token");
+  let bridgeToken = "";
+  try {
+    bridgeToken = readFileSync(bridgeTokenFile, "utf8").trim();
+  } catch {
+    // First run: the stable token is created below.
+  }
+  if (!bridgeToken) {
+    bridgeToken = randomUUID();
+    writeFileSync(bridgeTokenFile, bridgeToken, { mode: 0o600 });
+  }
+  const extensionBridge = new ExtensionBridgeServer(47123, bridgeToken);
+  const nativeHostScript = [
+    join(process.resourcesPath, "browser-native-host", "host.mjs"),
+    join(app.getAppPath(), "resources", "browser-native-host", "host.mjs"),
+    // Dev runs the app from a cached bundle under out/main; resources live in
+    // the checkout next to it.
+    fileURLToPath(new URL("../../resources/browser-native-host/host.mjs", import.meta.url)),
+  ].find((candidate) => nativeHostScriptExists(candidate)) ?? join(process.resourcesPath, "browser-native-host", "host.mjs");
+  const extensionDirs = [
+    join(process.resourcesPath, "browser-extension"),
+    join(app.getAppPath(), "resources", "browser-extension"),
+    fileURLToPath(new URL("../../resources/browser-extension", import.meta.url)),
+  ].filter((dir) => nativeHostScriptExists(join(dir, "manifest.json")));
+  void extensionBridge
+    .listen()
+    .then(() => {
+      if (!nativeHostScriptExists(nativeHostScript)) {
+        logger.app("plugin", "warn", "browser native host script is missing", {
+          data: { path: nativeHostScript },
+        });
+        return;
+      }
+      let registration: ReturnType<typeof registerBrowserNativeHost>;
+      try {
+        registration = registerBrowserNativeHost({
+          dataDir,
+          bridgeEndpoint: extensionBridge.nativeEndpoint,
+          hostScriptPath: nativeHostScript,
+          execPath: process.execPath,
+          extensionPaths: extensionDirs,
+        });
+      } catch (error) {
+        logger.app("plugin", "warn", "browser native host registration failed", {
+          data: { error: error instanceof Error ? error.message : String(error) },
+        });
+        return;
+      }
+      if (!registration.supported) {
+        logger.app("plugin", "info", "browser native host not registered", {
+          data: { reason: registration.reason },
+        });
+        return;
+      }
+      if (registration.failures.length) {
+        logger.app("plugin", "warn", "browser native host partially registered", {
+          data: { failures: registration.failures },
+        });
+      }
+      logger.app("plugin", "info", "browser native host registered", {
+        data: { hostName: registration.hostName, manifests: registration.manifestPaths.length },
+      });
+    })
+    .catch((error) => {
+      logger.app("plugin", "warn", "extension bridge failed to listen", {
+        data: { error: error instanceof Error ? error.message : String(error) },
+      });
+    });
+  browserRouter = new BrowserRouter(browserHost, extensionBridge);
+  const browserService = createBrowserService(browserHost, browserRouter);
+  browserService.chromeSettings = async () => {
+    const settings = await getHost()?.call<AppSettings>("settings.get").catch(() => null);
+    return settings?.browser ?? null;
+  };
+  const browserLifecycle = new TabLifecycle();
+  const cuaSessions = new CuaSessions({
+    router: browserRouter,
+    getHost: () => getHost(),
+    claims: browserLifecycle,
+  });
+  const readClipboard = async () => {
+    const { clipboard } = await import("electron");
+    return clipboard.readText();
+  };
+  const writeClipboard = async (value: string) => {
+    const { clipboard } = await import("electron");
+    clipboard.writeText(value);
+    clipboardHistory.recordText(value);
+  };
+  const readClipboardImage = async () => {
+    const { clipboard } = await import("electron");
+    const image = clipboard.readImage();
+    return image.isEmpty() ? null : image.toPNG().toString("base64");
+  };
+  const writeClipboardImage = async (data: string) => {
+    const { clipboard, nativeImage } = await import("electron");
+    clipboard.writeImage(nativeImage.createFromBuffer(Buffer.from(data, "base64")));
+  };
+  let cuaRuntimeRef: CuaRuntime | null = null;
+  const browserSessions = new BrowserSessions({
+    service: browserService,
+    router: browserRouter,
+    lifecycle: browserLifecycle,
+    claimTab: async (sessionId, tabId) => {
+      if (!cuaRuntimeRef) throw new Error("browser session registry is not ready");
+      return cuaRuntimeRef.claimTab(sessionId, tabId);
+    },
+    releaseTab: (sessionId) => cuaRuntimeRef?.releaseTab(sessionId),
+    isTabVisible: async (sessionId, tabId) => {
+      const listed = await browserService.tabs({ action: "list" }, sessionId) as {
+        tabs?: Array<{ tabId?: string; active?: boolean }>;
+        activeTabId?: string;
+      };
+      return listed?.activeTabId === tabId || listed?.tabs?.some((tab) => tab.tabId === tabId && tab.active) === true;
+    },
+    setTabVisible: async (sessionId, tabId, visible) => {
+      await browserService.tabs({ action: visible ? "show" : "select", tabId }, sessionId);
+      browserHost.setGuestVisible(BROWSER_PLUGIN_ID, visible);
+    },
+    requestTakeover: (sessionId, reason) => {
+      takeOver(sessionId);
+      logger.app("plugin", "info", "browser.takeover.requested", {
+        data: { sessionId, reason: reason ?? "other" },
+      });
+    },
+    readClipboard,
+    writeClipboard,
+    readClipboardImage,
+    writeClipboardImage,
+  });
+  const cuaRuntime = new CuaRuntime({
+    sessions: cuaSessions,
+    browser: browserService,
+    browserSessions,
+    getHost: () => getHost(),
+    capture: captureGrantedWindow,
+    readClipboard,
+    writeClipboard,
+    readClipboardImage,
+    writeClipboardImage,
+    confirmClaim: async (claim) => {
+      const window = BrowserWindow.getFocusedWindow() ?? BrowserWindow.getAllWindows()[0] ?? null;
+      const result = await dialog.showMessageBox(window ?? undefined, {
+        type: "question",
+        buttons: ["Allow", "Deny"],
+        defaultId: 1,
+        cancelId: 1,
+        noLink: true,
+        message: "Allow the agent to control this browser tab?",
+        detail: [claim.title, claim.url, claim.tabId].filter(Boolean).join("\n"),
+      });
+      return result.response === 0;
+    },
+  });
+  cuaRuntimeRef = cuaRuntime;
+  browserRouter.onBackendStatus((sessionId, status) => {
+    sendToRenderer(IPC.event.browserBackendStatus, { sessionId, status });
   });
   pluginViews.onSurface = (surface) => {
     browserHost.setChromeSurface(surface);
@@ -832,24 +1025,14 @@ export function createPluginServices({
     /** `pi.composer.clearSuggestion`: drop this plugin's own line. */
     clearComposerSuggestion: (pluginId, sessionId) =>
       composerSuggestion.clearSuggestion(pluginId, sessionId),
-    browser: {
-      reveal: (sessionId) => browserHost.reveal(sessionId),
-      navigate: (input, sessionId, tabId) => browserHost.navigate(input, sessionId, tabId),
-      action: (action, sessionId, tabId) => browserHost.action(action, sessionId, tabId),
-      setBounds: (pluginId, hole) => browserHost.setGuestHole(pluginId, hole),
-      setVisible: (pluginId, visible) => browserHost.setGuestVisible(pluginId, visible),
-      getState: (sessionId, tabId) => browserHost.getStateForPlugin(sessionId, tabId),
-      openExternal: (sessionId, tabId) => browserHost.openExternal(sessionId, tabId),
-      snapshot: (sessionId, tabId) => browserHost.snapshot(sessionId, tabId),
-      screenshot: (input, sessionId, tabId) => browserHost.screenshot(input, sessionId, tabId),
-      click: (uid, sessionId, tabId) => browserHost.click(uid, sessionId, tabId),
-      fill: (uid, text, sessionId, tabId) => browserHost.fill(uid, text, sessionId, tabId),
-      evaluate: (expression, sessionId, tabId) => browserHost.evaluate(expression, sessionId, tabId),
-      console: (limit, sessionId, tabId) => browserHost.console(limit, sessionId, tabId),
-      cdp: (method, params, sessionId, tabId) => browserHost.cdpCommand(method, params, sessionId, tabId),
-    },
+    browser: browserService,
+    browserSessions,
+    cua: cuaRuntime,
     onPluginUnload: (pluginId) => {
-      if (pluginId === BROWSER_PLUGIN_ID) browserHost.disposeGuest();
+      if (pluginId === BROWSER_PLUGIN_ID) {
+        browserRouter.dispose();
+        browserHost.disposeGuest();
+      }
       // A stopped plugin loses its line in the composer with it.
       composerSuggestion.clearPlugin(pluginId);
     },
@@ -874,6 +1057,9 @@ export function createPluginServices({
     pluginPanels,
     pluginViews,
     browserHost,
+    browserRouter,
+    browserSessions,
+    cuaSessions,
     pluginSession,
     composerSuggestion,
     speech,

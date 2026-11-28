@@ -54,6 +54,12 @@ export const PERMISSION_RISK: Record<string, RiskTier> = {
   // The isolated plugin callback can read its own encrypted OAuth credentials.
   "provider.oauth": "high",
   "desktop.control": "high",
+  // Restricting executable names is a high-risk grant of its own.
+  "processAllowlist": "high",
+  "system.shell": "high",
+  "system.process": "high",
+  "computer.control": "high",
+  "browser.launch": "high",
   "project.create": "high",
   "session.read": "high",
   "session.autoTitle": "high",

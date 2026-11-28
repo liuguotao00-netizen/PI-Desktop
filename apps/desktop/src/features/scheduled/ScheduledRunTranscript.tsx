@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { ScheduledTaskRun, UiMessage } from "@pi-desktop/shared";
 import { api } from "../../lib/api";
+import { getToolPhrase } from "../../lib/tool-phrases";
 
 /**
  * Bounded read of a run's transcript. The page never loads a whole session:
@@ -43,7 +44,9 @@ function TranscriptMessage({ message }: { message: UiMessage }) {
     <li className={`scheduled-message scheduled-message-${message.role}`}>
       <span className="scheduled-message-role">
         {message.role === "tool" && message.toolName
-          ? message.toolName
+          ? getToolPhrase(message.toolName)
+            ? t(getToolPhrase(message.toolName)!.labelKey)
+            : message.toolName
           : t(roleLabelKey(message.role))}
       </span>
       <p className="scheduled-message-text" data-status={message.status ?? "complete"}>

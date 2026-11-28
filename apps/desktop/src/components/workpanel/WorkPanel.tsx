@@ -223,8 +223,25 @@ function LocalWorkPanel({
   const tabs = rawTabs.filter(isKnownWorkPanelTab);
   const activeTabId = useAppStore((s) => s.activeWorkPanelTabId);
   const activeSessionId = useAppStore((s) => s.activeSessionId);
+  const [claimedBrowserTab, setClaimedBrowserTab] = useState<string | null>(null);
   const pluginViews = useAppStore((s) => s.pluginViews);
   const width = useAppStore((s) => s.workPanelWidth);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      if (!activeSessionId) { setClaimedBrowserTab(null); return; }
+      try {
+        const state = await api.cuaState(activeSessionId);
+        if (!cancelled) setClaimedBrowserTab(state.claimedTabId ?? null);
+      } catch {
+        if (!cancelled) setClaimedBrowserTab(null);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 3000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [activeSessionId]);
   const yieldedWidth = useAppStore((s) => s.workPanelYieldedWidth);
   const activateTab = useAppStore((s) => s.activateWorkPanelTab);
   const reorderTabs = useAppStore((s) => s.reorderWorkPanelTabs);
@@ -1041,6 +1058,13 @@ function LocalWorkPanel({
                       >
                         <Icon size={14} />
                         <span className="work-panel-tab-label">{label}</span>
+                        {tab.resource === "pi.browser/browser" && claimedBrowserTab === tab.id ? (
+                          <span
+                            className="work-panel-tab-agent"
+                            title={t("settings.browserBackendClaimedTab")}
+                            aria-label={t("settings.browserBackendClaimedTab")}
+                          />
+                        ) : null}
                       </button>
                       <button
                         type="button"

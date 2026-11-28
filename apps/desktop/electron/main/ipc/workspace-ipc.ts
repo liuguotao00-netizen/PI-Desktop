@@ -56,6 +56,9 @@ import {
   workspaceRootsFor,
 } from "../workspace-roots";
 import { BROWSER_PLUGIN_ID, type BrowserHost } from "../browser-host";
+import type { BrowserRouter } from "../browser/router";
+import type { CuaSessions } from "../cua/session";
+import { discoverChromeCdp } from "../browser/discovery";
 import type { AgentSidecar } from "../agent-sidecar";
 import type { HostProcess } from "../host-process";
 import type { Logger } from "../logger";
@@ -94,6 +97,8 @@ export type WorkspaceIpcDependencies = {
   isDevelopmentBuild: boolean;
   plugins: PluginRuntime;
   browserHost: BrowserHost;
+  browserRouter: BrowserRouter;
+  cuaSessions: CuaSessions;
   clipboardHistory: ClipboardHistory;
   recordPastedClipboardFiles: (files: ComposerPasteFile[]) => void;
   currentWorkspacePath: () => string | null;
@@ -111,6 +116,8 @@ export function registerWorkspaceIpc({
   isDevelopmentBuild,
   plugins,
   browserHost,
+  browserRouter,
+  cuaSessions,
   clipboardHistory,
   recordPastedClipboardFiles,
   currentWorkspacePath,
@@ -818,6 +825,62 @@ handleWithEvent(
     if (!sessionId) return [];
     return browserHost.getPages(sessionId);
   });
+
+  handle(IPC.invoke.browserBackendState, async (input: { sessionId?: string } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    // Without a session this reports the embedded backend plus app-global
+    // information (the extension bridge endpoint), so Settings can be
+    // configured before a conversation exists.
+    return browserRouter.state(sessionId || undefined);
+  });
+
+  handle(IPC.invoke.cuaState, async (input: { sessionId?: string } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    if (!sessionId) throw new Error("cua state requires a session");
+    return cuaSessions.state(sessionId);
+  });
+  handle(IPC.invoke.cuaBind, async (input: {
+    sessionId?: string;
+    targetId?: string;
+    tabId?: string;
+  } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    if (!sessionId) throw new Error("cua bind requires a session");
+    return cuaSessions.bind(sessionId, {
+      ...(typeof input.targetId === "string" ? { targetId: input.targetId } : {}),
+      ...(typeof input.tabId === "string" ? { tabId: input.tabId } : {}),
+    });
+  });
+  handle(IPC.invoke.cuaClear, async (input: { sessionId?: string } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    if (!sessionId) throw new Error("cua clear requires a session");
+    cuaSessions.clear(sessionId);
+    return { ok: true };
+  });
+
+  handle(IPC.invoke.browserBackendConnect, async (input: {
+    sessionId?: string;
+    kind?: string;
+    endpoint?: string;
+    tabId?: string;
+    url?: string;
+    launch?: boolean;
+    chromePath?: string;
+    userDataDir?: string;
+    headless?: boolean;
+    chromeArgs?: string[];
+  } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    if (!sessionId) throw new Error("browser backend requires a session");
+    return browserRouter.connect(input, sessionId);
+  });
+
+  handle(IPC.invoke.browserBackendDisconnect, async (input: { sessionId?: string } = {}) => {
+    const sessionId = String(input.sessionId ?? "").trim();
+    return browserRouter.disconnect(sessionId);
+  });
+
+  handle(IPC.invoke.browserBackendDiscover, async () => discoverChromeCdp());
 
   type WorkspaceRootInfo = {
     root: string;
