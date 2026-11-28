@@ -22,8 +22,14 @@ Main risks:
 - Disabled plugin = code not loaded
 - Unconfirmed high-risk action = not executed
 - Host API not on the allowlist = does not exist
-- `pi.browser.cdp` methods not on the CDP allowlist = `PERMISSION_DENIED` (no
-  cookies, storage, Target, or Fetch; no DevTools websocket)
+- `pi.browser.uploadFiles` resolves every path and requires it to stay inside
+  the owning session's project, worktree, or scratch roots; page-provided paths
+  are never trusted.
+- `pi.browser.downloadUrl` accepts only http(s), uses the browser partition
+  session, is capped at 64 MiB, and writes into session scratch.
+- `pi.browser.cdp` `Input.*` methods = `PERMISSION_DENIED`; input goes through
+  `pi.browser.input`; `Cookie.*`, `Storage.*`, `Target.*`, and `Fetch.*` stay
+  denied, and other CDP methods are allowed (no DevTools websocket)
 
 ## 3. Isolation strategy
 

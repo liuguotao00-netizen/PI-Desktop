@@ -1123,10 +1123,29 @@ pi.browser.setVisible(visible: boolean | { visible: boolean }): Promise<void>
 pi.browser.getState(): Promise<BrowserState | null>
 pi.browser.openExternal(): Promise<void>
 pi.browser.snapshot(): Promise<{ tree: string; url: string; title: string }>
-pi.browser.screenshot(input?: { fullPage?: boolean }): Promise<{ mimeType: string; data: string; path?: string }>
+pi.browser.screenshot(input?: { fullPage?: boolean }): Promise<{ mimeType: string; data: string; path?: string; width: number; height: number; resized: boolean }>
 pi.browser.click(input: { uid: string }): Promise<void>
 pi.browser.fill(input: { uid: string; text: string }): Promise<void>
+pi.browser.uploadFiles(input: { selector?: string; files: string[] }): Promise<{ ok: true; files: string[] }>
+pi.browser.waitForFileChooser(input?: { timeoutMs?: number }): Promise<{ backendNodeId: number; mode: string }>
+pi.browser.setFileChooserFiles(input: { files: string[] }): Promise<{ ok: true; files: string[] }>
+pi.browser.downloadUrl(input: { url: string; filename?: string }): Promise<{ ok: true; path: string; bytes: number; contentType: string | null }>
+pi.browser.clickAndWaitForDownload(input: { ref: string; timeoutMs?: number }): Promise<{ path: string; url: string; filename: string; state: string }>
+pi.browser.connectBackend(input: { kind: "cdp" | "extension" | "mcp"; endpoint: string; tabId?: string; url?: string }): Promise<unknown>
+pi.browser.disconnectBackend(): Promise<{ ok: true; kind: "embedded" }>
+pi.browser.backendState(): Promise<{ backendId: string; kind: string; tabId: string | null; capabilities: string[] }>
+pi.browser.backendHealth(): Promise<{ ok: boolean; kind: string; tabs?: number; error?: string }>
+pi.browser.crossOriginFrame(input: { action: "list" | "text" | "html" | "click" | "fill"; frameId?: string; url?: string; targetSelector?: string; value?: string; limit?: number }): Promise<unknown>
 pi.browser.evaluate(input: { expression: string }): Promise<unknown>
+pi.browser.evaluateNative(input: { expression: string }): Promise<unknown>
+pi.browser.evaluateIsolated(input: { expression: string }): Promise<unknown>
+pi.browser.inputEvent(input: { type: string; x?: number; y?: number; button?: string; keyCode?: string; clickCount?: number }): Promise<{ ok: true }>
+pi.browser.insertText(input: { text: string }): Promise<{ ok: true }>
+pi.browser.input(input: { method: string; params?: unknown }): Promise<unknown>
+pi.browser.tabs(input: { action: "list" | "new" | "select" | "close"; tabId?: string; url?: string; headless?: boolean }): Promise<unknown>
+pi.browser.screenshotState(): Promise<{ url: string; imageWidth: number; imageHeight: number; path?: string; at: number } | null>
+pi.browser.lock(): Promise<{ locked: true }>
+pi.browser.unlock(): Promise<{ locked: false }>
 pi.browser.console(input?: { limit?: number }): Promise<{ messages: unknown[] }>
 pi.browser.cdp(input: { method: string; params?: unknown }): Promise<unknown>
 ```
@@ -1134,6 +1153,15 @@ pi.browser.cdp(input: { method: string; params?: unknown }): Promise<unknown>
 `navigate` returns when the current main-frame navigation commits, including
 redirects; it does not wait for slow images or subframes. `browser:state` reports
 loading immediately and optionally includes `loadError` for failed navigation.
+
+`uploadFiles` sets a real file input through `DOM.setFileInputFiles`. Every
+path is resolved and must stay inside the owning session's project, worktree,
+or scratch roots; files outside those roots fail with `PERMISSION_DENIED`.
+`downloadUrl` accepts only http(s), is capped at 64 MiB, and writes into the
+session scratch directory. `connectBackend` binds one external backend to the
+calling session only; `cdp` takes a loopback DevTools URL, `extension` a
+loopback WebSocket bridge, and `mcp` an http(s) MCP endpoint. Binding is not
+persisted and is released at session close or plugin unload.
 Renderer page metadata stays session-scoped in background `browser/event/state`
 updates; the shared `browser:state` plugin chrome feed includes only the page
 currently selected for presentation. Background events cannot retarget the
@@ -1150,9 +1178,18 @@ Each resource tab retains its own page. Agent navigation executes immediately
 in the calling session's connected page, even when its panel is hidden or a
 different session is visible. It never returns or navigates another session's page.
 `setBounds` is content-relative to the calling plugin view and is clamped so
-the guest cannot cover chat/composer. `cdp` is deny-by-default; cookie,
-storage, target, and network-interception methods fail with
-`PERMISSION_DENIED`. Session identity for agent calls comes from the in-flight
+the guest cannot cover chat/composer. `cdp` allows any method **except
+`Input.*`**, which fails with `PERMISSION_DENIED`; pointer and keyboard input
+go through `pi.browser.input`, so focus-sensitive events never come from a raw
+CDP call. `evaluateNative` runs through `webContents.executeJavaScript`;
+`evaluateIsolated` uses isolated world 1001. Neither attaches the debugger.
+`inputEvent` and `insertText` are trusted native input (`sendInputEvent` /
+`insertText`), so routine automation never opens a CDP session. `tabs` lists, opens, selects, and closes the calling
+session's pages; `headless` keeps a new page out of the visible tab list.
+`lock`/`unlock` hold an automation lease that keeps the bar in its quiet state;
+user takeover clears it. `screenshotState` returns the last capture cached on
+the host page, so coordinate clicks and other tools reuse it without another
+capture. Session identity for agent calls comes from the in-flight
 `plugins.execute` `sessionId`, not from plugin arguments (D333 / ADR 0170).
 The host binds every agent page operation to the trusted in-flight tool session.
 The first navigation or BrowserPreview connects a page; browsing another side-panel
@@ -1176,8 +1213,10 @@ viewport per page, temporarily disables throttling and restores it on completion
 loads independently of renderer mounting.
 
 Full-page `screenshot` captures are proportionally scaled to no more than
-1280×2048 output pixels. Viewport screenshots and raw `Page.captureScreenshot`
-CDP calls retain their existing dimensions.
+1280×2048 output pixels, and every capture is re-encoded down until its base64
+payload is ≈20,000 characters (Cursor's context budget). The result carries the
+final `width`/`height` and `resized`, which `browser_mouse_click_xy` uses to map
+screenshot coordinates back to the viewport.
 
 Screenshot captures, including raw `Page.captureScreenshot` CDP calls, have a
 30-second host-side deadline. A capture that exceeds it fails with `TIMEOUT`;
@@ -1875,3 +1914,15 @@ Renderer ES modules may import `react/jsx-runtime` or
 its runtimes alongside `react`, `react-dom`, and `react-dom/client`, before
 evaluating plugin entries. This keeps compiled JSX, hooks and context on the
 host React instance in production and development builds.
+
+### Browser diagnostics, dialogs, and chrome tools
+
+```text
+pi.browser.consoleLogs(input: { limit?: number }): Promise<{ entries: { type, message, timestamp, source? }[] }>
+pi.browser.networkRequests(input: { limit?: number }): Promise<{ entries: { method, url, status, resourceType?, timestamp }[] }>
+pi.browser.handleDialog(input: { accept?: boolean; promptText?: string }): Promise<{ ok: boolean; error?: string }>
+```
+
+Console and network buffers are per page, cleared on navigation, and capped
+(300 console entries, 200 requests). `handleDialog` acts on the dialog already
+blocking the page.

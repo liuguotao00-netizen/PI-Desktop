@@ -609,6 +609,11 @@ deletes per 60 seconds. P2/P3 methods are not present in protocol v11.
   with a warning, demotes later `in_progress` items to `pending`, and rejects
   more than 50 items or malformed values. The owner session and running turn
   come from the trusted transport fields, never from tool arguments.
+- `todos.cancelInProgress({ sessionId })` is turn-end normalization, called by
+  Electron Main after every terminal turn: `in_progress` items become
+  `cancelled`, `pending` items stay for later turns, and the revision advances
+  only when something changed. A change emits `todos.changed` with the same
+  snapshot shape as `todos.get`; the result is `{ changed, revision? }`.
 - TodoWrite is allowed only for an Agent session's own running turn. Plan/Goal,
   delegated, plugin, and MCP calls receive a tool result error and do not mutate
   storage. A successful replacement advances the session revision even when

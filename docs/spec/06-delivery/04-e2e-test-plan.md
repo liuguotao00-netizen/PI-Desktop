@@ -216,6 +216,8 @@ identify the platform validation still needed.
 | C / G / Quality — Plugins navigation | E2E-NAV-plugins-button-goes-back |
 | C / D / Quality — Sidebar row states | E2E-LAYOUT-sidebar-row-states |
 | E / Quality — Browser screenshot timeout recovery | E2E-BROWSER-capture-resize |
+| E / F / Security — Browser upload/download/locator/frame boundaries | E2E-BROWSER-file-locator-frame |
+| E / F / Security — Browser backend selection and fallback | E2E-BROWSER-backend-selection |
 | A / C / Quality — Sidebar material and settings return | E2E-LAYOUT-sidebar-settings |
 | C / Quality — Destination loading and focus | E2E-087b |
 | A / H / Quality — Renderer process crash recovery | E2E-RUNTIME-renderer-crash-recovery |

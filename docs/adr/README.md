@@ -427,3 +427,9 @@ git history.
 | plugin-transcript-selection-views | [Docked views can accept transcript selections](plugin-transcript-selection-views.md) | Accepted (issue #2395) |
 | opt-in-background-job-continuation | [Opt-in background job continuation](opt-in-background-job-continuation.md) | Proposed (#2143) |
 | plugin-turn-observation-model-context-and-suggestion-targets | [Publish turn observations, scoped model context, and Composer suggestion targets](plugin-turn-observation-model-context-and-suggestion-targets.md) | Accepted (#2470) |
+| 0347 | [Browser extension connects through a native messaging host](0347-browser-extension-native-messaging.md) | Accepted |
+| browser-automation-tool-surface | [Cursor-aligned browser automation surface](browser-automation-tool-surface.md) | Accepted |
+| browser-agent-control-and-native-evaluate | [Browser-level agent control and a non-CDP evaluate path](browser-agent-control-and-native-evaluate.md) | Accepted |
+| browser-backend-abstraction | [Browser backend abstraction](browser-backend-abstraction.md) | Accepted |
+| cua-codex-parity | [CUA parity with Codex](cua-codex-parity.md) | Accepted |
+| 0348 | [Browser sessions own tabs, capabilities, and turn cleanup](0348-browser-session-tabs-capabilities-lifecycle.md) | Accepted |
